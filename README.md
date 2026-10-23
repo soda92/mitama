@@ -135,12 +135,28 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 
 There is no title screen or top header; the selected pack starts immediately.
-Pack/volume/dialog-opacity/battle-result/status live in the **☰ Settings** panel, while
+Pack/BGM volume/SE volume/dialog opacity/battle result/status live in the
+**☰ Settings** panel, while
 Archives/Navigate are buttons on the dialogue box. The active side window can
 be closed from its header or by pressing **Escape**. Clicking the game screen
 returns focus to the game, so **Enter** and the arrow keys keep advancing
 dialogue while a side window is open. Scene links (`?scene=…&cmd=…`) resume
 directly.
+
+Settings are persisted in `localStorage` under `mitama.settings.v1` as JSON:
+
+```json
+{
+  "bgmVolume": 0.7,
+  "seVolume": 0.7,
+  "muted": false,
+  "dialogOpacity": 1,
+  "battlePolicy": "play"
+}
+```
+
+The old `mitama.dialogOpacity` and `mitama.battlePolicy` keys are migrated on
+first load. BGM and SE volumes are independent; mute silences both.
 
 Battles now open a playable simplified battle screen. `.pty` parties and
 `.chr` characters are parsed by the Go server; the screen shows shared party

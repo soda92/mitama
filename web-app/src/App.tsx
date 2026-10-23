@@ -46,7 +46,79 @@ interface BattleFlash {
 }
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
+const SETTINGS_KEY = "mitama.settings.v1";
 const LEGACY_SAVE_KEY = "mitama.saves.v1";
+
+interface StoredSettings {
+  bgmVolume: number;
+  seVolume: number;
+  muted: boolean;
+  dialogOpacity: number;
+  battlePolicy: BattlePolicy;
+}
+
+const DEFAULT_SETTINGS: StoredSettings = {
+  bgmVolume: 0.7,
+  seVolume: 0.7,
+  muted: false,
+  dialogOpacity: 1,
+  battlePolicy: "play",
+};
+
+function volumeSetting(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.min(1, value))
+    : fallback;
+}
+
+function readSettings(): StoredSettings {
+  let saved: Partial<StoredSettings> = {};
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<StoredSettings> | null;
+      if (parsed && typeof parsed === "object") saved = parsed;
+    }
+  } catch {
+    saved = {};
+  }
+
+  let legacyOpacity: number | undefined;
+  let legacyBattle: string | null = null;
+  try {
+    const raw = localStorage.getItem("mitama.dialogOpacity");
+    if (raw !== null) legacyOpacity = Number(raw);
+    legacyBattle = localStorage.getItem("mitama.battlePolicy");
+  } catch {
+    // localStorage may be unavailable
+  }
+  const opacity = volumeSetting(saved.dialogOpacity, volumeSetting(legacyOpacity, DEFAULT_SETTINGS.dialogOpacity));
+  const battle =
+    saved.battlePolicy === "play" ||
+    saved.battlePolicy === "win" ||
+    saved.battlePolicy === "lose" ||
+    saved.battlePolicy === "random"
+      ? saved.battlePolicy
+      : legacyBattle === "win" || legacyBattle === "lose" || legacyBattle === "random" || legacyBattle === "play"
+        ? legacyBattle
+        : DEFAULT_SETTINGS.battlePolicy;
+
+  return {
+    bgmVolume: volumeSetting(saved.bgmVolume, DEFAULT_SETTINGS.bgmVolume),
+    seVolume: volumeSetting(saved.seVolume, DEFAULT_SETTINGS.seVolume),
+    muted: typeof saved.muted === "boolean" ? saved.muted : DEFAULT_SETTINGS.muted,
+    dialogOpacity: opacity,
+    battlePolicy: battle,
+  };
+}
+
+function writeSettings(settings: StoredSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // best-effort setting persistence
+  }
+}
 const ARCHIVE_KEY = "mitama.archives.v1";
 
 type ArchiveMap = Record<string, Snapshot>;
@@ -117,6 +189,7 @@ function initialParams(): { pack: string; scene: string; pc: number } {
 
 export default function App() {
   const params = useMemo(initialParams, []);
+  const initialSettings = useMemo(readSettings, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shellRef = useRef<HTMLElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -131,8 +204,9 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [ended, setEnded] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [volume, setVolume] = useState(0.7);
+  const [muted, setMuted] = useState(initialSettings.muted);
+  const [bgmVolume, setBgmVolume] = useState(initialSettings.bgmVolume);
+  const [seVolume, setSeVolume] = useState(initialSettings.seVolume);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("loading");
   const [log, setLog] = useState("ready");
@@ -145,16 +219,10 @@ export default function App() {
   const battleResolveRef = useRef<((result: "win" | "lose") => void) | null>(null);
   const battlePolicyRef = useRef<BattlePolicy>("play");
   const assetsRef = useRef<AssetMap>(EMPTY_ASSETS);
-  const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(() => {
-    const raw = localStorage.getItem("mitama.battlePolicy");
-    return raw === "win" || raw === "lose" || raw === "random" || raw === "play" ? raw : "play";
-  });
+  const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dialogOpacity, setDialogOpacity] = useState(() => {
-    const raw = Number(localStorage.getItem("mitama.dialogOpacity"));
-    return Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 1;
-  });
+  const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -336,7 +404,8 @@ export default function App() {
       loadScript,
     );
     playerRef.current = player;
-    player.setVolume(volume);
+    player.setBgmVolume(bgmVolume);
+    player.setSeVolume(seVolume);
     return () => {
       player.stop();
       playerRef.current = null;
@@ -383,8 +452,12 @@ export default function App() {
   }, [data]);
 
   useEffect(() => {
-    playerRef.current?.setVolume(volume);
-  }, [volume]);
+    playerRef.current?.setBgmVolume(bgmVolume);
+  }, [bgmVolume]);
+
+  useEffect(() => {
+    playerRef.current?.setSeVolume(seVolume);
+  }, [seVolume]);
 
   useEffect(() => {
     playerRef.current?.setDialogueHidden(uiHidden);
@@ -392,11 +465,6 @@ export default function App() {
 
   useEffect(() => {
     playerRef.current?.setDialogueOpacity(dialogOpacity);
-    try {
-      localStorage.setItem("mitama.dialogOpacity", String(dialogOpacity));
-    } catch {
-      // best-effort setting persistence
-    }
   }, [dialogOpacity, data]);
 
   useEffect(() => {
@@ -405,12 +473,11 @@ export default function App() {
 
   useEffect(() => {
     battlePolicyRef.current = battlePolicy;
-    try {
-      localStorage.setItem("mitama.battlePolicy", battlePolicy);
-    } catch {
-      // best-effort setting persistence
-    }
   }, [battlePolicy]);
+
+  useEffect(() => {
+    writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, battlePolicy });
+  }, [bgmVolume, seVolume, muted, dialogOpacity, battlePolicy]);
 
   useEffect(() => {
     assetsRef.current = data?.assets ?? EMPTY_ASSETS;
@@ -818,14 +885,26 @@ export default function App() {
                   </select>
                 </label>
                 <label className="settings-row">
-                  <span>volume</span>
+                  <span>BGM volume</span>
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    value={Math.round(volume * 100)}
-                    onChange={(ev) => setVolume(Number(ev.target.value) / 100)}
+                    value={Math.round(bgmVolume * 100)}
+                    onChange={(ev) => setBgmVolume(Number(ev.target.value) / 100)}
                   />
+                  <b className="setting-value">{Math.round(bgmVolume * 100)}%</b>
+                </label>
+                <label className="settings-row">
+                  <span>SE volume</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(seVolume * 100)}
+                    onChange={(ev) => setSeVolume(Number(ev.target.value) / 100)}
+                  />
+                  <b className="setting-value">{Math.round(seVolume * 100)}%</b>
                 </label>
                 <label className="settings-row">
                   <span>dialog opacity</span>

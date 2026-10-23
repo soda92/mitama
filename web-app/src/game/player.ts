@@ -135,7 +135,8 @@ export class Player {
   private running = false;
   private paused = false;
   private stopped = true;
-  private volume = 0.7;
+  private bgmVolume = 0.7;
+  private seVolume = 0.7;
   private muted = false;
 
   private readonly imageCache = new Map<string, ImageSource>();
@@ -286,7 +287,7 @@ export class Player {
     } catch {
       // Autoplay may still be blocked; BGM will start on the next attempt.
     } finally {
-      a.volume = this.audioVolume();
+      a.volume = this.bgmGain();
     }
   }
 
@@ -656,20 +657,28 @@ export class Player {
     return true;
   }
 
-  setVolume(volume: number): void {
-    this.volume = Math.max(0, Math.min(1, volume));
-    if (this.bgm) this.bgm.volume = this.audioVolume();
-    for (const a of this.liveSe) a.volume = this.audioVolume();
+  setBgmVolume(volume: number): void {
+    this.bgmVolume = Math.max(0, Math.min(1, volume));
+    if (this.bgm) this.bgm.volume = this.bgmGain();
+  }
+
+  setSeVolume(volume: number): void {
+    this.seVolume = Math.max(0, Math.min(1, volume));
+    for (const a of this.liveSe) a.volume = this.seGain();
   }
 
   setMuted(muted: boolean): void {
     this.muted = muted;
-    if (this.bgm) this.bgm.volume = this.audioVolume();
-    for (const a of this.liveSe) a.volume = this.audioVolume();
+    if (this.bgm) this.bgm.volume = this.bgmGain();
+    for (const a of this.liveSe) a.volume = this.seGain();
   }
 
-  private audioVolume(): number {
-    return this.muted ? 0 : this.volume;
+  private bgmGain(): number {
+    return this.muted ? 0 : this.bgmVolume;
+  }
+
+  private seGain(): number {
+    return this.muted ? 0 : this.seVolume;
   }
 
   private clear(): void {
@@ -1148,7 +1157,7 @@ export class Player {
       this.bgm = new Audio();
       this.bgm.loop = true;
       this.bgm.preload = "auto";
-      this.bgm.volume = this.audioVolume();
+      this.bgm.volume = this.bgmGain();
     }
     return this.bgm;
   }
@@ -1175,7 +1184,7 @@ export class Player {
       a.dataset.track = rel;
       a.currentTime = 0;
     }
-    a.volume = this.audioVolume();
+    a.volume = this.bgmGain();
     if (!this.paused) void a.play().catch(() => undefined);
   }
 
@@ -1196,7 +1205,7 @@ export class Player {
     this.lastSeName = name;
     this.lastSeAt = Date.now();
     const a = new Audio(this.audioURL(rel));
-    a.volume = this.audioVolume();
+    a.volume = this.seGain();
     this.liveSe.add(a);
     const done = () => this.liveSe.delete(a);
     a.addEventListener("ended", done, { once: true });
