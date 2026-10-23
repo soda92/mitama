@@ -116,8 +116,9 @@ any chapter/event can be inspected without replaying the story.
 - **F** — fullscreen (letterboxed 4:3)
 - **D** — engine debug panel
 
-There is no title screen; the selected pack starts immediately. Scene links
-(`?scene=…&cmd=…`) resume directly.
+There is no title screen or top header; the selected pack starts immediately.
+Pack/volume/status live in the **☰ Settings** panel, while Save/Load/Scenes are
+buttons on the dialogue box. Scene links (`?scene=…&cmd=…`) resume directly.
 
 ### Debugging
 

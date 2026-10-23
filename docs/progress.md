@@ -57,6 +57,8 @@ Last updated: 2026-10-23.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
 - [x] Inline voice/SE annotations are hidden and played as page cues.
+- [x] Header/footer removed; controls live on the dialogue box and in ☰
+      Settings (pack, volume, debug).
 
 ## In progress
 

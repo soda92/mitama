@@ -77,6 +77,7 @@ export default function App() {
   const [sceneMode, setSceneMode] = useState(false);
   const [sceneFilter, setSceneFilter] = useState("");
   const [uiHidden, setUiHidden] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -394,7 +395,13 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
-      if (saveMode || sceneMode) return;
+      if (ev.key === "Escape") {
+        setSaveMode(null);
+        setSceneMode(false);
+        setMenuOpen(false);
+        return;
+      }
+      if (saveMode || sceneMode || menuOpen) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         if (uiHidden) setUiHidden(false);
@@ -414,54 +421,111 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [started, togglePause, toggleFullscreen, advance, saveMode, sceneMode, uiHidden]);
+  }, [started, togglePause, toggleFullscreen, advance, saveMode, sceneMode, menuOpen, uiHidden]);
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const scriptCount = Object.keys(assets.text).length;
 
   return (
     <main className={`shell ${uiHidden ? "ui-hidden" : ""}`}>
-      <header className="topbar">
-        <div className="scene-chip">
-          <b>{currentScene || pack?.id || "—"}</b>
-          <span>cmd {currentPC}</span>
-          <span className="dot">·</span>
-          <span>{status}</span>
-        </div>
-        <div className="topright">
-          {packs.length > 1 && (
-            <select
-              className="pack"
-              value={packId}
-              onChange={(ev) => {
-                setData(null);
-                setStarted(false);
-                setEnded(false);
-                setUiHidden(false);
-                setPackId(ev.target.value);
-                setResumeScene("");
-                setCurrentScene("");
-                setCurrentPC(0);
-                setResume({ pc: 0, image: "" });
-              }}
-              aria-label="data pack"
-            >
-              {packs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          )}
-          <button className="ghost" onClick={() => setDebugOpen((open) => !open)} title="Debug (D)">
-            Debug
-          </button>
-        </div>
-      </header>
+
 
       <section className="stage-wrap" ref={stageRef}>
         <div className="screen" onClick={handleStageClick}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
+
+          {started && (
+            <div className="dialogue-tools" onClick={(ev) => ev.stopPropagation()}>
+              <button className="tool" onClick={togglePause} title="Pause (P)">
+                {paused ? "▶" : "❚❚"}
+              </button>
+              <button className="tool" onClick={() => setSaveMode("save")} title="Save">
+                Save
+              </button>
+              <button className="tool" onClick={() => setSaveMode("load")} disabled={saves.every((s) => !s)} title="Load">
+                Load
+              </button>
+              <button className="tool" onClick={() => setSceneMode(true)} disabled={scriptCount === 0} title="Scenes">
+                Scenes
+              </button>
+              <button className="tool" onClick={() => setMuted((m) => !m)} title="Mute (M)">
+                {muted ? "🔇" : "🔊"}
+              </button>
+              <button className="tool" onClick={toggleFullscreen} title="Fullscreen (F)">
+                ⛶
+              </button>
+              <button className="tool" onClick={() => setMenuOpen(true)} title="Settings">
+                ☰
+              </button>
+            </div>
+          )}
+
+          {menuOpen && (
+            <div
+              className="save-overlay"
+              onClick={(ev) => {
+                ev.stopPropagation();
+                setMenuOpen(false);
+              }}
+            >
+              <div className="save-panel settings-panel" onClick={(ev) => ev.stopPropagation()}>
+                <div className="save-head">
+                  <strong>Settings</strong>
+                  <button onClick={() => setMenuOpen(false)}>✕</button>
+                </div>
+                <div className="kv settings-kv">
+                  <span>scene</span>
+                  <b>{currentScene || "—"}</b>
+                  <span>command</span>
+                  <b>cmd {currentPC}</b>
+                  <span>status</span>
+                  <b>{status}</b>
+                </div>
+                <label className="settings-row">
+                  <span>pack</span>
+                  <select
+                    className="pack"
+                    value={packId}
+                    onChange={(ev) => {
+                      setData(null);
+                      setStarted(false);
+                      setEnded(false);
+                      setUiHidden(false);
+                      setMenuOpen(false);
+                      setPackId(ev.target.value);
+                      setResumeScene("");
+                      setCurrentScene("");
+                      setCurrentPC(0);
+                      setResume({ pc: 0, image: "" });
+                    }}
+                  >
+                    {packs.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="settings-row">
+                  <span>volume</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(volume * 100)}
+                    onChange={(ev) => setVolume(Number(ev.target.value) / 100)}
+                  />
+                </label>
+                <div className="settings-actions">
+                  <button onClick={() => { setMenuOpen(false); setSaveMode("save"); }}>Save</button>
+                  <button onClick={() => { setMenuOpen(false); setSaveMode("load"); }} disabled={saves.every((s) => !s)}>Load</button>
+                  <button onClick={() => { setMenuOpen(false); setSceneMode(true); }}>Scenes</button>
+                  <button onClick={() => { setMenuOpen(false); setDebugOpen(true); }}>Debug</button>
+                  <button onClick={reloadCurrent}>Reload scene</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="notice error">
@@ -596,40 +660,7 @@ export default function App() {
         />
       )}
 
-      <footer className="controls">
-        <button className="icon" onClick={togglePause} disabled={!started} title="Pause (P)">
-          {paused ? "▶" : "❚❚"}
-        </button>
-        <button className="icon" onClick={toggleFullscreen} title="Fullscreen (F)">
-          ⛶
-        </button>
-        <button className="icon" onClick={() => setMuted((m) => !m)} title="Mute (M)">
-          {muted ? "🔇" : "🔊"}
-        </button>
-        <div className="vol">
-          <span>♪</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(volume * 100)}
-            onChange={(ev) => setVolume(Number(ev.target.value) / 100)}
-          />
-        </div>
-        <button onClick={() => setSaveMode("save")} disabled={!started} title="Save">
-          Save
-        </button>
-        <button onClick={() => setSaveMode("load")} disabled={saves.every((s) => !s)} title="Load">
-          Load
-        </button>
-        <button onClick={() => setSceneMode(true)} disabled={scriptCount === 0} title="Scenes">
-          Scenes
-        </button>
-        <button className="icon" onClick={reloadCurrent} disabled={!started} title="Reload scene">
-          ↻
-        </button>
-        <div className="log">{log}</div>
-      </footer>
+
     </main>
   );
 }

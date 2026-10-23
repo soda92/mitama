@@ -30,12 +30,12 @@ body {
 }
 
 .shell {
-  width: min(100vw, 1100px);
+  width: min(100vw, 1200px);
   height: 100dvh;
-  padding: 10px clamp(10px, 2.4vw, 26px);
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   font-family: var(--ui-font);
 }
 
@@ -130,7 +130,7 @@ button.ghost {
 
 .stage-wrap {
   position: relative;
-  width: min(100%, calc((100dvh - 118px) * 4 / 3));
+  width: min(100%, calc((100dvh - 16px) * 4 / 3));
   aspect-ratio: 4 / 3;
   align-self: center;
   flex: 0 0 auto;
@@ -154,6 +154,47 @@ canvas {
   height: 100%;
   display: block;
   background: #000;
+}
+
+.dialogue-tools {
+  position: absolute;
+  right: 2.8%;
+  top: calc(67.9% - 36px);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  border: 1px solid rgba(201, 168, 106, 0.28);
+  border-radius: 6px;
+  background: rgba(5, 6, 9, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+button.tool {
+  height: 26px;
+  min-width: 26px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #e0d6c2;
+  font: 12px/1 var(--ui-font);
+  letter-spacing: 0.02em;
+}
+
+button.tool:hover:not(:disabled) {
+  background: rgba(201, 168, 106, 0.18);
+  color: #f4dfb3;
+}
+
+button.tool:disabled {
+  opacity: 0.35;
+}
+
+.ui-hidden .dialogue-tools {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .stage-wrap:fullscreen {
@@ -313,6 +354,45 @@ button.choice:hover:not(:disabled) {
   border-radius: 10px;
   background: #0d0e13;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+.settings-panel {
+  width: min(360px, 92%);
+}
+
+.settings-kv {
+  margin-bottom: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+  color: #9b9588;
+  font-size: 12px;
+}
+
+.settings-row .pack {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row input[type="range"] {
+  flex: 1;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.settings-actions button {
+  font-size: 11px;
+  padding: 6px 9px;
 }
 
 .save-head {
