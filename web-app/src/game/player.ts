@@ -835,7 +835,7 @@ export class Player {
       ctx.font = '600 17px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
       const label = this.textSpeaker;
       const tw = Math.max(64, ctx.measureText(label).width + 28);
-      ctx.fillStyle = "rgba(12, 12, 16, 0.95)";
+      ctx.fillStyle = "rgb(12, 12, 16)";
       ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
       ctx.beginPath();
       ctx.roundRect(x + 12, y - 15, tw, 28, 5);
