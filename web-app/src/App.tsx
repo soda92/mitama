@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
@@ -441,7 +441,10 @@ export default function App() {
   const scriptCount = Object.keys(assets.text).length;
 
   return (
-    <main className={`shell ${uiHidden ? "ui-hidden" : ""}`}>
+    <main
+      className={`shell ${uiHidden ? "ui-hidden" : ""}`}
+      style={{ "--dialog-opacity": dialogOpacity } as CSSProperties}
+    >
 
 
       <section className="stage-wrap" ref={stageRef}>

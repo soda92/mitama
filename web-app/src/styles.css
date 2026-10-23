@@ -169,6 +169,7 @@ canvas {
   border-radius: 6px;
   background: rgba(5, 6, 9, 0.96);
   backdrop-filter: blur(2px);
+  opacity: var(--dialog-opacity, 1);
 }
 
 button.tool {
