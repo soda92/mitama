@@ -43,7 +43,9 @@ never modified.
 ## Current milestone
 
 The DVD opening and first chapter are playable with backgrounds, dialogue,
-choices, BGM, sound effects and voice. Scene links (`?scene=...&cmd=...`) and
-four save slots work. The flag VM, map movement and battle systems remain.
+choices, BGM, sound effects and voice. Scene links (`?scene=...&cmd=...`),
+archives, the page/chapter navigator and docked side panels work. Flags, party
+and map-mode state are tracked. Battles are temporarily auto-resolved so the
+story can continue; the real map movement and battle engines remain.
 
 Start with [Progress](progress.md).

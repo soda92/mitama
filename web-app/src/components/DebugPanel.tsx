@@ -64,6 +64,18 @@ export default function DebugPanel({
         </section>
 
         <section>
+          <h4>World</h4>
+          <div className="kv">
+            <span>map</span>
+            <b>{state?.mapMode ? "on" : "off"}</b>
+            <span>party</span>
+            <b>{state?.party.length ? state.party.join("・") : "—"}</b>
+            <span>battle</span>
+            <b>{state?.battlePolicy ?? "—"}</b>
+          </div>
+        </section>
+
+        <section>
           <h4>Dialogue</h4>
           {state?.text.active ? (
             <div className="kv">

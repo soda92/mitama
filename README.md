@@ -29,7 +29,7 @@ extractor at your own data.
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
 | Scene URLs, page/chapter navigator and archive manager | ✅ implemented |
 | Full-game flags (`IFT`/`FLG`/`EQU`/`FCK`/`RND`) | ✅ basic implementation |
-| Map movement, party, battle | ⛔ next |
+| Map/party state, auto-resolved battles | ◐ temporary fallback |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
 
 See [docs/progress.md](docs/progress.md) for the working checklist and
@@ -134,10 +134,15 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 
 There is no title screen or top header; the selected pack starts immediately.
-Pack/volume/dialog-opacity/status live in the **☰ Settings** panel, while
+Pack/volume/dialog-opacity/battle-result/status live in the **☰ Settings** panel, while
 Archives/Navigate are buttons on the dialogue box. The active side window can
 be closed from its header or by pressing **Escape**. Scene links
 (`?scene=…&cmd=…`) resume directly.
+
+Battles are currently auto-resolved so the story can continue. **Settings →
+battle** selects auto-win, auto-lose or random; the script's `BATTLE` command
+sets flag `20` and branches to the correct victory/defeat label. The result is
+shown as a short interstitial.
 
 ### Debugging
 

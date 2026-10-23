@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Player, type Snapshot, type StageSnapshot } from "./game/player";
+import {
+  Player,
+  type BattleInfo,
+  type BattlePolicy,
+  type Snapshot,
+  type StageSnapshot,
+} from "./game/player";
 import DebugPanel from "./components/DebugPanel";
 import ArchiveManager from "./components/ArchiveManager";
 import Navigator from "./components/Navigator";
@@ -112,6 +118,11 @@ export default function App() {
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [battle, setBattle] = useState<BattleInfo | null>(null);
+  const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(() => {
+    const raw = localStorage.getItem("mitama.battlePolicy");
+    return raw === "lose" || raw === "random" ? raw : "win";
+  });
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(() => {
@@ -236,6 +247,15 @@ export default function App() {
         },
         position: updateURL,
         choice: setChoices,
+        battle: (info) => {
+          setBattle(info);
+          return new Promise<void>((resolve) => {
+            window.setTimeout(() => {
+              setBattle(null);
+              resolve();
+            }, 1100);
+          });
+        },
       },
       packId,
       startScene,
@@ -308,6 +328,15 @@ export default function App() {
   useEffect(() => {
     playerRef.current?.setMuted(muted);
   }, [muted]);
+
+  useEffect(() => {
+    playerRef.current?.setBattlePolicy(battlePolicy);
+    try {
+      localStorage.setItem("mitama.battlePolicy", battlePolicy);
+    } catch {
+      // best-effort setting persistence
+    }
+  }, [battlePolicy, data]);
 
   const start = useCallback(() => {
     const player = playerRef.current;
@@ -665,6 +694,18 @@ export default function App() {
                   />
                   <b className="setting-value">{Math.round(dialogOpacity * 100)}%</b>
                 </label>
+                <label className="settings-row">
+                  <span>battle</span>
+                  <select
+                    className="pack"
+                    value={battlePolicy}
+                    onChange={(ev) => setBattlePolicy(ev.target.value as BattlePolicy)}
+                  >
+                    <option value="win">auto-win</option>
+                    <option value="lose">auto-lose</option>
+                    <option value="random">random</option>
+                  </select>
+                </label>
                 <div className="settings-actions">
                   <button onClick={() => { setMenuOpen(false); openArchives(); }}>Archives</button>
                   <button onClick={() => { setMenuOpen(false); openNavigator(); }}>Navigate</button>
@@ -702,6 +743,17 @@ export default function App() {
                     {opt.text}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {battle && (
+            <div className="battle-overlay">
+              <div className={`battle-card ${battle.winner}`}>
+                <strong>BATTLE</strong>
+                <span>{battle.script || battle.background}</span>
+                <b>{battle.winner === "win" ? "Victory" : "Defeat"}</b>
+                <small>auto-resolved</small>
               </div>
             </div>
           )}

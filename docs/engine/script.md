@@ -65,10 +65,10 @@ offset `0x181C8`:
 | `RND` | `flag max` | random value into flag | ✅ |
 | `SAV` | — | open save menu | ⛔ |
 | `TITLE` | — | return to title | ⛔ |
-| `MAP` | `ON\|OFF` | enable/disable map movement | ⛔ |
-| `PARTY` | `IN\|OUT name` | add/remove party member | ⛔ |
-| `BATTLE` | `background script` | start battle | ⛔ |
-| `LEVEL` | `character stat value` | set/raise level | ⛔ |
+| `MAP` | `ON\|OFF` | map-mode flag (tracked; movement UI pending) | ◐ |
+| `PARTY` | `IN\|OUT name` | add/remove party member | ◐ tracked |
+| `BATTLE` | `background script` | battle; currently auto-resolved and sets flag `20` | ◐ fallback |
+| `LEVEL` | `character stat value` | set/raise level (logged) | ◐ |
 | `SPRATE` | — | sprite operation (name likely a typo for SPRITE) | ⛔ |
 | `FADE` | milliseconds | fade screen | ⛔ |
 | `SHA` | — | screen shake | ⛔ |
@@ -130,5 +130,6 @@ Special BMP names: `BLACK`, `WHITE`, `RED`, `BG`, `ZZ`.
 - Whether `STS` sets the window title or an on-screen location label.
 - The role of `￥` in dialogue, and line-wrapping widths.
 - Battle data formats (`.chr`, `.pty`, `.dat`, `.mtn`, `.spt`, `.o`).
+- Map hotspot/enemy tables and the full meaning of `MAP ON`.
 - `.XA` is KWD1 audio, not the PSX XA format; the decoder is documented in
   [../formats/xa.md](../formats/xa.md).

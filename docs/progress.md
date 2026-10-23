@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-10-23.
+Last updated: 2026-10-24.
 
 ## Done
 
@@ -74,14 +74,18 @@ Last updated: 2026-10-23.
 
 - [x] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
 - [x] Flags are included in save snapshots.
-- [ ] `MAP` movement, party, encounter and battle systems.
+- [x] `MAP`/`PARTY` state tracking for debug and save-resume replay.
+- [x] Temporary `BATTLE` auto-resolver: win/lose/random, sets flag `20`,
+      shows a short result interstitial, then follows the script branch.
+- [ ] Interactive map movement, encounters and the real battle engine.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.
 
 ## Next milestone
 
-Make chapter 1 interactive beyond dialogue: implement the flag VM, then map
-movement and the event/choice flow. Audio and chapter loading are working.
+Make the full story traversable with the temporary battle fallback, then
+implement the real map interaction and battle data formats. Audio, chapter
+loading and story branching are working.
 
 ## Notes / decisions
 

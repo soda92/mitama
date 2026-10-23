@@ -1306,3 +1306,66 @@ button.navigator-line.cur .navigator-ptr {
   color: #f0dfb8;
   background: #181a22;
 }
+
+/* ------------------------------------------------------- battle stub */
+.battle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 4, 8, 0.68);
+  pointer-events: none;
+}
+
+.battle-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 240px;
+  padding: 20px 26px;
+  border: 1px solid rgba(201, 168, 106, 0.6);
+  border-radius: 8px;
+  background: rgba(8, 9, 13, 0.96);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  animation: battle-in 0.18s ease;
+}
+
+.battle-card strong {
+  color: var(--accent);
+  font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.35em;
+}
+
+.battle-card span {
+  color: #9b9588;
+  font: 10px/1.4 ui-monospace, monospace;
+}
+
+.battle-card b {
+  color: #f1d9a9;
+  font: 500 24px/1.2 "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: 0.12em;
+}
+
+.battle-card.lose b {
+  color: #d9a0a0;
+}
+
+.battle-card small {
+  color: #6f7079;
+  font: 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.1em;
+}
+
+@keyframes battle-in {
+  from {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
