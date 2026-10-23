@@ -60,3 +60,41 @@ func TestParseCharacter(t *testing.T) {
 		t.Fatalf("action rates = %#v", c.ActionRates)
 	}
 }
+
+func TestParseObjectSpriteAndMotion(t *testing.T) {
+	objSrc := `640
+:sprite
+	"yahiro00.spt"
+	"yahiro01.spt"
+:motion
+	"def_jmpin.mtn"
+	"def_kamae.mtn"
+:end
+`
+	obj, err := ParseObject(strings.NewReader(objSrc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(obj.SpriteFiles) != 2 || obj.SpriteFiles[1] != "yahiro01.spt" {
+		t.Fatalf("object = %#v", obj)
+	}
+	if len(obj.MotionFiles) != 2 || obj.MotionFiles[1] != "def_kamae.mtn" {
+		t.Fatalf("motions = %#v", obj.MotionFiles)
+	}
+
+	frames, err := ParseSprite(strings.NewReader("2\n0,0,112,128,56,128\n112,0,112,128,56,128\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(frames) != 2 || frames[1].X != 112 || frames[0].CY != 128 {
+		t.Fatalf("frames = %#v", frames)
+	}
+
+	motion, err := ParseMotion(strings.NewReader("spno 3\nspidx 0\nwait 16\nspidx 1\nwait 16\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if motion.Sprite != 3 || len(motion.Frames) != 2 || motion.Frames[1] != 1 {
+		t.Fatalf("motion = %#v", motion)
+	}
+}

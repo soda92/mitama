@@ -159,8 +159,8 @@ The old `mitama.dialogOpacity` and `mitama.battlePolicy` keys are migrated on
 first load. BGM and SE volumes are independent; mute silences both.
 
 Battles now open a playable simplified battle screen. `.pty` parties and
-`.chr` characters are parsed by the Go server; the screen shows shared party
-HP, enemy strikers, and **剣 / 術 / 受** actions. Victory or defeat sets flag
+`.chr` characters are parsed by the Go server; battle BGM, HP, enemy strikers,
+idle `.o`/`.spt`/`.mtn` sprites, and **剣 / 術 / 受** actions are shown. Victory or defeat sets flag
 `20`, so the script branches normally. **Settings → battle** can instead use
 auto-win, auto-lose or random for story testing. See
 [docs/engine/battle.md](docs/engine/battle.md).

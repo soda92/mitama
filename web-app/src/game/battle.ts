@@ -15,6 +15,21 @@ export interface BattleParty {
   loseText?: string;
 }
 
+export interface SpriteFrame {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cx: number;
+  cy: number;
+}
+
+export interface CharacterSprite {
+  bmp: string;
+  frames: SpriteFrame[];
+  idle: number[];
+}
+
 export interface BattleCharacter {
   file: string;
   name: string;
@@ -24,6 +39,7 @@ export interface BattleCharacter {
   survive: number;
   object: string;
   actionRates?: Array<[number, number, number, number]>;
+  sprite?: CharacterSprite;
 }
 
 export interface BattleEncounter {

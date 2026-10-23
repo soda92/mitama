@@ -293,6 +293,14 @@ export class Player {
     return this.audio.unlock();
   }
 
+  suspendBgm(): void {
+    this.audio.suspend();
+  }
+
+  resumeBgm(): void {
+    this.audio.resume();
+  }
+
   private readonly redraw = (): void => {
     if (!this.stopped) this.draw();
   };

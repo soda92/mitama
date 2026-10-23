@@ -6,7 +6,62 @@ interface BattleScreenProps {
   player: BattleCharacter;
   party: string[];
   backgroundUrl?: string;
+  bgmUrl?: string;
+  bgmVolume: number;
+  muted: boolean;
   onFinish: (result: "win" | "lose") => void;
+}
+
+function SpriteActor({ character }: { character: BattleCharacter }) {
+  const sprite = character.sprite;
+  const [tick, setTick] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!sprite || sprite.idle.length < 2) return;
+    const timer = window.setInterval(() => setTick((n) => n + 1), 520);
+    return () => window.clearInterval(timer);
+  }, [sprite]);
+
+  const idle = sprite?.idle.length ? sprite.idle : [0];
+  const frame = sprite?.frames[idle[tick % idle.length]] ?? sprite?.frames[0];
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !sprite || !frame) return;
+    canvas.width = frame.w;
+    canvas.height = frame.h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      ctx.clearRect(0, 0, frame.w, frame.h);
+      ctx.drawImage(img, -frame.x, -frame.y);
+      const pixels = ctx.getImageData(0, 0, frame.w, frame.h);
+      const data = pixels.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0) data[i + 3] = 0;
+      }
+      ctx.putImageData(pixels, 0, 0);
+    };
+    img.src = sprite.bmp;
+    return () => {
+      cancelled = true;
+    };
+  }, [sprite, frame]);
+
+  if (!sprite || !frame) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="battle-sprite"
+      width={frame.w}
+      height={frame.h}
+      style={{ width: frame.w, height: frame.h }}
+    />
+  );
 }
 
 type Phase = "select" | "busy" | "done";
@@ -19,6 +74,9 @@ export default function BattleScreen({
   player,
   party,
   backgroundUrl,
+  bgmUrl,
+  bgmVolume,
+  muted,
   onFinish,
 }: BattleScreenProps) {
   const enemyMaxHp = Math.max(1, encounter.party.maxHp || 416);
@@ -30,6 +88,7 @@ export default function BattleScreen({
   const [turn, setTurn] = useState(1);
   const [log, setLog] = useState<string[]>(["戦闘開始"]);
   const timer = useRef<number | null>(null);
+  const bgm = useRef<HTMLAudioElement | null>(null);
 
   useEffect(
     () => () => {
@@ -37,6 +96,24 @@ export default function BattleScreen({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!bgmUrl) return;
+    const audio = new Audio(bgmUrl);
+    audio.loop = true;
+    audio.volume = muted ? 0 : bgmVolume;
+    bgm.current = audio;
+    void audio.play().catch(() => undefined);
+    return () => {
+      audio.pause();
+      audio.src = "";
+      bgm.current = null;
+    };
+  }, [bgmUrl]);
+
+  useEffect(() => {
+    if (bgm.current) bgm.current.volume = muted ? 0 : bgmVolume;
+  }, [bgmVolume, muted]);
 
   const enemyNames = useMemo(() => {
     const names = encounter.characters.map((c) => c.name).filter(Boolean);
@@ -114,6 +191,9 @@ export default function BattleScreen({
 
       <div className="battle-field">
         <section className="battle-side player">
+          <div className="battle-actors">
+            <SpriteActor character={player} />
+          </div>
           <h3>{playerLabel}</h3>
           <p>{party.length ? party.join("・") : "単独"}</p>
           <div className="battle-hp">
@@ -127,6 +207,11 @@ export default function BattleScreen({
         <div className="battle-vs">VS</div>
 
         <section className="battle-side enemy">
+          <div className="battle-actors">
+            {encounter.characters.map((character, index) => (
+              <SpriteActor key={`${character.file}-${index}`} character={character} />
+            ))}
+          </div>
           <h3>{enemyLabel}</h3>
           <div className="battle-enemies">
             {enemyNames.map((name) => (

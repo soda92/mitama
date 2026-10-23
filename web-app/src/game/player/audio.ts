@@ -22,6 +22,7 @@ export class AudioEngine {
   private bgmWanted = false;
   private audioUnlocked = false;
   private paused = false;
+  private suspended = false;
   private bgmVolume = 0.7;
   private seVolume = 0.7;
   private muted = false;
@@ -57,7 +58,7 @@ export class AudioEngine {
       return;
     }
     await this.prime();
-    if (this.bgmWanted && !this.paused && this.bgm?.dataset.track && this.bgm.paused) {
+    if (this.bgmWanted && !this.paused && !this.suspended && this.bgm?.dataset.track && this.bgm.paused) {
       await this.bgm.play().catch(() => undefined);
     }
   }
@@ -75,7 +76,19 @@ export class AudioEngine {
       a.currentTime = 0;
     }
     a.volume = this.bgmGain();
-    if (!this.paused) void a.play().catch(() => undefined);
+    if (!this.paused && !this.suspended) void a.play().catch(() => undefined);
+  }
+
+  suspend(): void {
+    this.suspended = true;
+    if (this.bgm) this.bgm.pause();
+  }
+
+  resume(): void {
+    this.suspended = false;
+    if (this.bgmWanted && !this.paused && this.bgm?.dataset.track) {
+      void this.bgm.play().catch(() => undefined);
+    }
   }
 
   stopBgm(): void {

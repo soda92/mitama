@@ -9,6 +9,7 @@ export interface BattleSession {
   encounter: BattleEncounter;
   player: BattleCharacter;
   backgroundUrl?: string;
+  bgmUrl?: string;
 }
 
 interface BattleFlash {
@@ -75,7 +76,12 @@ export function useBattleSession(options: Options) {
         const backgroundUrl = rel
           ? `/media/${encodeURIComponent(packId)}/${rel}`
           : undefined;
-        setSession({ info, encounter, player, backgroundUrl });
+        const bgmKey = encounter.party.bgm.replace(/\.xa$/i, "").toLowerCase();
+        const bgmRel = assets.bgm[bgmKey];
+        const bgmUrl = bgmRel
+          ? `/api/audio?pack=${encodeURIComponent(packId)}&file=${encodeURIComponent(bgmRel)}`
+          : undefined;
+        setSession({ info, encounter, player, backgroundUrl, bgmUrl });
         return await new Promise<"win" | "lose">((resolve) => {
           resolver.current = resolve;
         });

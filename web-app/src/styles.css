@@ -1615,3 +1615,30 @@ button.navigator-line.cur .navigator-ptr {
     min-height: 3.4em;
   }
 }
+
+/* battle actors */
+.battle-actors {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.35em;
+  min-height: 0;
+  margin-bottom: 0.35em;
+}
+
+.battle-side.player .battle-actors {
+  justify-content: flex-start;
+}
+
+.battle-sprite {
+  flex: none;
+  background: transparent !important;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.65));
+  transform-origin: bottom center;
+}
+
+.battle-side.enemy .battle-sprite {
+  transform: scale(0.82);
+}

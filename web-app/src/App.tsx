@@ -102,6 +102,19 @@ export default function App() {
     currentScene: () => playerRef.current?.currentScene ?? "",
   });
 
+  const runBattleWithAudio = useCallback(
+    async (info: Parameters<typeof runBattle>[0]) => {
+      const player = playerRef.current;
+      player?.suspendBgm();
+      try {
+        return await runBattle(info);
+      } finally {
+        player?.resumeBgm();
+      }
+    },
+    [runBattle],
+  );
+
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
   const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
 
@@ -216,7 +229,7 @@ export default function App() {
         },
         position: updateURL,
         choice: setChoices,
-        battle: runBattle,
+        battle: runBattleWithAudio,
       },
       packId,
       startScene,
@@ -231,7 +244,7 @@ export default function App() {
     };
     // Volume is applied separately below; it must not recreate the player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, packId, startScene, loadScript, updateURL, runBattle]);
+  }, [data, packId, startScene, loadScript, updateURL, runBattleWithAudio]);
 
   // Debug surface for Chrome DevTools MCP / console use.
   useEffect(() => {
@@ -671,6 +684,9 @@ export default function App() {
               player={battleSession.player}
               party={battleSession.info.party}
               backgroundUrl={battleSession.backgroundUrl}
+              bgmUrl={battleSession.bgmUrl}
+              bgmVolume={bgmVolume}
+              muted={muted}
               onFinish={finishBattle}
             />
           )}

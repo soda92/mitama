@@ -44,6 +44,7 @@ type Character struct {
 	Survive       int      `json:"survive"`
 	Object        string   `json:"object"`
 	ActionRates   [][4]int `json:"actionRates,omitempty"`
+	Sprite        *Sprite  `json:"sprite,omitempty"`
 }
 
 // Encounter combines an enemy party with the characters it references.
@@ -203,4 +204,105 @@ func splitMember(s string) (string, int) {
 		action = firstInt(rest[1:])
 	}
 	return file, action
+}
+
+// SpriteFrame is one rectangle in a .spt file.
+type SpriteFrame struct {
+	X  int `json:"x"`
+	Y  int `json:"y"`
+	W  int `json:"w"`
+	H  int `json:"h"`
+	CX int `json:"cx"`
+	CY int `json:"cy"`
+}
+
+// Sprite is the frame list referenced by a character object.
+type Sprite struct {
+	Frames []SpriteFrame `json:"frames"`
+	Idle   []int         `json:"idle"`
+	BMP    string        `json:"bmp"`
+}
+
+// Object is the .o file that maps sprite and motion numbers.
+type Object struct {
+	SpriteFiles []string `json:"spriteFiles"`
+	MotionFiles []string `json:"motionFiles"`
+}
+
+// Motion is the subset of a .mtn file needed for an idle loop.
+type Motion struct {
+	Sprite   int   `json:"sprite"`
+	Frames   []int `json:"frames"`
+	AnimTime int   `json:"animTime"`
+}
+
+// ParseObject reads a character .o file.
+func ParseObject(r io.Reader) (Object, error) {
+	lines, err := readLines(r)
+	if err != nil {
+		return Object{}, err
+	}
+	var out Object
+	section := ""
+	for _, line := range lines {
+		if strings.HasPrefix(line, ":") {
+			section = strings.ToLower(line)
+			continue
+		}
+		switch section {
+		case ":sprite":
+			out.SpriteFiles = append(out.SpriteFiles, unquote(line))
+		case ":motion":
+			out.MotionFiles = append(out.MotionFiles, unquote(line))
+		}
+	}
+	return out, nil
+}
+
+// ParseSprite reads a .spt frame list.
+func ParseSprite(r io.Reader) ([]SpriteFrame, error) {
+	lines, err := readLines(r)
+	if err != nil {
+		return nil, err
+	}
+	var frames []SpriteFrame
+	for i, line := range lines {
+		nums := ints(line)
+		if i == 0 || len(nums) < 4 {
+			continue
+		}
+		frame := SpriteFrame{X: nums[0], Y: nums[1], W: nums[2], H: nums[3]}
+		if len(nums) > 4 {
+			frame.CX = nums[4]
+		}
+		if len(nums) > 5 {
+			frame.CY = nums[5]
+		}
+		frames = append(frames, frame)
+	}
+	return frames, nil
+}
+
+// ParseMotion reads the sprite number and frame sequence from a .mtn file.
+func ParseMotion(r io.Reader) (Motion, error) {
+	lines, err := readLines(r)
+	if err != nil {
+		return Motion{}, err
+	}
+	var out Motion
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		switch strings.ToLower(fields[0]) {
+		case "spno":
+			out.Sprite = firstInt(fields[1])
+		case "spidx":
+			out.Frames = append(out.Frames, firstInt(fields[1]))
+		case "animtime":
+			out.AnimTime = firstInt(fields[1])
+		}
+	}
+	return out, nil
 }

@@ -86,6 +86,44 @@ The web engine currently consumes:
 Special-move blocks and motion numbers are parsed only as opaque sections for
 now.
 
+## `.o`, `.spt`, `.mtn` — battle sprites
+
+Each `.chr` points to an object file such as `cc_yahiro.o`:
+
+```text
+:sprite
+  "yahiro00.spt"
+  ...
+:motion
+  "def_jmpin.mtn"
+  "def_kamae.mtn"
+  ...
+```
+
+The idle pose uses motion slot 1, e.g. `def_kamae.mtn`:
+
+```text
+spno 3
+spidx 0
+wait 16
+spidx 1
+wait 16
+```
+
+That resolves to sprite slot 3 (`yahiro03.spt`) and its frame list. `.spt`
+files are text rectangles:
+
+```text
+2
+0,0,112,128,56,128
+112,0,112,128,56,128
+```
+
+The server resolves this chain and returns a `sprite` object on
+`/api/battle` and `/api/battle/character`: BMP URL, frame rectangles and idle
+frame indices. The battle screen draws the frames on a canvas, chroma-keying
+black to transparency and alternating idle frames.
+
 ## Runtime approximation
 
 The browser battle screen is deliberately simple until the real damage,
@@ -120,5 +158,5 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - Actual damage formula, turn order and action-rate weighting.
 - Special techniques and `:spname` learn conditions.
 - `.o` / `.spt` / `.mtn` battle sprites and animations.
-- Battle BGM/jingle playback inside the battle screen.
+- Full `.mtn` motion playback beyond the idle loop and battle BGM jingles.
 - Player party level/HP persistence in archive snapshots.
