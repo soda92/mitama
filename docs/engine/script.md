@@ -56,12 +56,12 @@ offset `0x181C8`:
 | `SEND` / `SHAEND` | — | end a scene / menu block | ✅ (menu terminator) |
 | `SLT` | quoted options with labels | single choice menu | ✅ |
 | `MSLT` | quoted options with labels | multi-choice menu (single selection for now) | ✅ |
-| `IFT` | `flag op value label` | conditional jump (`> < =`) | ⛔ |
-| `EQU` | `flag value` | compare/set equality flag | ⛔ |
-| `FLG` | `flag ON\|OFF`, `flag value` | set flag | ⛔ |
-| `INC` / `DEC` | `flag [step]` | flag increment/decrement | ⛔ |
-| `FCK` | `flag label` | jump if flag set | ⛔ |
-| `RND` | `flag max` | random value into flag | ⛔ |
+| `IFT` | `flag op value label`, `flag value label` | conditional jump (`> < =`) | ✅ |
+| `EQU` | `flag value`, `flag = value` | assign flag | ✅ |
+| `FLG` | `flag ON\|OFF`, `flag value` | set flag | ✅ |
+| `INC` / `DEC` | `flag [step]` | flag increment/decrement | ✅ |
+| `FCK` | `flag label`, `a & b & c label`, `flag ON\|OFF label` | flag check jump | ✅ |
+| `RND` | `flag max` | random value into flag | ✅ |
 | `SAV` | — | open save menu | ⛔ |
 | `TITLE` | — | return to title | ⛔ |
 | `MAP` | `ON\|OFF` | enable/disable map movement | ⛔ |
@@ -123,8 +123,9 @@ Special BMP names: `BLACK`, `WHITE`, `RED`, `BG`, `ZZ`.
 
 ## Known unknowns
 
-- Exact argument grammar of `IFT`, `EQU`, `MAP`, `SPRATE`, `UIW`, `GSB`,
-  `EQF`, `SHA`.
+- Exact argument grammar of `MAP`, `SPRATE`, `UIW`, `GSB`, `EQF`, `SHA`.
+- `FCK` flag-combination variants are handled as AND; `IFT` uses numeric
+  equality/comparison.
 - Whether `STS` sets the window title or an on-screen location label.
 - The role of `￥` in dialogue, and line-wrapping widths.
 - Battle data formats (`.chr`, `.pty`, `.dat`, `.mtn`, `.spt`, `.o`).

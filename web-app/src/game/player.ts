@@ -26,6 +26,7 @@ export interface Snapshot {
   scene: string;
   pc: number;
   image: string;
+  flags?: Record<string, number>;
   thumbnail?: string;
   savedAt: number;
 }
@@ -67,6 +68,7 @@ export class Player {
   private textLast = 0;
 
   private choiceResolve: ((label: string) => void) | null = null;
+  private flags = new Map<number, number>();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -106,8 +108,13 @@ export class Player {
       scene: this.scene,
       pc: this.currentPC,
       image: this.currentImageName,
+      flags: Object.fromEntries(this.flags),
       savedAt: Date.now(),
     };
+  }
+
+  get flagState(): Record<string, number> {
+    return Object.fromEntries(this.flags);
   }
 
   choose(label: string): void {
@@ -115,6 +122,29 @@ export class Player {
     this.choiceResolve = null;
     this.events.choice?.(null);
     if (resolve) resolve(label);
+  }
+
+  private flagID(arg: string | undefined): number {
+    const n = Number.parseInt(arg ?? "0", 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  private getFlag(arg: string | undefined): number {
+    return this.flags.get(this.flagID(arg)) ?? 0;
+  }
+
+  private setFlag(arg: string | undefined, value: number): void {
+    this.flags.set(this.flagID(arg), value);
+  }
+
+  private jumpTo(label: string | undefined): void {
+    if (label && label in this.labels) {
+      this.pc = this.labels[label];
+      this.events.position?.(this.scene, this.pc);
+    } else {
+      this.events.log(`unknown label: ${label}`);
+      this.stopped = true;
+    }
   }
 
   get isPaused(): boolean {
@@ -138,7 +168,7 @@ export class Player {
     }
   }
 
-  start(pc = 0, imageName = ""): void {
+  start(pc = 0, imageName = "", flags?: Record<string, number>): void {
     this.pc = Math.max(0, pc);
     this.current = null;
     this.currentImageName = imageName;
@@ -146,6 +176,9 @@ export class Player {
     this.running = true;
     this.paused = false;
     this.stopped = false;
+    this.flags = new Map(
+      Object.entries(flags ?? {}).map(([k, v]) => [Number.parseInt(k, 10), v]),
+    );
     this.resetText();
     this.clear();
     this.events.status("playing");
@@ -686,6 +719,73 @@ export class Player {
           case "STS":
             this.events.log(`title: ${args.join(" ")}`);
             break;
+          case "FLG": {
+            const id = args[0];
+            const value = (args[1] ?? "").toUpperCase();
+            this.setFlag(id, value === "ON" ? 1 : value === "OFF" ? 0 : this.flagID(args[1]));
+            break;
+          }
+          case "EQU": {
+            // EQU dest value / EQU dest = value. The scripts use small state
+            // values (01, 02, ...), so a numeric RHS is the practical reading.
+            const valueArg = args[1] === "=" ? args[2] : args[1];
+            this.setFlag(args[0], this.flagID(valueArg));
+            break;
+          }
+          case "INC":
+            this.setFlag(args[0], this.getFlag(args[0]) + (args[1] ? this.flagID(args[1]) : 1));
+            break;
+          case "DEC":
+            this.setFlag(args[0], this.getFlag(args[0]) - (args[1] ? this.flagID(args[1]) : 1));
+            break;
+          case "RND": {
+            const max = Math.max(1, this.flagID(args[1]));
+            this.setFlag(args[0], Math.floor(Math.random() * max));
+            break;
+          }
+          case "FCK": {
+            // FCK flag label
+            // FCK a & b & c label
+            // FCK flag ON|OFF label
+            const label = args[args.length - 1];
+            let yes = false;
+            if (args.length === 2) {
+              yes = this.getFlag(args[0]) !== 0;
+            } else if (args.includes("&")) {
+              yes = args
+                .slice(0, -1)
+                .filter((a) => a !== "&")
+                .every((a) => this.getFlag(a) !== 0);
+            } else {
+              const mode = (args[2] ?? "").toUpperCase();
+              yes =
+                mode === "ON"
+                  ? this.getFlag(args[0]) !== 0
+                  : mode === "OFF"
+                    ? this.getFlag(args[0]) === 0
+                    : this.getFlag(args[0]) !== 0;
+            }
+            if (yes) this.jumpTo(label);
+            break;
+          }
+          case "IFT": {
+            const left = this.getFlag(args[0]);
+            let op = "=";
+            let right: number;
+            let label: string | undefined;
+            if (args.length >= 4) {
+              op = args[1] ?? "=";
+              right = this.flagID(args[2]);
+              label = args[3];
+            } else {
+              right = this.flagID(args[1]);
+              label = args[2];
+            }
+            const yes =
+              op === ">" ? left > right : op === "<" ? left < right : left === right;
+            if (yes) this.jumpTo(label);
+            break;
+          }
           case "LOD": {
             const name = (args[0] || "").replace(/\.txt$/i, "");
             if (!this.loadScript || !name) {

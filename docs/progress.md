@@ -49,7 +49,8 @@ Last updated: 2026-10-23.
 
 ## In progress
 
-- [ ] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
+- [x] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
+- [x] Flags are included in save snapshots.
 - [ ] `MAP` movement, party, encounter and battle systems.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.

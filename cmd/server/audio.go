@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"mitama/pkg/xa"
 )
@@ -80,7 +80,7 @@ func (s *server) handleAudio(w http.ResponseWriter, r *http.Request) {
 	}
 	key := pack + "/" + rel
 	if data, ok := s.audio.get(key); ok {
-		serveWAV(w, data)
+		serveWAV(w, r, data)
 		return
 	}
 
@@ -99,12 +99,13 @@ func (s *server) handleAudio(w http.ResponseWriter, r *http.Request) {
 		data = xa.EncodeWAV(audio)
 		s.audio.put(key, data)
 	}
-	serveWAV(w, data)
+	serveWAV(w, r, data)
 }
 
-func serveWAV(w http.ResponseWriter, data []byte) {
+func serveWAV(w http.ResponseWriter, r *http.Request, data []byte) {
 	w.Header().Set("Content-Type", "audio/wav")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	_, _ = w.Write(data)
+	// ServeContent handles Range requests, which audio elements use for
+	// seeking and for some streaming implementations.
+	http.ServeContent(w, r, "audio.wav", time.Time{}, bytes.NewReader(data))
 }

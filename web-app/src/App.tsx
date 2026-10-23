@@ -10,6 +10,7 @@ interface GameData {
 interface ResumePoint {
   pc: number;
   image: string;
+  flags?: Record<string, number>;
 }
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
@@ -217,7 +218,7 @@ export default function App() {
     setStarted(true);
     setPaused(false);
     setChoices(null);
-    player.start(resume.pc, resume.image);
+    player.start(resume.pc, resume.image, resume.flags);
     setResume({ pc: 0, image: "" });
   }, [resume]);
 
@@ -272,7 +273,7 @@ export default function App() {
       setEnded(false);
       setPaused(false);
       setResumeScene(snap.scene);
-      setResume({ pc: snap.pc, image: snap.image });
+      setResume({ pc: snap.pc, image: snap.image, flags: snap.flags });
       if (snap.pack !== packId) setPackId(snap.pack);
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
@@ -288,7 +289,7 @@ export default function App() {
     setPaused(false);
     setChoices(null);
     setResumeScene(player.currentScene);
-    setResume({ pc: player.currentPC, image: "" });
+    setResume({ pc: player.currentPC, image: "", flags: player.flagState });
     setReloadKey((k) => k + 1);
   }, []);
 

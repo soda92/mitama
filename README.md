@@ -27,7 +27,8 @@ extractor at your own data.
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
 | Scene URLs and save/load slots | ✅ implemented |
-| Full-game flags (`IFT`/`FLG`/`EQU`), map, battle | ⛔ next |
+| Full-game flags (`IFT`/`FLG`/`EQU`/`FCK`/`RND`) | ✅ basic implementation |
+| Map movement, party, battle | ⛔ next |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
 
 See [docs/progress.md](docs/progress.md) for the working checklist and
