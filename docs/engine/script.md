@@ -1,0 +1,132 @@
+# Script language
+
+Scenario scripts live in `text.arc` as CP932 `.txt` files. The engine also
+loads external `.txt` scripts (the shop demo uses `mitamademo.txt`, named by
+`mitama.ini`).
+
+## Line syntax
+
+- The file is **Shift-JIS / CP932**.
+- A command line starts with `□` (U+25A1). `■` is accepted as well.
+- Commands and numbers are written with **full-width** ASCII, e.g.
+  `□ＢＭＰ　００＿１`. The parser normalizes U+FF01–U+FF5E to ASCII and the
+  ideographic space to a normal space before splitting.
+- `／／` (or `//`) starts a comment. Full lines only; the demo also contains
+  commented-out commands.
+- A command is `□COMMAND arg1 arg2 ...`.
+- Any word that is not a known command is a **jump label**, e.g.
+  `□デモスタート`, `□メインA`, `□勝利1`.
+- Lines without `□` are dialogue/narration.
+
+Dialogue uses Japanese quotation marks:
+
+```text
+説「八尋は瑞希を抱きしめると、
+ゆっくりと体を倒していった。」
+瑞「んんん…や、八尋様…あ…」
+```
+
+The part before `「` is the speaker token (`説` = narration). `￥` appears
+inside text and is likely an explicit line-break/continuation marker; this is
+still being confirmed.
+
+## Command table
+
+The command vocabulary is stored as CP932 strings in `mitama_dvd.exe` at file
+offset `0x181C8`:
+
+```text
+ＭＳＬＴ ＳＰＲＡＴＥ ＬＥＶＥＬ ＦＡＤＥ ＰＡＲＴＹ ＢＡＴＴＬＥ
+ＳＨＡ ＴＩＴＬＥ ＥＱＵＦ ＷＩＮ ＳＴＳ ＥＶＴ ＬＯＤ ＳＥＶ ＲＮＤ
+ＳＡＶ ＭＡＰ ＩＦＴ ＤＥＣ ＩＮＣ ＥＱＵ ＷＡＩＴ ＵＩＷ ＧＳＢ
+ＵＰＤ ＭＵＳ ＢＭＰ ＪＭＰ ＦＣＫ ＳＬＴ ＥＮＤ ＦＬＧ
+```
+
+| Command | Arguments | Meaning | Status |
+| --- | --- | --- | --- |
+| `BMP` | `name [消去]` | stage image; `消去` clears the layer | ✅ demo |
+| `UPD` | `クロス\|ワイプ\|ワイプ２\|上下\|円１\|円２` | transition to pending BMP | ✅ demo |
+| `WAIT` | milliseconds | delay | ✅ demo |
+| `MUS` | `name\|STOP` | BGM from `bgm.arc` | ✅ demo |
+| `SEV` | `name [同]` | sound effect/voice; `同` reuses the channel | ✅ demo |
+| `JMP` | `label` | jump | ✅ demo |
+| `END` | — | end script | ✅ demo |
+| `STS` | `text` | status/title label (e.g. `旅立`) | ⛔ |
+| `LOD` | `script` | load and run another scenario (`text.arc`) | ⛔ |
+| `SEND` / `SHAEND` | — | end a scene / branch to the shared scene end | ⛔ |
+| `SLT` | `C\|R\|L\|ALL ...` | single choice menu | ⛔ |
+| `MSLT` | — | multi-choice menu | ⛔ |
+| `IFT` | `flag op value label` | conditional jump (`> < =`) | ⛔ |
+| `EQU` | `flag value` | compare/set equality flag | ⛔ |
+| `FLG` | `flag ON\|OFF`, `flag value` | set flag | ⛔ |
+| `INC` / `DEC` | `flag [step]` | flag increment/decrement | ⛔ |
+| `FCK` | `flag label` | jump if flag set | ⛔ |
+| `RND` | `flag max` | random value into flag | ⛔ |
+| `SAV` | — | open save menu | ⛔ |
+| `TITLE` | — | return to title | ⛔ |
+| `MAP` | `ON\|OFF` | enable/disable map movement | ⛔ |
+| `PARTY` | `IN\|OUT name` | add/remove party member | ⛔ |
+| `BATTLE` | `background script` | start battle | ⛔ |
+| `LEVEL` | `character stat value` | set/raise level | ⛔ |
+| `SPRATE` | — | sprite operation (name likely a typo for SPRITE) | ⛔ |
+| `FADE` | milliseconds | fade screen | ⛔ |
+| `SHA` | — | screen shake | ⛔ |
+| `EVT` | — | event effect | ⛔ |
+| `WIN` / `LOSE` | — | battle result branches | ⛔ |
+| `EQF` | — | equipment flag | ⛔ |
+| `UIW` / `GSB` | — | UI wait / game screen buffer | ⛔ |
+
+The demo build only contains the first eight commands. The full DVD executable
+contains the entire table above.
+
+## Flags and control flow
+
+`mitama_dvd.exe` contains diagnostic format strings that reveal the flag
+model:
+
+```text
+flag%03d Off
+flag%03d On
+flag%03d = %d
+flag%03d = flag%03d
+flag%03d++
+flag%03d--
+jump %s
+wait %d
+```
+
+Labels are global within a script. `LOD` transfers to another script; `SEND`
+and `SHAEND` terminate the current script/scene.
+
+Example (from `yr1_00.txt`):
+
+```text
+□ＳＴＳ　旅立
+□ＢＭＰ　ＢＬＡＣＫ
+□ＵＰＤ　クロス
+□ＭＵＳ　Ｓ００１
+説「文永捨壱年　文永の役￥
+弘安四年　　弘安の役￥
+弘安八年　　霜月騒動」
+```
+
+## Asset routing
+
+| Command | Archive |
+| --- | --- |
+| `BMP name` | `mitama.arc` / `sprite.arc` / `bagui.arc` (`name.bmp`) |
+| `MUS name` | `bgm.arc` (`name.xa`) |
+| `SEV name` | `se.arc`, `shinobi.arc`, `kunoichi.arc`, `kuno_EX.arc` (`name.xa`) |
+| `LOD name` | `text.arc` (`name.txt`) |
+
+Special BMP names: `BLACK`, `WHITE`, `RED`, `BG`, `ZZ`.
+
+## Known unknowns
+
+- Exact argument grammar of `IFT`, `EQU`, `SLT`, `MAP`, `SPRATE`, `UIW`,
+  `GSB`, `EQF`, `SHA`.
+- Whether `STS` sets the window title or an on-screen location label.
+- The role of `￥` in dialogue, and line-wrapping widths.
+- Battle data formats (`.chr`, `.pty`, `.dat`, `.mtn`, `.spt`, `.o`).
+- `.XA` audio codec details (it is not the PSX XA format; `xadec.dll` and
+  `Sound.dll` are the references).
