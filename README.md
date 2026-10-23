@@ -99,7 +99,9 @@ Open such a link, press Start, and playback resumes at that command. `pack` is
 `demo`, `dvd`, or `disc`; `scene` is a `text.arc` script name; `cmd` is a
 zero-based command index.
 
-The **Archives** manager keeps saves in `localStorage` and supports:
+The **Archives** manager opens in a docked side window beside the stage (the
+stage resizes rather than being covered) and keeps saves in `localStorage`. It
+supports:
 
 - Recent / Pinned / Chapters views
 - search across scene, note, speaker and dialogue
@@ -110,7 +112,7 @@ The **Archives** manager keeps saves in `localStorage` and supports:
 Old four-slot saves are migrated automatically. Save/load while a dialogue or
 menu is open restores that interaction.
 
-The **Navigate** button (or **N**) opens a two-tab navigator:
+The **Navigate** button (or **N**) opens a docked side window with two tabs:
 
 - **Page** — scrub or step through the current script's command list, previews
   dialogue/command text and jumps directly to any command.
@@ -118,7 +120,8 @@ The **Navigate** button (or **N**) opens a two-tab navigator:
   `EOA 4`, …), with filtering and one-click chapter entry.
 
 Seeking reloads the scene at the chosen command and reconstructs stage, flags
-and audio, so it works for both text and command positions.
+and audio, so it works for both text and command positions. Both side windows
+stay beside the stage and remain docked in fullscreen.
 
 ### Controls
 
@@ -132,8 +135,9 @@ and audio, so it works for both text and command positions.
 
 There is no title screen or top header; the selected pack starts immediately.
 Pack/volume/dialog-opacity/status live in the **☰ Settings** panel, while
-Archives/Navigate are buttons on the dialogue box. Scene links (`?scene=…&cmd=…`)
-resume directly.
+Archives/Navigate are buttons on the dialogue box. The active side window can
+be closed from its header or by pressing **Escape**. Scene links
+(`?scene=…&cmd=…`) resume directly.
 
 ### Debugging
 

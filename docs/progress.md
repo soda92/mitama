@@ -43,6 +43,8 @@ Last updated: 2026-10-23.
       thumbnails, overwrite/delete, save current, legacy-slot migration.
 - [x] Page/chapter navigator: command scrubbing, dialogue previews,
       chapter grouping, filtering and direct scene entry.
+- [x] Archives and navigator docked as side windows beside the stage
+      (including fullscreen) instead of centered modal overlays.
 - [x] Single-select choices (`SLT` and `MSLT`); `SEND` menu terminator.
 - [x] Case-insensitive `LOD` resolution (fixes `YR1_02` → `yr1_02.txt`).
 - [x] Chapter transition from `yr1_01` to `YR1_02`.

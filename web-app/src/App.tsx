@@ -90,7 +90,7 @@ function initialParams(): { pack: string; scene: string; pc: number } {
 export default function App() {
   const params = useMemo(initialParams, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLElement>(null);
   const playerRef = useRef<Player | null>(null);
 
   const [packs, setPacks] = useState<PackInfo[]>([]);
@@ -363,7 +363,17 @@ export default function App() {
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen();
-    else void stageRef.current?.requestFullscreen?.();
+    else void shellRef.current?.requestFullscreen?.();
+  }, []);
+
+  const openArchives = useCallback(() => {
+    setNavigatorOpen(false);
+    setArchiveOpen(true);
+  }, []);
+
+  const openNavigator = useCallback(() => {
+    setArchiveOpen(false);
+    setNavigatorOpen(true);
   }, []);
 
   const choose = useCallback((label: string) => {
@@ -500,7 +510,13 @@ export default function App() {
         setMenuOpen(false);
         return;
       }
-      if (archiveOpen || navigatorOpen || menuOpen) return;
+      if (archiveOpen || navigatorOpen) {
+        const typing = ev.target instanceof HTMLInputElement;
+        if (!typing && (ev.key === "f" || ev.key === "F")) toggleFullscreen();
+        else if (!typing && archiveOpen && (ev.key === "n" || ev.key === "N")) openNavigator();
+        return;
+      }
+      if (menuOpen) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         if (uiHidden) setUiHidden(false);
@@ -517,24 +533,36 @@ export default function App() {
       } else if ((ev.key === "d" || ev.key === "D") && !(ev.target instanceof HTMLInputElement)) {
         setDebugOpen((open) => !open);
       } else if ((ev.key === "n" || ev.key === "N") && !(ev.target instanceof HTMLInputElement)) {
-        setNavigatorOpen(true);
+        openNavigator();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [started, togglePause, toggleFullscreen, advance, archiveOpen, navigatorOpen, menuOpen, uiHidden]);
+  }, [
+    started,
+    togglePause,
+    toggleFullscreen,
+    advance,
+    archiveOpen,
+    navigatorOpen,
+    menuOpen,
+    uiHidden,
+    openArchives,
+    openNavigator,
+  ]);
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const scriptCount = Object.keys(assets.text).length;
 
   return (
     <main
-      className={`shell ${uiHidden ? "ui-hidden" : ""}`}
+      ref={shellRef}
+      className={`shell ${uiHidden ? "ui-hidden" : ""} ${archiveOpen || navigatorOpen ? "side-open" : ""}`}
       style={{ "--dialog-opacity": dialogOpacity } as CSSProperties}
     >
+      <div className="play-area">
 
-
-      <section className="stage-wrap" ref={stageRef}>
+      <section className="stage-wrap">
         <div className="screen" onClick={handleStageClick}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
 
@@ -543,10 +571,19 @@ export default function App() {
               <button className="tool" onClick={togglePause} title="Pause (P)">
                 {paused ? "▶" : "❚❚"}
               </button>
-              <button className="tool" onClick={() => setArchiveOpen(true)} title="Archives">
+              <button
+                className={`tool ${archiveOpen ? "on" : ""}`}
+                onClick={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
+                title="Archives"
+              >
                 Archives
               </button>
-              <button className="tool" onClick={() => setNavigatorOpen(true)} disabled={scriptCount === 0} title="Navigator (N)">
+              <button
+                className={`tool ${navigatorOpen ? "on" : ""}`}
+                onClick={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
+                disabled={scriptCount === 0}
+                title="Navigator (N)"
+              >
                 Navigate
               </button>
               <button className="tool" onClick={() => setMuted((m) => !m)} title="Mute (M)">
@@ -629,8 +666,8 @@ export default function App() {
                   <b className="setting-value">{Math.round(dialogOpacity * 100)}%</b>
                 </label>
                 <div className="settings-actions">
-                  <button onClick={() => { setMenuOpen(false); setArchiveOpen(true); }}>Archives</button>
-                  <button onClick={() => { setMenuOpen(false); setNavigatorOpen(true); }}>Navigate</button>
+                  <button onClick={() => { setMenuOpen(false); openArchives(); }}>Archives</button>
+                  <button onClick={() => { setMenuOpen(false); openNavigator(); }}>Navigate</button>
                   <button onClick={() => { setMenuOpen(false); setDebugOpen(true); }}>Debug</button>
                   <button onClick={reloadCurrent}>Reload scene</button>
                 </div>
@@ -669,33 +706,6 @@ export default function App() {
             </div>
           )}
 
-          {archiveOpen && (
-            <ArchiveManager
-              slots={archives}
-              canSave={started && !!playerRef.current}
-              currentScene={currentScene}
-              currentPC={currentPC}
-              onClose={() => setArchiveOpen(false)}
-              onSaveNew={saveCurrent}
-              onOverwrite={overwriteArchive}
-              onLoad={loadArchive}
-              onDelete={deleteArchive}
-              onUpdate={updateArchive}
-            />
-          )}
-
-          {navigatorOpen && (
-            <Navigator
-              scene={currentScene}
-              pc={currentPC}
-              commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}
-              scenes={Object.keys(assets.text)}
-              onClose={() => setNavigatorOpen(false)}
-              onSeek={seekTo}
-              onSelectScene={(name) => navigateToScene(name, 0)}
-            />
-          )}
-
           {loading && (
             <div className="loading">
               <span /> loading…
@@ -703,6 +713,34 @@ export default function App() {
           )}
         </div>
       </section>
+
+      {archiveOpen && (
+        <ArchiveManager
+          slots={archives}
+          canSave={started && !!playerRef.current}
+          currentScene={currentScene}
+          currentPC={currentPC}
+          onClose={() => setArchiveOpen(false)}
+          onSaveNew={saveCurrent}
+          onOverwrite={overwriteArchive}
+          onLoad={loadArchive}
+          onDelete={deleteArchive}
+          onUpdate={updateArchive}
+        />
+      )}
+
+      {navigatorOpen && (
+        <Navigator
+          scene={currentScene}
+          pc={currentPC}
+          commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}
+          scenes={Object.keys(assets.text)}
+          onClose={() => setNavigatorOpen(false)}
+          onSeek={seekTo}
+          onSelectScene={(name) => navigateToScene(name, 0)}
+        />
+      )}
+      </div>
 
       {debugOpen && (
         <DebugPanel

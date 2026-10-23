@@ -174,60 +174,57 @@ export default function ArchiveManager({
   );
 
   return (
-    <div
-      className="archive-overlay"
-      onClick={(ev) => {
-        ev.stopPropagation();
-        onClose();
-      }}
-    >
-      <div className="archive-window" onClick={(ev) => ev.stopPropagation()}>
-        <header className="archive-head">
-          <div>
-            <strong>Archives</strong>
-            <span>
-              {currentScene || "—"}:{currentPC}
-            </span>
-          </div>
+    <aside className="side-window archive-window">
+      <header className="archive-head">
+        <div className="side-head-top">
+          <strong>Archives</strong>
+          <span>
+            {currentScene || "—"}:{currentPC}
+          </span>
+          <button className="side-close" onClick={onClose} title="Close">
+            ✕
+          </button>
+        </div>
+        <div className="side-head-tools">
           <input
             className="archive-search"
             autoFocus
-            placeholder="search scene, note, dialogue…"
+            placeholder="search saves…"
             value={query}
             onChange={(ev) => setQuery(ev.target.value)}
           />
           <button className="primary" disabled={!canSave} onClick={onSaveNew}>
-            Save current
+            Save
           </button>
-          <button onClick={onClose}>✕</button>
-        </header>
-
-        <nav className="archive-tabs">
-          <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>
-            Recent
-          </button>
-          <button className={tab === "pinned" ? "on" : ""} onClick={() => setTab("pinned")}>
-            Pinned
-          </button>
-          <button className={tab === "chapters" ? "on" : ""} onClick={() => setTab("chapters")}>
-            Chapters
-          </button>
-        </nav>
-
-        <div className="archive-list">
-          {entries.length === 0 && <p className="archive-empty">No saves yet.</p>}
-          {tab === "chapters"
-            ? groups.map(([chapter, list]) => (
-                <section key={chapter} className="archive-group">
-                  <h4>{chapter}</h4>
-                  <div className="archive-grid">{list.map(([id, s]) => card(id, s))}</div>
-                </section>
-              ))
-            : (
-                <div className="archive-grid">{shown.map(([id, s]) => card(id, s))}</div>
-              )}
         </div>
+      </header>
+
+      <nav className="archive-tabs">
+        <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>
+          Recent
+        </button>
+        <button className={tab === "pinned" ? "on" : ""} onClick={() => setTab("pinned")}>
+          Pinned
+        </button>
+        <button className={tab === "chapters" ? "on" : ""} onClick={() => setTab("chapters")}>
+          Chapters
+        </button>
+      </nav>
+
+      <div className="archive-list">
+        {entries.length === 0 && <p className="archive-empty">No saves yet.</p>}
+        {tab === "chapters"
+          ? groups.map(([chapter, list]) => (
+              <section key={chapter} className="archive-group">
+                <h4>{chapter}</h4>
+                <div className="archive-grid">{list.map(([id, s]) => card(id, s))}</div>
+              </section>
+            ))
+          : (
+              <div className="archive-grid">{shown.map(([id, s]) => card(id, s))}</div>
+            )}
       </div>
-    </div>
+    </aside>
   );
+
 }
