@@ -181,6 +181,10 @@ export class Player {
     return this.scene;
   }
 
+  get currentCommands(): Command[] {
+    return this.commands;
+  }
+
   get currentPC(): number {
     // While a TEXT or menu command is waiting for input, point at that
     // command so a save/restored page replays the pending interaction.

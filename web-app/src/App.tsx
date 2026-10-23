@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
 import ArchiveManager from "./components/ArchiveManager";
+import Navigator from "./components/Navigator";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
 
 interface GameData {
@@ -110,8 +111,7 @@ export default function App() {
   const [choices, setChoices] = useState<Option[] | null>(null);
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [sceneMode, setSceneMode] = useState(false);
-  const [sceneFilter, setSceneFilter] = useState("");
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(() => {
@@ -443,22 +443,39 @@ export default function App() {
     [updateURL],
   );
 
-  const jumpToScene = useCallback(
-    (name: string) => {
+  const navigateToScene = useCallback(
+    (name: string, pc = 0) => {
       const scene = name.replace(/\.txt$/i, "");
-      setSceneMode(false);
-      setSceneFilter("");
+      setNavigatorOpen(false);
       setData(null);
       setStarted(false);
       setEnded(false);
       setPaused(false);
       setChoices(null);
       setResumeScene(scene);
-      setResume({ pc: 0, image: "" });
+      setResume({ pc, image: "" });
       setReloadKey((k) => k + 1);
-      updateURL(scene, 0);
+      updateURL(scene, pc);
     },
     [updateURL],
+  );
+
+  const seekTo = useCallback(
+    (pc: number) => {
+      const scene = playerRef.current?.currentScene || currentScene;
+      if (!scene) return;
+      setNavigatorOpen(false);
+      setData(null);
+      setStarted(false);
+      setEnded(false);
+      setPaused(false);
+      setChoices(null);
+      setResumeScene(scene);
+      setResume({ pc, image: "" });
+      setReloadKey((k) => k + 1);
+      updateURL(scene, pc);
+    },
+    [currentScene, updateURL],
   );
 
   const reloadCurrent = useCallback(() => {
@@ -479,11 +496,11 @@ export default function App() {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
         setArchiveOpen(false);
-        setSceneMode(false);
+        setNavigatorOpen(false);
         setMenuOpen(false);
         return;
       }
-      if (archiveOpen || sceneMode || menuOpen) return;
+      if (archiveOpen || navigatorOpen || menuOpen) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         if (uiHidden) setUiHidden(false);
@@ -499,11 +516,13 @@ export default function App() {
         toggleFullscreen();
       } else if ((ev.key === "d" || ev.key === "D") && !(ev.target instanceof HTMLInputElement)) {
         setDebugOpen((open) => !open);
+      } else if ((ev.key === "n" || ev.key === "N") && !(ev.target instanceof HTMLInputElement)) {
+        setNavigatorOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [started, togglePause, toggleFullscreen, advance, archiveOpen, sceneMode, menuOpen, uiHidden]);
+  }, [started, togglePause, toggleFullscreen, advance, archiveOpen, navigatorOpen, menuOpen, uiHidden]);
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const scriptCount = Object.keys(assets.text).length;
@@ -527,8 +546,8 @@ export default function App() {
               <button className="tool" onClick={() => setArchiveOpen(true)} title="Archives">
                 Archives
               </button>
-              <button className="tool" onClick={() => setSceneMode(true)} disabled={scriptCount === 0} title="Scenes">
-                Scenes
+              <button className="tool" onClick={() => setNavigatorOpen(true)} disabled={scriptCount === 0} title="Navigator (N)">
+                Navigate
               </button>
               <button className="tool" onClick={() => setMuted((m) => !m)} title="Mute (M)">
                 {muted ? "🔇" : "🔊"}
@@ -611,7 +630,7 @@ export default function App() {
                 </label>
                 <div className="settings-actions">
                   <button onClick={() => { setMenuOpen(false); setArchiveOpen(true); }}>Archives</button>
-                  <button onClick={() => { setMenuOpen(false); setSceneMode(true); }}>Scenes</button>
+                  <button onClick={() => { setMenuOpen(false); setNavigatorOpen(true); }}>Navigate</button>
                   <button onClick={() => { setMenuOpen(false); setDebugOpen(true); }}>Debug</button>
                   <button onClick={reloadCurrent}>Reload scene</button>
                 </div>
@@ -665,38 +684,16 @@ export default function App() {
             />
           )}
 
-          {sceneMode && (
-            <div
-              className="save-overlay"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                setSceneMode(false);
-              }}
-            >
-              <div className="save-panel scene-panel" onClick={(ev) => ev.stopPropagation()}>
-                <div className="save-head">
-                  <strong>Scenes</strong>
-                  <button onClick={() => setSceneMode(false)}>✕</button>
-                </div>
-                <input
-                  className="scene-filter"
-                  autoFocus
-                  placeholder="filter scripts…"
-                  value={sceneFilter}
-                  onChange={(ev) => setSceneFilter(ev.target.value)}
-                />
-                <div className="scene-list">
-                  {Object.keys(assets.text)
-                    .filter((n) => n.includes(sceneFilter.toLowerCase()))
-                    .sort()
-                    .map((n) => (
-                      <button key={n} className="scene-item" onClick={() => jumpToScene(n)}>
-                        {n}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            </div>
+          {navigatorOpen && (
+            <Navigator
+              scene={currentScene}
+              pc={currentPC}
+              commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}
+              scenes={Object.keys(assets.text)}
+              onClose={() => setNavigatorOpen(false)}
+              onSeek={seekTo}
+              onSelectScene={(name) => navigateToScene(name, 0)}
+            />
           )}
 
           {loading && (

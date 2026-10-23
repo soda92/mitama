@@ -114,9 +114,12 @@ export default function ArchiveManager({
               onChange={(ev) => setDraft(ev.target.value)}
               onKeyDown={(ev) => {
                 if (ev.key === "Enter") {
+                  ev.preventDefault();
+                  ev.stopPropagation();
                   onUpdate(id, { note: draft.trim() });
                   setEditing(null);
                 } else if (ev.key === "Escape") {
+                  ev.stopPropagation();
                   setEditing(null);
                 }
               }}

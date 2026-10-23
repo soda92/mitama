@@ -41,6 +41,8 @@ Last updated: 2026-10-23.
 - [x] Scene/chapter links in the URL (`?pack=dvd&scene=yr1_02&cmd=123`).
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration.
+- [x] Page/chapter navigator: command scrubbing, dialogue previews,
+      chapter grouping, filtering and direct scene entry.
 - [x] Single-select choices (`SLT` and `MSLT`); `SEND` menu terminator.
 - [x] Case-insensitive `LOD` resolution (fixes `YR1_02` → `yr1_02.txt`).
 - [x] Chapter transition from `yr1_01` to `YR1_02`.

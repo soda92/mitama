@@ -27,7 +27,7 @@ extractor at your own data.
 | Layered stage (BG + L/R/C stands, black color key) | ✅ implemented |
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
-| Scene URLs and save/load slots | ✅ implemented |
+| Scene URLs, page/chapter navigator and archive manager | ✅ implemented |
 | Full-game flags (`IFT`/`FLG`/`EQU`/`FCK`/`RND`) | ✅ basic implementation |
 | Map movement, party, battle | ⛔ next |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
@@ -87,7 +87,7 @@ cd web-app && pnpm dev         # http://localhost:5173
 
 Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`.
 
-### Scene links and saves
+### Scene links, navigator and archives
 
 The current scene and command index are always reflected in the URL:
 
@@ -110,8 +110,15 @@ The **Archives** manager keeps saves in `localStorage` and supports:
 Old four-slot saves are migrated automatically. Save/load while a dialogue or
 menu is open restores that interaction.
 
-The **Scenes** button opens a filterable list of all 421 `text.arc` scripts, so
-any chapter/event can be inspected without replaying the story.
+The **Navigate** button (or **N**) opens a two-tab navigator:
+
+- **Page** — scrub or step through the current script's command list, previews
+  dialogue/command text and jumps directly to any command.
+- **Chapters** — every `text.arc` script grouped by chapter (`YR 1`, `YR 2`,
+  `EOA 4`, …), with filtering and one-click chapter entry.
+
+Seeking reloads the scene at the chosen command and reconstructs stage, flags
+and audio, so it works for both text and command positions.
 
 ### Controls
 
@@ -121,10 +128,12 @@ any chapter/event can be inspected without replaying the story.
 - **M** — mute
 - **F** — fullscreen (letterboxed 4:3)
 - **D** — engine debug panel
+- **N** — page/chapter navigator
 
 There is no title screen or top header; the selected pack starts immediately.
 Pack/volume/dialog-opacity/status live in the **☰ Settings** panel, while
-Save/Load/Scenes are buttons on the dialogue box. Scene links (`?scene=…&cmd=…`) resume directly.
+Archives/Navigate are buttons on the dialogue box. Scene links (`?scene=…&cmd=…`)
+resume directly.
 
 ### Debugging
 
