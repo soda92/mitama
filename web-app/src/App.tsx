@@ -630,14 +630,27 @@ export default function App() {
         return;
       }
       if (battleSession) return;
+      const target = ev.target instanceof HTMLElement ? ev.target : null;
+      const typing =
+        !!target &&
+        (target.matches("input, textarea, select") || target.isContentEditable);
       if (archiveOpen || navigatorOpen) {
-        const typing = ev.target instanceof HTMLInputElement;
-        if (!typing && (ev.key === "f" || ev.key === "F")) toggleFullscreen();
-        else if (!typing && archiveOpen && (ev.key === "n" || ev.key === "N")) openNavigator();
+        const inSideWindow = !!target?.closest(".side-window");
+        if (!typing && !inSideWindow) {
+          if (ev.key === "Enter" || ev.key === "ArrowRight" || ev.key === "ArrowDown") {
+            ev.preventDefault();
+            if (uiHidden) setUiHidden(false);
+            else advance();
+          } else if (ev.key === "f" || ev.key === "F") {
+            toggleFullscreen();
+          } else if (archiveOpen && (ev.key === "n" || ev.key === "N")) {
+            openNavigator();
+          }
+        }
         return;
       }
-      if (menuOpen) return;
-      if (ev.key === "Enter") {
+      if (menuOpen || typing) return;
+      if (ev.key === "Enter" || ev.key === "ArrowRight" || ev.key === "ArrowDown") {
         ev.preventDefault();
         if (uiHidden) setUiHidden(false);
         else advance();

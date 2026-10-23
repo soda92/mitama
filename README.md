@@ -125,7 +125,7 @@ stay beside the stage and remain docked in fullscreen.
 
 ### Controls
 
-- **Click / Enter** — advance dialogue
+- **Click / Enter / ↓ / →** — advance dialogue
 - **Space** — hide/show the dialogue and HUD
 - **P** — pause
 - **M** — mute
@@ -136,8 +136,10 @@ stay beside the stage and remain docked in fullscreen.
 There is no title screen or top header; the selected pack starts immediately.
 Pack/volume/dialog-opacity/battle-result/status live in the **☰ Settings** panel, while
 Archives/Navigate are buttons on the dialogue box. The active side window can
-be closed from its header or by pressing **Escape**. Scene links
-(`?scene=…&cmd=…`) resume directly.
+be closed from its header or by pressing **Escape**. Clicking the game screen
+returns focus to the game, so **Enter** and the arrow keys keep advancing
+dialogue while a side window is open. Scene links (`?scene=…&cmd=…`) resume
+directly.
 
 Battles now open a playable simplified battle screen. `.pty` parties and
 `.chr` characters are parsed by the Go server; the screen shows shared party
