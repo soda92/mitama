@@ -26,9 +26,9 @@ Dialogue uses Japanese quotation marks:
 瑞「んんん…や、八尋様…あ…」
 ```
 
-The part before `「` is the speaker token (`説` = narration). `￥` appears
-inside text and is likely an explicit line-break/continuation marker; this is
-still being confirmed.
+The part before `「` is the speaker token (`説` = narration). `￥` is a page
+break. Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
+carry voice/SE cues and are stripped from the displayed text.
 
 ## Command table
 

@@ -53,3 +53,18 @@ func TestParseSLTOptions(t *testing.T) {
 		t.Fatalf("option 0 = %#v", slt.Options[0])
 	}
 }
+
+func TestStripAnnotations(t *testing.T) {
+	src := "蘭「ご神体なんだろ？￥（ＹＲ１＿０２＿０１７４＿１）\nそれを譲り受けるとでも？」"
+	s := ParseString(src)
+	if len(s.Commands) != 1 {
+		t.Fatalf("commands = %d", len(s.Commands))
+	}
+	want := "ご神体なんだろ？￥\nそれを譲り受けるとでも？"
+	if s.Commands[0].Message != want {
+		t.Fatalf("message = %q, want %q", s.Commands[0].Message, want)
+	}
+	if got := stripAnnotations("（笑）と（SE034）"); got != "（笑）と" {
+		t.Fatalf("strip = %q", got)
+	}
+}

@@ -179,7 +179,7 @@ func parseText(lines []string, start int) (Command, int, bool) {
 		}
 		content = strings.TrimSpace(lines[i])
 	}
-	msg := strings.Join(parts, "\n")
+	msg := stripAnnotations(strings.Join(parts, "\n"))
 	return Command{
 		Line:    start + 1,
 		Cmd:     "TEXT",
@@ -187,6 +187,52 @@ func parseText(lines []string, start int) (Command, int, bool) {
 		Message: msg,
 		Text:    first,
 	}, i, true
+}
+
+// stripAnnotations removes engine annotations such as （ＹＲ１＿０２＿０１７４＿１）
+// and （SE034） from dialogue. They carry voice/SE cues but are not meant to be
+// displayed. Japanese parenthetical text is preserved.
+func stripAnnotations(s string) string {
+	var b strings.Builder
+	runes := []rune(s)
+	for i := 0; i < len(runes); i++ {
+		if runes[i] != '（' {
+			b.WriteRune(runes[i])
+			continue
+		}
+		j := i + 1
+		for j < len(runes) && runes[j] != '）' {
+			j++
+		}
+		if j >= len(runes) {
+			b.WriteRune(runes[i])
+			continue
+		}
+		inner := string(runes[i+1 : j])
+		if isAnnotation(inner) {
+			i = j
+			continue
+		}
+		b.WriteString(string(runes[i : j+1]))
+		i = j
+	}
+	return b.String()
+}
+
+func isAnnotation(s string) bool {
+	if s == "" || len([]rune(s)) > 48 {
+		return false
+	}
+	for _, r := range s {
+		switch {
+		case r >= '0' && r <= '9', r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r == '_':
+		case r >= 0xFF10 && r <= 0xFF19, r >= 0xFF21 && r <= 0xFF3A,
+			r >= 0xFF41 && r <= 0xFF5A, r == 0xFF3F:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func splitLines(s string) []string {
