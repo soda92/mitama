@@ -64,6 +64,13 @@ func TestStripAnnotations(t *testing.T) {
 	if s.Commands[0].Message != want {
 		t.Fatalf("message = %q, want %q", s.Commands[0].Message, want)
 	}
+	if len(s.Commands[0].Cues) != 1 {
+		t.Fatalf("cues = %#v", s.Commands[0].Cues)
+	}
+	cue := s.Commands[0].Cues[0]
+	if cue.Page != 1 || cue.Name != "YR1_02_0174_1" || cue.Kind != "voice" {
+		t.Fatalf("cue = %#v", cue)
+	}
 	if got := stripAnnotations("（笑）と（SE034）"); got != "（笑）と" {
 		t.Fatalf("strip = %q", got)
 	}

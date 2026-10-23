@@ -3,6 +3,12 @@ export interface Option {
   label: string;
 }
 
+export interface Cue {
+  page: number;
+  name: string;
+  kind: "voice" | "se";
+}
+
 export interface Command {
   line: number;
   cmd?: string;
@@ -11,6 +17,7 @@ export interface Command {
   text?: string;
   speaker?: string;
   message?: string;
+  cues?: Cue[];
   options?: Option[];
 }
 

@@ -23,6 +23,14 @@ import (
 	"golang.org/x/text/transform"
 )
 
+// Cue is an inline voice/sound annotation such as （ＹＲ１＿０２＿０１７４＿１）
+// or （SE034）. Page is zero-based within the message's ￥-separated pages.
+type Cue struct {
+	Page int    `json:"page"`
+	Name string `json:"name"`
+	Kind string `json:"kind"` // "voice" or "se"
+}
+
 // Option is one entry of an SLT/MSLT choice menu.
 type Option struct {
 	Text  string `json:"text"`
@@ -38,6 +46,7 @@ type Command struct {
 	Text    string   `json:"text,omitempty"` // original line, for debugging
 	Speaker string   `json:"speaker,omitempty"`
 	Message string   `json:"message,omitempty"`
+	Cues    []Cue    `json:"cues,omitempty"`
 	Options []Option `json:"options,omitempty"`
 }
 
@@ -179,24 +188,33 @@ func parseText(lines []string, start int) (Command, int, bool) {
 		}
 		content = strings.TrimSpace(lines[i])
 	}
-	msg := stripAnnotations(strings.Join(parts, "\n"))
+	msg, cues := extractCues(strings.Join(parts, "\n"))
 	return Command{
 		Line:    start + 1,
 		Cmd:     "TEXT",
 		Speaker: speaker,
 		Message: msg,
+		Cues:    cues,
 		Text:    first,
 	}, i, true
 }
 
-// stripAnnotations removes engine annotations such as （ＹＲ１＿０２＿０１７４＿１）
-// and （SE034） from dialogue. They carry voice/SE cues but are not meant to be
-// displayed. Japanese parenthetical text is preserved.
-func stripAnnotations(s string) string {
+// extractCues removes engine annotations such as （ＹＲ１＿０２＿０１７４＿１）
+// and （SE034） from dialogue and returns them as page-scoped voice/SE cues.
+// Japanese parenthetical text is preserved.
+func extractCues(s string) (string, []Cue) {
 	var b strings.Builder
+	var cues []Cue
 	runes := []rune(s)
+	page := 0
 	for i := 0; i < len(runes); i++ {
-		if runes[i] != '（' {
+		switch runes[i] {
+		case '￥', '¥':
+			page++
+			b.WriteRune(runes[i])
+			continue
+		case '（':
+		default:
 			b.WriteRune(runes[i])
 			continue
 		}
@@ -209,14 +227,25 @@ func stripAnnotations(s string) string {
 			continue
 		}
 		inner := string(runes[i+1 : j])
-		if isAnnotation(inner) {
+		ascii := normalize(inner)
+		if isAnnotation(ascii) {
+			kind := "voice"
+			if strings.HasPrefix(strings.ToUpper(ascii), "SE") {
+				kind = "se"
+			}
+			cues = append(cues, Cue{Page: page, Name: strings.ToUpper(ascii), Kind: kind})
 			i = j
 			continue
 		}
 		b.WriteString(string(runes[i : j+1]))
 		i = j
 	}
-	return b.String()
+	return b.String(), cues
+}
+
+func stripAnnotations(s string) string {
+	clean, _ := extractCues(s)
+	return clean
 }
 
 func isAnnotation(s string) bool {
@@ -226,8 +255,6 @@ func isAnnotation(s string) bool {
 	for _, r := range s {
 		switch {
 		case r >= '0' && r <= '9', r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r == '_':
-		case r >= 0xFF10 && r <= 0xFF19, r >= 0xFF21 && r <= 0xFF3A,
-			r >= 0xFF41 && r <= 0xFF5A, r == 0xFF3F:
 		default:
 			return false
 		}

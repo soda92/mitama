@@ -28,7 +28,8 @@ Dialogue uses Japanese quotation marks:
 
 The part before `「` is the speaker token (`説` = narration). `￥` is a page
 break. Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
-carry voice/SE cues and are stripped from the displayed text.
+carry voice/SE cues. They are stripped from the displayed text and replayed
+when the corresponding page is shown.
 
 ## Command table
 

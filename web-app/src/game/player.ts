@@ -1,4 +1,4 @@
-import type { AssetMap, Command, Option, Script } from "./types";
+import type { AssetMap, Command, Cue, Option, Script } from "./types";
 
 const W = 640;
 const H = 480;
@@ -125,6 +125,7 @@ export class Player {
   // Dialogue state.
   private textSpeaker = "";
   private textPages: string[] = [];
+  private textCues: Cue[] = [];
   private textPage = 0;
   private textChars = 0;
   private textComplete = false;
@@ -520,6 +521,7 @@ export class Player {
       this.textChars = 0;
       this.textComplete = false;
       this.textLast = performance.now();
+      this.playCues(this.textPage);
       this.drawText();
       this.scheduleTyping();
       return true;
@@ -685,12 +687,13 @@ export class Player {
     if (resolve) resolve();
   }
 
-  private showText(speaker: string, message: string): Promise<void> {
+  private showText(speaker: string, message: string, cues: Cue[] = []): Promise<void> {
     const pages = message
       .split(/[￥¥]/)
       .map((page) => page.replace(/\r/g, "").trim())
       .filter((page) => page.length > 0);
     this.textSpeaker = speaker;
+    this.textCues = cues;
     this.textPages = pages.length > 0 ? pages : [""];
     this.textPage = 0;
     this.textChars = 0;
@@ -698,9 +701,16 @@ export class Player {
     this.textActive = true;
     this.drawText();
     this.scheduleTyping();
+    this.playCues(0);
     return new Promise((resolve) => {
       this.textResolve = resolve;
     });
+  }
+
+  private playCues(page: number): void {
+    for (const cue of this.textCues) {
+      if (cue.page === page) this.playSe(cue.name);
+    }
   }
 
   private showChoice(options: Option[]): Promise<string> {
@@ -745,6 +755,7 @@ export class Player {
     this.textActive = false;
     this.textComplete = false;
     this.textPages = [];
+    this.textCues = [];
     this.textPage = 0;
     this.textChars = 0;
     this.draw();
@@ -1024,7 +1035,7 @@ export class Player {
         switch (c.cmd) {
           case "TEXT":
             this.events.position?.(this.scene, Math.max(0, this.pc - 1));
-            await this.showText(c.speaker ?? "", c.message ?? "");
+            await this.showText(c.speaker ?? "", c.message ?? "", c.cues ?? []);
             break;
           case "BMP": {
             this.pendingStage ??= { ...this.stage };
