@@ -52,7 +52,10 @@ Last updated: 2026-10-23.
 - [x] Scene URLs auto-start and rebuild stage/flags/BGM.
 - [x] Resuming at a TEXT line replays the preceding `SEV` voice.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
-- [x] 2× canvas rendering for crisp dialogue text; fit-to-viewport layout.
+- [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
+- [x] Title screen removed; selected pack auto-starts.
+- [x] Space hides dialogue and HUD; click/Enter restores/advances.
+- [x] Fullscreen keeps a letterboxed 4:3 stage.
 
 ## In progress
 

@@ -107,6 +107,18 @@ interaction.
 The **Scenes** button opens a filterable list of all 421 `text.arc` scripts, so
 any chapter/event can be inspected without replaying the story.
 
+### Controls
+
+- **Click / Enter** — advance dialogue
+- **Space** — hide/show the dialogue and HUD
+- **P** — pause
+- **M** — mute
+- **F** — fullscreen (letterboxed 4:3)
+- **D** — engine debug panel
+
+There is no title screen; the selected pack starts immediately. Scene links
+(`?scene=…&cmd=…`) resume directly.
+
 ### Debugging
 
 Open the player with `?debug=1`, or press **D**, to show the engine debug panel.

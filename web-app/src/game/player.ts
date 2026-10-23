@@ -5,6 +5,7 @@ const H = 480;
 const IMAGE_CACHE_MAX = 8;
 const TRANSITION_MS = 560;
 const TEXT_CPS = 38; // characters per second
+const RENDER_SCALE = 3;
 
 type ImageSource = HTMLImageElement | HTMLCanvasElement;
 
@@ -72,6 +73,7 @@ export interface DebugState {
     complete: boolean;
   };
   choice: Option[] | null;
+  dialogueHidden: boolean;
   flags: Record<string, number>;
   stage: StageSnapshot;
   audio: AudioDebug;
@@ -130,6 +132,7 @@ export class Player {
   private textResolve: (() => void) | null = null;
   private textRaf = 0;
   private textLast = 0;
+  private dialogueHidden = false;
 
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
@@ -148,12 +151,11 @@ export class Player {
   ) {
     // Render the 640x480 stage at 2x internally and let CSS scale it down.
     // This keeps the bitmap art unchanged but makes dialogue text crisp.
-    const scale = 2;
-    canvas.width = W * scale;
-    canvas.height = H * scale;
+    canvas.width = W * RENDER_SCALE;
+    canvas.height = H * RENDER_SCALE;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("canvas 2d context unavailable");
-    ctx.scale(scale, scale);
+    ctx.scale(RENDER_SCALE, RENDER_SCALE);
     this.ctx = ctx;
     this.commands = script.commands;
     this.labels = script.labels;
@@ -270,6 +272,7 @@ export class Player {
         complete: this.textComplete,
       },
       choice: this.pendingChoice,
+      dialogueHidden: this.dialogueHidden,
       flags: Object.fromEntries(this.flags),
       stage: this.stageSnapshot(),
       audio: this.audioState(),
@@ -307,6 +310,12 @@ export class Player {
 
   setDebugFlag(id: number, value: number): void {
     this.flags.set(id, value);
+  }
+
+  setDialogueHidden(hidden: boolean): void {
+    if (this.dialogueHidden === hidden) return;
+    this.dialogueHidden = hidden;
+    this.draw();
   }
 
   unlockAudio(): void {
@@ -743,7 +752,7 @@ export class Player {
   }
 
   private drawText(): void {
-    if (!this.textActive) return;
+    if (!this.textActive || this.dialogueHidden) return;
     const ctx = this.ctx;
     const page = this.textPages[this.textPage] ?? "";
     const visible = page.slice(0, Math.floor(this.textChars));
