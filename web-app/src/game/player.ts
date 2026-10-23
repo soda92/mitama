@@ -20,15 +20,41 @@ export interface PlayerEvents {
   choice?(options: Option[] | null): void;
 }
 
+export interface StageSnapshot {
+  bg?: string;
+  l?: string;
+  r?: string;
+  c?: string;
+}
+
 export interface Snapshot {
   version: 1;
   pack: string;
   scene: string;
   pc: number;
   image: string;
+  stage?: StageSnapshot;
   flags?: Record<string, number>;
   thumbnail?: string;
   savedAt: number;
+}
+
+interface StageImage {
+  name: string;
+  img: ImageSource;
+}
+
+interface Stage {
+  bg: StageImage | null;
+  l: StageImage | null;
+  r: StageImage | null;
+  c: StageImage | null;
+}
+
+type Slot = keyof Stage;
+
+function emptyStage(): Stage {
+  return { bg: null, l: null, r: null, c: null };
 }
 
 export class Player {
@@ -42,9 +68,9 @@ export class Player {
   private readonly loadScript?: (name: string) => Promise<Script>;
 
   private pc = 0;
-  private current: ImageSource | null = null;
-  private currentImageName = "";
-  private pending: Promise<ImageSource> | null = null;
+  private stage: Stage = emptyStage();
+  private pendingStage: Stage | null = null;
+  private pendingLoads: Promise<void>[] = [];
   private running = false;
   private paused = false;
   private stopped = true;
@@ -102,12 +128,18 @@ export class Player {
   }
 
   snapshot(): Snapshot {
+    const stage: StageSnapshot = {};
+    if (this.stage.bg) stage.bg = this.stage.bg.name;
+    if (this.stage.l) stage.l = this.stage.l.name;
+    if (this.stage.r) stage.r = this.stage.r.name;
+    if (this.stage.c) stage.c = this.stage.c.name;
     return {
       version: 1,
       pack: this.pack,
       scene: this.scene,
       pc: this.currentPC,
-      image: this.currentImageName,
+      image: stage.bg ?? "",
+      stage,
       flags: Object.fromEntries(this.flags),
       savedAt: Date.now(),
     };
@@ -168,11 +200,16 @@ export class Player {
     }
   }
 
-  start(pc = 0, imageName = "", flags?: Record<string, number>): void {
+  start(
+    pc = 0,
+    imageName = "",
+    flags?: Record<string, number>,
+    stageSnapshot?: StageSnapshot,
+  ): void {
     this.pc = Math.max(0, pc);
-    this.current = null;
-    this.currentImageName = imageName;
-    this.pending = null;
+    this.stage = emptyStage();
+    this.pendingStage = null;
+    this.pendingLoads = [];
     this.running = true;
     this.paused = false;
     this.stopped = false;
@@ -184,16 +221,31 @@ export class Player {
     this.events.status("playing");
     this.events.position?.(this.scene, this.currentPC);
     this.prefetchNext();
-    if (imageName) {
-      void this.loadImage(imageName).then((img) => {
-        if (this.stopped) return;
-        this.current = img;
-        this.draw(img);
-        void this.run();
-      });
-    } else {
+
+    const restore = async () => {
+      const snap = stageSnapshot;
+      if (snap) {
+        await Promise.all([
+          this.restoreSlot("bg", snap.bg),
+          this.restoreSlot("l", snap.l),
+          this.restoreSlot("r", snap.r),
+          this.restoreSlot("c", snap.c),
+        ]);
+      } else if (imageName) {
+        await this.restoreSlot("bg", imageName);
+      }
+    };
+    void restore().then(() => {
+      if (this.stopped) return;
+      this.draw();
       void this.run();
-    }
+    });
+  }
+
+  private async restoreSlot(slot: Slot, name?: string): Promise<void> {
+    if (!name) return;
+    const img = await this.loadImage(name);
+    this.stage[slot] = { name, img };
   }
 
   stop(): void {
@@ -291,7 +343,8 @@ export class Player {
     c.height = H;
     const g = c.getContext("2d");
     if (g) {
-      g.fillStyle = name.toUpperCase() === "WHITE" ? "#fff" : "#000";
+      g.fillStyle =
+        name.toUpperCase() === "WHITE" ? "#fff" : name.toUpperCase() === "RED" ? "#b00016" : "#000";
       g.fillRect(0, 0, W, H);
     }
     return c;
@@ -299,7 +352,8 @@ export class Player {
 
   private loadImage(name: string): Promise<ImageSource> {
     const key = name.toUpperCase();
-    if (key === "BLACK" || key === "WHITE") return Promise.resolve(this.special(key));
+    if (key === "BLACK" || key === "WHITE" || key === "RED")
+      return Promise.resolve(this.special(key));
     const cached = this.imageCache.get(key);
     if (cached) return Promise.resolve(cached);
     const inFlight = this.imagePromises.get(key);
@@ -333,9 +387,70 @@ export class Player {
     return promise;
   }
 
-  private draw(img: ImageSource | null = this.current): void {
+  private sourceSize(img: ImageSource): { w: number; h: number } {
+    if (img instanceof HTMLCanvasElement) return { w: img.width, h: img.height };
+    return { w: img.naturalWidth || W, h: img.naturalHeight || H };
+  }
+
+  private readonly spriteCache = new Map<string, HTMLCanvasElement>();
+
+  private spriteCanvas(name: string, img: ImageSource): HTMLCanvasElement {
+    const key = name.toUpperCase();
+    const cached = this.spriteCache.get(key);
+    if (cached) return cached;
+    const { w, h } = this.sourceSize(img);
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    if (g) {
+      g.drawImage(img, 0, 0, w, h);
+      const pixels = g.getImageData(0, 0, w, h);
+      const d = pixels.data;
+      for (let i = 0; i < d.length; i += 4) {
+        // Character stands are stored on a pure-black key background.
+        if (d[i] === 0 && d[i + 1] === 0 && d[i + 2] === 0) d[i + 3] = 0;
+      }
+      g.putImageData(pixels, 0, 0);
+    }
+    this.spriteCache.set(key, c);
+    if (this.spriteCache.size > 12) {
+      const oldest = this.spriteCache.keys().next().value;
+      if (oldest !== undefined) this.spriteCache.delete(oldest);
+    }
+    return c;
+  }
+
+  private composeStage(stage: Stage): HTMLCanvasElement {
+    const c = document.createElement("canvas");
+    c.width = W;
+    c.height = H;
+    const g = c.getContext("2d");
+    if (!g) return c;
+    g.fillStyle = "#000";
+    g.fillRect(0, 0, W, H);
+
+    const bg = stage.bg;
+    if (bg) {
+      const { w, h } = this.sourceSize(bg.img);
+      if (w === W && h === H) g.drawImage(bg.img, 0, 0, W, H);
+      else g.drawImage(bg.img, 0, 0, w, h);
+    }
+
+    for (const slot of ["l", "r", "c"] as const) {
+      const layer = stage[slot];
+      if (!layer) continue;
+      const sprite = this.spriteCanvas(layer.name, layer.img);
+      const { w, h } = this.sourceSize(sprite);
+      const x = slot === "l" ? 0 : slot === "r" ? W - w : Math.round((W - w) / 2);
+      g.drawImage(sprite, x, H - h, w, h);
+    }
+    return c;
+  }
+
+  private draw(): void {
     this.clear();
-    if (img) this.ctx.drawImage(img, 0, 0, W, H);
+    this.ctx.drawImage(this.composeStage(this.stage), 0, 0, W, H);
     this.drawText();
   }
 
@@ -492,12 +607,16 @@ export class Player {
     ctx.restore();
   }
 
+  private paint(img: ImageSource): void {
+    this.ctx.drawImage(img, 0, 0, W, H);
+  }
+
   private drawTransition(a: ImageSource, b: ImageSource, kind: string, t: number): void {
     const ctx = this.ctx;
     this.clear();
     switch (kind) {
       case "ワイプ":
-        this.draw(a);
+        this.paint(a);
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, W * t, H);
@@ -506,7 +625,7 @@ export class Player {
         ctx.restore();
         break;
       case "ワイプ２":
-        this.draw(a);
+        this.paint(a);
         ctx.save();
         ctx.beginPath();
         ctx.rect(W * (1 - t), 0, W * t, H);
@@ -515,7 +634,7 @@ export class Player {
         ctx.restore();
         break;
       case "上下":
-        this.draw(a);
+        this.paint(a);
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, W, H * t);
@@ -524,7 +643,7 @@ export class Player {
         ctx.restore();
         break;
       case "円１": {
-        this.draw(a);
+        this.paint(a);
         const r = Math.hypot(W, H) * 0.5 * t;
         ctx.save();
         ctx.beginPath();
@@ -535,7 +654,7 @@ export class Player {
         break;
       }
       case "円２": {
-        this.draw(b);
+        this.paint(b);
         const r = Math.hypot(W, H) * 0.5 * (1 - t);
         ctx.save();
         ctx.beginPath();
@@ -547,7 +666,7 @@ export class Player {
       }
       case "クロス":
       default:
-        this.draw(a);
+        this.paint(a);
         ctx.globalAlpha = t;
         ctx.drawImage(b, 0, 0, W, H);
         ctx.globalAlpha = 1;
@@ -555,13 +674,18 @@ export class Player {
     }
   }
 
-  private transition(next: ImageSource, kind: string): Promise<void> {
-    if (!this.current) {
-      this.current = next;
-      this.draw(next);
+  private stageEmpty(stage: Stage): boolean {
+    return !stage.bg && !stage.l && !stage.r && !stage.c;
+  }
+
+  private transitionTo(nextStage: Stage, kind: string): Promise<void> {
+    if (this.stageEmpty(this.stage)) {
+      this.stage = nextStage;
+      this.draw();
       return Promise.resolve();
     }
-    const from = this.current;
+    const from = this.composeStage(this.stage);
+    const to = this.composeStage(nextStage);
     return new Promise((resolve) => {
       let elapsed = 0;
       let last = performance.now();
@@ -570,10 +694,10 @@ export class Player {
         last = now;
         const raw = Math.min(1, elapsed / TRANSITION_MS);
         const t = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
-        this.drawTransition(from, next, kind, t);
+        this.drawTransition(from, to, kind, t);
         if (raw >= 1 || this.stopped) {
-          this.current = next;
-          this.draw(next);
+          this.stage = nextStage;
+          this.draw();
           resolve();
         } else {
           requestAnimationFrame(frame);
@@ -683,24 +807,56 @@ export class Player {
             await this.showText(c.speaker ?? "", c.message ?? "");
             break;
           case "BMP": {
-            if (args.includes("消去") || (args[0] ?? "").toUpperCase() === "ALL") {
-              this.currentImageName = "";
-              this.pending = Promise.resolve(this.special("BLACK"));
+            const name = (args.find((a) => !["L", "R", "C", "消去"].includes(a.toUpperCase())) ?? "BLACK").toUpperCase();
+            const clear = args.includes("消去");
+            const posArg = args.find((a) => ["L", "R", "C"].includes(a.toUpperCase()));
+            const slot: Slot =
+              posArg?.toUpperCase() === "L"
+                ? "l"
+                : posArg?.toUpperCase() === "R"
+                  ? "r"
+                  : posArg?.toUpperCase() === "C"
+                    ? "c"
+                    : "bg";
+            this.pendingStage ??= { ...this.stage };
+
+            if (clear) {
+              if (name === "ALL") this.pendingStage = emptyStage();
+              else if (slot !== "bg") this.pendingStage[slot] = null;
+              else this.pendingStage = emptyStage();
               break;
             }
-            const name = args.find((a) => !["L", "R", "C"].includes(a.toUpperCase())) ?? "BLACK";
-            this.currentImageName = name;
-            this.pending = this.loadImage(name);
+            if (name === "BLACK" || name === "WHITE" || name === "RED") {
+              const img = this.special(name);
+              this.pendingStage = { bg: { name, img }, l: null, r: null, c: null };
+              break;
+            }
+            const targetSlot = slot;
+            const load = this.loadImage(name).then((img) => {
+              if (!this.pendingStage) return;
+              this.pendingStage[targetSlot] = { name, img };
+              if (targetSlot === "bg") {
+                const { w, h } = this.sourceSize(img);
+                if (w === W && h === H) {
+                  this.pendingStage.l = null;
+                  this.pendingStage.r = null;
+                  this.pendingStage.c = null;
+                }
+              }
+            });
+            this.pendingLoads.push(load);
             break;
           }
           case "UPD": {
             const kind = args[0] || "クロス";
-            if (this.pending) {
+            if (this.pendingStage) {
               this.events.loading(true);
-              const img = await this.pending;
+              await Promise.all(this.pendingLoads);
+              this.pendingLoads = [];
               this.events.loading(false);
-              this.pending = null;
-              await this.transition(img, kind);
+              const next = this.pendingStage;
+              this.pendingStage = null;
+              await this.transitionTo(next, kind);
               this.prefetchNext();
             }
             break;

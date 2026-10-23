@@ -24,6 +24,7 @@ extractor at your own data.
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
 | Text / dialogue rendering (typewriter, click, `￥` pages) | ✅ implemented |
+| Layered stage (BG + L/R/C stands, black color key) | ✅ implemented |
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
 | Scene URLs and save/load slots | ✅ implemented |

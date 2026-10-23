@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Player, type Snapshot } from "./game/player";
+import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
 
 interface GameData {
@@ -10,6 +10,7 @@ interface GameData {
 interface ResumePoint {
   pc: number;
   image: string;
+  stage?: StageSnapshot;
   flags?: Record<string, number>;
 }
 
@@ -72,6 +73,8 @@ export default function App() {
   const [choices, setChoices] = useState<Option[] | null>(null);
   const [saves, setSaves] = useState<(Snapshot | null)[]>(readSaves);
   const [saveMode, setSaveMode] = useState<"save" | "load" | null>(null);
+  const [sceneMode, setSceneMode] = useState(false);
+  const [sceneFilter, setSceneFilter] = useState("");
 
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
   const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
@@ -218,7 +221,7 @@ export default function App() {
     setStarted(true);
     setPaused(false);
     setChoices(null);
-    player.start(resume.pc, resume.image, resume.flags);
+    player.start(resume.pc, resume.image, resume.flags, resume.stage);
     setResume({ pc: 0, image: "" });
   }, [resume]);
 
@@ -273,12 +276,29 @@ export default function App() {
       setEnded(false);
       setPaused(false);
       setResumeScene(snap.scene);
-      setResume({ pc: snap.pc, image: snap.image, flags: snap.flags });
+      setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
       if (snap.pack !== packId) setPackId(snap.pack);
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
     },
     [saves, packId, updateURL],
+  );
+
+  const jumpToScene = useCallback(
+    (name: string) => {
+      const scene = name.replace(/\.txt$/i, "");
+      setSceneMode(false);
+      setSceneFilter("");
+      setStarted(false);
+      setEnded(false);
+      setPaused(false);
+      setChoices(null);
+      setResumeScene(scene);
+      setResume({ pc: 0, image: "" });
+      setReloadKey((k) => k + 1);
+      updateURL(scene, 0);
+    },
+    [updateURL],
   );
 
   const reloadCurrent = useCallback(() => {
@@ -288,8 +308,9 @@ export default function App() {
     setEnded(false);
     setPaused(false);
     setChoices(null);
+    const snap = player.snapshot();
     setResumeScene(player.currentScene);
-    setResume({ pc: player.currentPC, image: "", flags: player.flagState });
+    setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
     setReloadKey((k) => k + 1);
   }, []);
 
@@ -449,6 +470,40 @@ export default function App() {
           </div>
         )}
 
+        {sceneMode && (
+          <div
+            className="save-overlay"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setSceneMode(false);
+            }}
+          >
+            <div className="save-panel scene-panel" onClick={(ev) => ev.stopPropagation()}>
+              <div className="save-head">
+                <strong>Scenes</strong>
+                <button onClick={() => setSceneMode(false)}>✕</button>
+              </div>
+              <input
+                className="scene-filter"
+                autoFocus
+                placeholder="filter scripts…"
+                value={sceneFilter}
+                onChange={(ev) => setSceneFilter(ev.target.value)}
+              />
+              <div className="scene-list">
+                {Object.keys(assets.text)
+                  .filter((n) => n.includes(sceneFilter.toLowerCase()))
+                  .sort()
+                  .map((n) => (
+                    <button key={n} className="scene-item" onClick={() => jumpToScene(n)}>
+                      {n}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="loading">
             <span /> loading…
@@ -481,6 +536,9 @@ export default function App() {
         </button>
         <button onClick={() => setSaveMode("load")} disabled={saves.every((s) => !s)} title="Load">
           Load
+        </button>
+        <button onClick={() => setSceneMode(true)} disabled={scriptCount === 0} title="Scenes">
+          Scenes
         </button>
         <button onClick={reloadCurrent} disabled={!started} title="Reload scene">
           ↻

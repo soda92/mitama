@@ -34,6 +34,8 @@ Last updated: 2026-10-23.
 - [x] `cmd/extract` CLI for directories and ISO images.
 - [x] CP932 dialogue parser with multi-line quotes and speaker names.
 - [x] Text box, typewriter, click/Enter to advance, `￥` page breaks.
+- [x] Layered stage: background + L/R/C character stands, composited at
+      natural size with a black color key (fixes stretched sprites).
 - [x] DVD pack selection and lazy `LOD` script loading.
 - [x] Opening `yr1_00.txt` plays to `LOD YR1_01`.
 - [x] Scene/chapter links in the URL (`?pack=dvd&scene=yr1_02&cmd=123`).

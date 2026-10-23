@@ -12,3 +12,4 @@
 # Engine
 
 - [Script language](engine/script.md)
+- [Stage composition](engine/stage.md)
