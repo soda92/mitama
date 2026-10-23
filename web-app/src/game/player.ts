@@ -141,6 +141,8 @@ export class Player {
   private readonly imageCache = new Map<string, ImageSource>();
   private readonly imagePromises = new Map<string, Promise<ImageSource>>();
   private bgm: HTMLAudioElement | null = null;
+  private bgmWanted = false;
+  private audioUnlocked = false;
   private readonly liveSe = new Set<HTMLAudioElement>();
 
   // Dialogue state.
@@ -269,15 +271,22 @@ export class Player {
   }
 
   async primeAudio(): Promise<void> {
+    if (this.audioUnlocked) return;
     const a = this.ensureBgm();
+    if (a.dataset.track && !a.paused) {
+      this.audioUnlocked = true;
+      return;
+    }
+    a.volume = 0;
     try {
-      a.volume = 0;
       await a.play();
+      this.audioUnlocked = true;
       a.pause();
       a.currentTime = 0;
-      a.volume = this.audioVolume();
     } catch {
       // Autoplay may still be blocked; BGM will start on the next attempt.
+    } finally {
+      a.volume = this.audioVolume();
     }
   }
 
@@ -362,10 +371,14 @@ export class Player {
     this.draw();
   }
 
-  unlockAudio(): void {
-    void this.primeAudio();
-    if (this.bgm?.dataset.track && this.bgm.paused) {
-      void this.bgm.play().catch(() => undefined);
+  async unlockAudio(): Promise<void> {
+    if (this.bgm?.dataset.track && !this.bgm.paused) {
+      this.audioUnlocked = true;
+      return;
+    }
+    await this.primeAudio();
+    if (this.bgmWanted && !this.paused && this.bgm?.dataset.track && this.bgm.paused) {
+      await this.bgm.play().catch(() => undefined);
     }
   }
 
@@ -392,6 +405,7 @@ export class Player {
     );
     this.mapMode = false;
     this.party.clear();
+    this.bgmWanted = false;
     this.resetText();
     this.clear();
     this.events.status("playing");
@@ -566,6 +580,7 @@ export class Player {
     this.pendingChoice = null;
     this.events.choice?.(null);
     if (choiceResolve) choiceResolve("");
+    this.bgmWanted = false;
     if (this.bgm) this.bgm.pause();
     for (const a of this.liveSe) a.pause();
     this.liveSe.clear();
@@ -577,7 +592,7 @@ export class Player {
     this.events.status(paused ? "paused" : "playing");
     if (this.bgm) {
       if (paused) this.bgm.pause();
-      else void this.bgm.play().catch(() => undefined);
+      else if (this.bgmWanted) void this.bgm.play().catch(() => undefined);
     }
     for (const a of this.liveSe) {
       if (paused) a.pause();
@@ -1141,6 +1156,7 @@ export class Player {
   private playBgm(name: string | undefined): void {
     if (!name) return;
     if (name.toUpperCase() === "STOP") {
+      this.bgmWanted = false;
       if (this.bgm) {
         this.bgm.pause();
         this.bgm.currentTime = 0;
@@ -1152,6 +1168,7 @@ export class Player {
       this.events.log(`missing bgm: ${name}`);
       return;
     }
+    this.bgmWanted = true;
     const a = this.ensureBgm();
     if (a.dataset.track !== rel) {
       a.src = this.audioURL(rel);

@@ -444,7 +444,7 @@ export default function App() {
   }, []);
 
   const advance = useCallback(() => {
-    playerRef.current?.unlockAudio();
+    void playerRef.current?.unlockAudio();
     playerRef.current?.advance();
   }, []);
 
