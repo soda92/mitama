@@ -3,11 +3,16 @@
 The engine composites a small scene graph per command frame:
 
 ```text
-background  (BMP, normally 640×480)
+background stack  (BMP, normally 640×480; later entries draw on top)
   ├── left stand   (L)
   ├── right stand  (R)
   └── center stand (C)
 ```
+
+`BMP BLACK`, `BMP WHITE` and `BMP RED` push a full-screen color layer onto the
+background stack. `BMP BLACK 消去` removes the matching layer and reveals the
+background underneath; it does **not** clear the stage. This is used for black
+flashes and white fades.
 
 Images are **not scaled**. A 336×480 character stand is drawn at its natural
 size, bottom-aligned:
@@ -35,13 +40,14 @@ before one `UPD` (this is how both characters appear together).
 
 Clear operators:
 
-- `BMP ALL 消去` — clear the whole stage.
+- `BMP ALL 消去` — clear the whole stage, including the background stack.
 - `BMP T02_2 L 消去` — remove the left layer.
-- `BMP BLACK 消去` / `BMP WHITE 消去` — clear to black.
+- `BMP BLACK 消去` / `BMP WHITE 消去` — remove that color layer and reveal the
+  background underneath.
 
-Full-screen images (`BLACK`, `WHITE`, `RED`, CGs, backgrounds) are 640×480 and
-replace the background. Background changes clear character slots; scripts then
-add the stands for the new scene.
+Full-screen images (CGs, backgrounds) are 640×480 and are pushed onto the
+background stack. Background changes clear character slots; scripts then add
+the stands for the new scene.
 
 ## Transparency
 
@@ -56,7 +62,7 @@ sprite's black rectangle.
 A save records the stage as names:
 
 ```json
-{ "bg": "BG012", "l": "T02_2", "r": "T03_1" }
+{ "bg": "BG012", "bgs": ["BLACK", "BG012"], "l": "T02_2", "r": "T03_1" }
 ```
 
 Loading a save resolves those names through the asset map and rebuilds the

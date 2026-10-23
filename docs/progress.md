@@ -59,6 +59,8 @@ Last updated: 2026-10-23.
 - [x] Inline voice/SE annotations are hidden and played as page cues.
 - [x] Header/footer removed; controls live on the dialogue box and in ☰
       Settings (pack, volume, debug).
+- [x] Background stack semantics: `BMP BLACK 消去` reveals the background
+      underneath instead of clearing it.
 
 ## In progress
 

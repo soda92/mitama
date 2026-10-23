@@ -23,6 +23,7 @@ export interface PlayerEvents {
 
 export interface StageSnapshot {
   bg?: string;
+  bgs?: string[];
   l?: string;
   r?: string;
   c?: string;
@@ -85,16 +86,17 @@ interface StageImage {
 }
 
 interface Stage {
-  bg: StageImage | null;
+  bgs: StageImage[];
   l: StageImage | null;
   r: StageImage | null;
   c: StageImage | null;
 }
 
-type Slot = keyof Stage;
+type Slot = "l" | "r" | "c";
+type BmpSlot = Slot | "bg";
 
 function emptyStage(): Stage {
-  return { bg: null, l: null, r: null, c: null };
+  return { bgs: [], l: null, r: null, c: null };
 }
 
 export class Player {
@@ -178,11 +180,7 @@ export class Player {
   }
 
   snapshot(): Snapshot {
-    const stage: StageSnapshot = {};
-    if (this.stage.bg) stage.bg = this.stage.bg.name;
-    if (this.stage.l) stage.l = this.stage.l.name;
-    if (this.stage.r) stage.r = this.stage.r.name;
-    if (this.stage.c) stage.c = this.stage.c.name;
+    const stage = this.stageSnapshot();
     return {
       version: 1,
       pack: this.pack,
@@ -302,7 +300,10 @@ export class Player {
 
   stageSnapshot(): StageSnapshot {
     const stage: StageSnapshot = {};
-    if (this.stage.bg) stage.bg = this.stage.bg.name;
+    if (this.stage.bgs.length > 0) {
+      stage.bgs = this.stage.bgs.map((b) => b.name);
+      stage.bg = stage.bgs[stage.bgs.length - 1];
+    }
     if (this.stage.l) stage.l = this.stage.l.name;
     if (this.stage.r) stage.r = this.stage.r.name;
     if (this.stage.c) stage.c = this.stage.c.name;
@@ -351,8 +352,9 @@ export class Player {
     const restore = async () => {
       const snap = stageSnapshot;
       if (snap) {
+        const bgs = snap.bgs && snap.bgs.length > 0 ? snap.bgs : snap.bg ? [snap.bg] : [];
+        await this.restoreBackgrounds(bgs);
         await Promise.all([
-          this.restoreSlot("bg", snap.bg),
           this.restoreSlot("l", snap.l),
           this.restoreSlot("r", snap.r),
           this.restoreSlot("c", snap.c),
@@ -362,7 +364,7 @@ export class Player {
         await this.restoreBefore(this.pc);
         this.events.loading(false);
       } else if (imageName) {
-        await this.restoreSlot("bg", imageName);
+        await this.restoreBackgrounds([imageName]);
       }
     };
     void restore().then(() => {
@@ -384,7 +386,7 @@ export class Player {
     const name = (args.find((a) => !["L", "R", "C", "消去"].includes(a.toUpperCase())) ?? "BLACK").toUpperCase();
     const clear = args.includes("消去");
     const posArg = args.find((a) => ["L", "R", "C"].includes(a.toUpperCase()));
-    const slot: Slot =
+    const slot: BmpSlot =
       posArg?.toUpperCase() === "L"
         ? "l"
         : posArg?.toUpperCase() === "R"
@@ -394,32 +396,46 @@ export class Player {
             : "bg";
 
     if (clear) {
-      if (name === "ALL" || slot === "bg") {
-        stage.bg = null;
+      if (name === "ALL") {
+        stage.bgs = [];
         stage.l = null;
         stage.r = null;
         stage.c = null;
-      } else {
+      } else if (slot !== "bg") {
         stage[slot] = null;
+      } else {
+        // Remove the matching background layer (e.g. BLACK 消去 reveals the
+        // background underneath it) rather than clearing the whole stage.
+        for (let i = stage.bgs.length - 1; i >= 0; i--) {
+          if (stage.bgs[i].name.toUpperCase() === name) {
+            stage.bgs.splice(i, 1);
+            break;
+          }
+        }
       }
       return;
     }
     if (name === "BLACK" || name === "WHITE" || name === "RED") {
-      stage.bg = { name, img: this.special(name) };
-      stage.l = null;
-      stage.r = null;
-      stage.c = null;
+      if (stage.bgs[stage.bgs.length - 1]?.name.toUpperCase() !== name) {
+        stage.bgs.push({ name, img: this.special(name) });
+      }
       return;
     }
     const img = await this.loadImage(name);
-    stage[slot] = { name, img };
     if (slot === "bg") {
+      if (stage.bgs[stage.bgs.length - 1]?.name.toUpperCase() === name) {
+        stage.bgs[stage.bgs.length - 1] = { name, img };
+      } else {
+        stage.bgs.push({ name, img });
+      }
       const { w, h } = this.sourceSize(img);
       if (w === W && h === H) {
         stage.l = null;
         stage.r = null;
         stage.c = null;
       }
+    } else {
+      stage[slot] = { name, img };
     }
   }
 
@@ -457,6 +473,14 @@ export class Player {
     }
     this.stage = stage;
     if (music && music.toUpperCase() !== "STOP") this.playBgm(music);
+  }
+
+  private async restoreBackgrounds(names: string[]): Promise<void> {
+    this.stage.bgs = [];
+    for (const name of names) {
+      const img = await this.loadImage(name);
+      this.stage.bgs.push({ name, img });
+    }
   }
 
   private async restoreSlot(slot: Slot, name?: string): Promise<void> {
@@ -649,8 +673,7 @@ export class Player {
     g.fillStyle = "#000";
     g.fillRect(0, 0, W, H);
 
-    const bg = stage.bg;
-    if (bg) {
+    for (const bg of stage.bgs) {
       const { w, h } = this.sourceSize(bg.img);
       if (w === W && h === H) g.drawImage(bg.img, 0, 0, W, H);
       else g.drawImage(bg.img, 0, 0, w, h);
@@ -904,7 +927,7 @@ export class Player {
   }
 
   private stageEmpty(stage: Stage): boolean {
-    return !stage.bg && !stage.l && !stage.r && !stage.c;
+    return stage.bgs.length === 0 && !stage.l && !stage.r && !stage.c;
   }
 
   private transitionTo(nextStage: Stage, kind: string): Promise<void> {
