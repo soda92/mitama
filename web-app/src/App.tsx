@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 import {
   Player,
   type BattleInfo,
@@ -440,13 +448,43 @@ export default function App() {
     playerRef.current?.advance();
   }, []);
 
-  const handleStageClick = useCallback(() => {
-    if (uiHidden) {
-      setUiHidden(false);
-      return;
-    }
-    advance();
-  }, [uiHidden, advance]);
+  const canvasPoint = useCallback((ev: MouseEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((ev.clientX - rect.left) * 640) / rect.width,
+      y: ((ev.clientY - rect.top) * 480) / rect.height,
+    };
+  }, []);
+
+  const handleStageClick = useCallback(
+    (ev: MouseEvent<HTMLDivElement>) => {
+      if (uiHidden) {
+        setUiHidden(false);
+        return;
+      }
+      const point = canvasPoint(ev);
+      const player = playerRef.current;
+      if (point && player?.hitReplay(point.x, point.y)) {
+        player.replayVoice();
+        return;
+      }
+      advance();
+    },
+    [uiHidden, advance, canvasPoint],
+  );
+
+  const handleStageMove = useCallback(
+    (ev: MouseEvent<HTMLDivElement>) => {
+      const point = canvasPoint(ev);
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.style.cursor =
+        point && playerRef.current?.hitReplay(point.x, point.y) ? "pointer" : "default";
+    },
+    [canvasPoint],
+  );
 
   const cancelBattle = useCallback(() => {
     const resolve = battleResolveRef.current;
@@ -697,7 +735,7 @@ export default function App() {
       <div className="play-area">
 
       <section className="stage-wrap">
-        <div className="screen" onClick={handleStageClick}>
+        <div className="screen" onClick={handleStageClick} onMouseMove={handleStageMove}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
 
           {started && (

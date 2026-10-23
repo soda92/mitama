@@ -152,6 +152,8 @@ export class Player {
   private textComplete = false;
   private textActive = false;
   private textResolve: (() => void) | null = null;
+  private textFallbackVoice = "";
+  private replayBounds: { x: number; y: number; w: number; h: number } | null = null;
   private textRaf = 0;
   private textLast = 0;
   private dialogueHidden = false;
@@ -588,6 +590,25 @@ export class Player {
     return this.paused;
   }
 
+  /** True when the current page has a person-voice clip to replay. */
+  get hasReplayVoice(): boolean {
+    return !!this.currentVoiceName();
+  }
+
+  /** Replay the current page's voice without advancing dialogue. */
+  replayVoice(): boolean {
+    const name = this.currentVoiceName();
+    if (!name) return false;
+    this.playSe(name);
+    return true;
+  }
+
+  /** Test a click in canvas coordinates against the replay button. */
+  hitReplay(x: number, y: number): boolean {
+    const b = this.replayBounds;
+    return !!b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+  }
+
   /** True while dialogue is on screen and waiting for the player. */
   get hasText(): boolean {
     return this.textActive;
@@ -777,6 +798,8 @@ export class Player {
   private resetText(): void {
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
+    this.textFallbackVoice = "";
+    this.replayBounds = null;
     this.textActive = false;
     this.textComplete = false;
     this.textWaitersResolve();
@@ -850,6 +873,18 @@ export class Player {
     this.textRaf = requestAnimationFrame(tick);
   }
 
+  private isVoiceName(name: string): boolean {
+    return /^[a-z0-9]+_/i.test(name) && !/^SE/i.test(name);
+  }
+
+  private currentVoiceName(): string {
+    if (!this.textActive) return "";
+    const cue = this.textCues.find((c) => c.page === this.textPage && c.kind === "voice");
+    if (cue) return cue.name;
+    if (!this.textCues.some((c) => c.kind === "voice")) return this.textFallbackVoice;
+    return "";
+  }
+
   private finishText(): void {
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
@@ -857,6 +892,8 @@ export class Player {
     this.textComplete = false;
     this.textPages = [];
     this.textCues = [];
+    this.textFallbackVoice = "";
+    this.replayBounds = null;
     this.textPage = 0;
     this.textChars = 0;
     this.draw();
@@ -864,7 +901,10 @@ export class Player {
   }
 
   private drawText(): void {
-    if (!this.textActive || this.dialogueHidden) return;
+    if (!this.textActive || this.dialogueHidden) {
+      this.replayBounds = null;
+      return;
+    }
     const ctx = this.ctx;
     const page = this.textPages[this.textPage] ?? "";
     const visible = page.slice(0, Math.floor(this.textChars));
@@ -896,6 +936,29 @@ export class Player {
       ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
       ctx.textBaseline = "middle";
       ctx.fillText(label, x + 26, y - 1);
+
+      if (this.hasReplayVoice) {
+        const bx = Math.min(x + 12 + tw + 6, x + w - 38);
+        const by = y - 14;
+        const bw = 32;
+        const bh = 26;
+        this.replayBounds = { x: bx, y: by, w: bw, h: bh };
+        ctx.fillStyle = `rgba(20, 18, 14, ${this.dialogueOpacity})`;
+        ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
+        ctx.font = '600 13px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+        ctx.textAlign = "center";
+        ctx.fillText("声", bx + bw / 2, by + bh / 2 + 1);
+        ctx.textAlign = "start";
+      } else {
+        this.replayBounds = null;
+      }
+    } else {
+      this.replayBounds = null;
     }
 
     // Body.
@@ -1168,9 +1231,13 @@ export class Player {
           case "MUS":
             this.playBgm(args[0]);
             break;
-          case "SEV":
-            this.playSe(args[0]);
+          case "SEV": {
+            const name = args[0];
+            if (name && this.isVoiceName(name)) this.textFallbackVoice = name;
+            else this.textFallbackVoice = "";
+            this.playSe(name);
             break;
+          }
           case "STS":
             this.events.log(`title: ${args.join(" ")}`);
             break;

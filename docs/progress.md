@@ -69,6 +69,7 @@ Last updated: 2026-10-24.
 - [x] Dialogue box is opaque and the whole frame is redrawn per typewriter
       tick (no stale/accumulated box alpha).
 - [x] Adjustable dialogue opacity in Settings (persisted per browser).
+- [x] Replay-voice button beside the speaker name tag (current page/line).
 
 ## In progress
 
