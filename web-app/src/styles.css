@@ -383,6 +383,13 @@ button.choice:hover:not(:disabled) {
   flex: 1;
 }
 
+.setting-value {
+  min-width: 38px;
+  text-align: right;
+  color: #e6ddc8;
+  font: 11px/1 ui-monospace, monospace;
+}
+
 .settings-actions {
   display: flex;
   flex-wrap: wrap;

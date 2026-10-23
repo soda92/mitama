@@ -117,8 +117,8 @@ any chapter/event can be inspected without replaying the story.
 - **D** — engine debug panel
 
 There is no title screen or top header; the selected pack starts immediately.
-Pack/volume/status live in the **☰ Settings** panel, while Save/Load/Scenes are
-buttons on the dialogue box. Scene links (`?scene=…&cmd=…`) resume directly.
+Pack/volume/dialog-opacity/status live in the **☰ Settings** panel, while
+Save/Load/Scenes are buttons on the dialogue box. Scene links (`?scene=…&cmd=…`) resume directly.
 
 ### Debugging
 

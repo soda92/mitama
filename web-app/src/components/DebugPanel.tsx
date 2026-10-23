@@ -78,6 +78,8 @@ export default function DebugPanel({
                 {state.text.chars}/{state.text.length}
                 {state.text.complete ? " ✓" : " …"}
               </b>
+              <span>opacity</span>
+              <b>{Math.round(state.dialogueOpacity * 100)}%</b>
             </div>
           ) : (
             <p className="muted">no dialogue</p>

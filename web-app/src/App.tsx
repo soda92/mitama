@@ -78,6 +78,10 @@ export default function App() {
   const [sceneFilter, setSceneFilter] = useState("");
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dialogOpacity, setDialogOpacity] = useState(() => {
+    const raw = Number(localStorage.getItem("mitama.dialogOpacity"));
+    return Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 1;
+  });
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -224,6 +228,7 @@ export default function App() {
       advance: () => playerRef.current?.advance(),
       choose: (label: string) => playerRef.current?.choose(label),
       setFlag: (id: number, value: number) => playerRef.current?.setDebugFlag(id, value),
+      setDialogueOpacity: (value: number) => setDialogOpacity(value),
     };
     (window as Window & { __mitama?: typeof debug }).__mitama = debug;
     return () => {
@@ -254,6 +259,15 @@ export default function App() {
   useEffect(() => {
     playerRef.current?.setDialogueHidden(uiHidden);
   }, [uiHidden, data]);
+
+  useEffect(() => {
+    playerRef.current?.setDialogueOpacity(dialogOpacity);
+    try {
+      localStorage.setItem("mitama.dialogOpacity", String(dialogOpacity));
+    } catch {
+      // best-effort setting persistence
+    }
+  }, [dialogOpacity, data]);
 
   useEffect(() => {
     playerRef.current?.setMuted(muted);
@@ -515,6 +529,17 @@ export default function App() {
                     value={Math.round(volume * 100)}
                     onChange={(ev) => setVolume(Number(ev.target.value) / 100)}
                   />
+                </label>
+                <label className="settings-row">
+                  <span>dialog opacity</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(dialogOpacity * 100)}
+                    onChange={(ev) => setDialogOpacity(Number(ev.target.value) / 100)}
+                  />
+                  <b className="setting-value">{Math.round(dialogOpacity * 100)}%</b>
                 </label>
                 <div className="settings-actions">
                   <button onClick={() => { setMenuOpen(false); setSaveMode("save"); }}>Save</button>

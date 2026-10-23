@@ -63,6 +63,7 @@ Last updated: 2026-10-23.
       underneath instead of clearing it.
 - [x] Dialogue box is opaque and the whole frame is redrawn per typewriter
       tick (no stale/accumulated box alpha).
+- [x] Adjustable dialogue opacity in Settings (persisted per browser).
 
 ## In progress
 

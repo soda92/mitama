@@ -75,6 +75,7 @@ export interface DebugState {
   };
   choice: Option[] | null;
   dialogueHidden: boolean;
+  dialogueOpacity: number;
   flags: Record<string, number>;
   stage: StageSnapshot;
   audio: AudioDebug;
@@ -138,6 +139,7 @@ export class Player {
   private textRaf = 0;
   private textLast = 0;
   private dialogueHidden = false;
+  private dialogueOpacity = 1;
 
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
@@ -274,6 +276,7 @@ export class Player {
       },
       choice: this.pendingChoice,
       dialogueHidden: this.dialogueHidden,
+      dialogueOpacity: this.dialogueOpacity,
       flags: Object.fromEntries(this.flags),
       stage: this.stageSnapshot(),
       audio: this.audioState(),
@@ -319,6 +322,13 @@ export class Player {
   setDialogueHidden(hidden: boolean): void {
     if (this.dialogueHidden === hidden) return;
     this.dialogueHidden = hidden;
+    this.draw();
+  }
+
+  setDialogueOpacity(opacity: number): void {
+    const value = Math.max(0, Math.min(1, opacity));
+    if (this.dialogueOpacity === value) return;
+    this.dialogueOpacity = value;
     this.draw();
   }
 
@@ -822,7 +832,7 @@ export class Player {
     const w = W - 36;
     const h = 142;
     ctx.save();
-    ctx.fillStyle = "rgba(7, 8, 12, 1)";
+    ctx.fillStyle = `rgba(7, 8, 12, ${this.dialogueOpacity})`;
     ctx.strokeStyle = "rgba(201, 168, 106, 0.72)";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -835,7 +845,7 @@ export class Player {
       ctx.font = '600 17px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
       const label = this.textSpeaker;
       const tw = Math.max(64, ctx.measureText(label).width + 28);
-      ctx.fillStyle = "rgb(12, 12, 16)";
+      ctx.fillStyle = `rgba(12, 12, 16, ${this.dialogueOpacity})`;
       ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
       ctx.beginPath();
       ctx.roundRect(x + 12, y - 15, tw, 28, 5);
