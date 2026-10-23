@@ -36,22 +36,28 @@ Last updated: 2026-10-23.
 - [x] Text box, typewriter, click/Enter to advance, `￥` page breaks.
 - [x] DVD pack selection and lazy `LOD` script loading.
 - [x] Opening `yr1_00.txt` plays to `LOD YR1_01`.
+- [x] Scene/chapter links in the URL (`?pack=dvd&scene=yr1_02&cmd=123`).
+- [x] Four save slots in `localStorage` with thumbnails.
+- [x] Single-select choices (`SLT` and `MSLT`); `SEND` menu terminator.
+- [x] Case-insensitive `LOD` resolution (fixes `YR1_02` → `yr1_02.txt`).
+- [x] Chapter transition from `yr1_01` to `YR1_02`.
+- [x] KWD1 `.XA` audio decoder (`pkg/xa`), verified byte-for-byte against
+      `xadec.dll` under Wine.
+- [x] Server-side `.xa` → WAV conversion at `/api/audio` with an in-memory
+      cache.
+- [x] BGM and voice playback from the DVD data.
 
 ## In progress
 
-- [ ] Full-game script commands (`SLT`, `IFT`, `FLG`, `MAP`, ...).
-- [ ] Save/load (`save%02d.dat`, `save99.dat`).
-- [ ] `.XA` audio decoder (voice/BGM/SE).
+- [ ] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
+- [ ] `MAP` movement, party, encounter and battle systems.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
-- [ ] Map movement, party, encounter and battle systems.
+- [ ] Server-side save files compatible with `save%02d.dat`.
 
 ## Next milestone
 
-Play the full opening with audio: decode `.XA` voice/BGM, then implement
-choices (`SLT`), flags (`IFT`/`FLG`/`EQU`) and scene loading (`LOD`/`SEND`).
-
-The opening currently runs through `yr1_00.txt` and loads `yr1_01.txt`; it is
-silent because DVD audio is stored as `.XA`.
+Make chapter 1 interactive beyond dialogue: implement the flag VM, then map
+movement and the event/choice flow. Audio and chapter loading are working.
 
 ## Notes / decisions
 

@@ -19,6 +19,7 @@ import (
 type server struct {
 	dataDir string
 	webDir  string
+	audio   *audioCache
 }
 
 func main() {
@@ -27,11 +28,12 @@ func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	flag.Parse()
 
-	s := &server{dataDir: *data, webDir: *web}
+	s := &server{dataDir: *data, webDir: *web, audio: newAudioCache(128 << 20)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/packs", s.handlePacks)
 	mux.HandleFunc("/api/script", s.handleScript)
 	mux.HandleFunc("/api/assets", s.handleAssets)
+	mux.HandleFunc("/api/audio", s.handleAudio)
 	mux.Handle("/media/", http.StripPrefix("/media/", http.FileServer(http.Dir(*data))))
 	mux.Handle("/", http.FileServer(http.Dir(*web)))
 
@@ -116,6 +118,11 @@ func (s *server) handleScript(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no script for pack", http.StatusNotFound)
 		return
 	}
+	path, err := findFileInsensitive(filepath.Dir(path), filepath.Base(path))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -186,6 +193,25 @@ func (s *server) handleAssets(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, res)
+}
+
+// findFileInsensitive resolves a file inside dir ignoring case. The scripts
+// use uppercase LOD targets (YR1_02) while the extracted files are lowercase.
+func findFileInsensitive(dir, name string) (string, error) {
+	p := filepath.Join(dir, name)
+	if _, err := os.Stat(p); err == nil {
+		return p, nil
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range entries {
+		if !e.IsDir() && strings.EqualFold(e.Name(), name) {
+			return filepath.Join(dir, e.Name()), nil
+		}
+	}
+	return "", os.ErrNotExist
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

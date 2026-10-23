@@ -11,7 +11,7 @@ The DVD-ROM edition ships the engine as a single 745 KB Win32 executable,
 retains enough readable strings, command names and code to identify:
 
 - the ARC directory obfuscation key (`arcana`);
-- the LZSS codec and `KWD1` container;
+- the LZSS codec (images/text) and the KWD1 audio codec;
 - the script command vocabulary (`BMP`, `UPD`, `SLT`, `IFT`, `MAP`, `BATTLE`,
   …);
 - the fixed 640×480 display and 24-bit BMP image pipeline.
@@ -29,7 +29,7 @@ disc image (ISO/CCD/MDF)
   pkg/disc ── ISO 9660 / raw-sector mapping
         │
         ▼
-  pkg/arc ─── directory decode + KWD1 + LZSS
+  pkg/arc ─── directory decode + LZSS;  pkg/xa ─── KWD1 audio
         │
         ├──► cmd/extract ──► data/<pack>/<archive>/<file>
         │
@@ -42,9 +42,8 @@ never modified.
 
 ## Current milestone
 
-A playable reconstruction of the **shop demo**: image changes, cross/wipe/circle
-transitions, BGM, sound effects, voice clips and the script's `JMP` loop.
-The full game's asset set already extracts, but its script VM (map, party,
-battle, text) is still under construction.
+The DVD opening and first chapter are playable with backgrounds, dialogue,
+choices, BGM, sound effects and voice. Scene links (`?scene=...&cmd=...`) and
+four save slots work. The flag VM, map movement and battle systems remain.
 
 Start with [Progress](progress.md).

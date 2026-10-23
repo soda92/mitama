@@ -63,25 +63,16 @@ decompresses to a 640×480 24-bit BMP (921,656 bytes).
 
 Three cases occur:
 
-1. **KWD1** — a 32-byte block wrapper around an LZSS stream.
-2. **Raw LZSS** — present when `stored < size` but there is no KWD1 header.
-3. **Raw** — audio WAVs and the `kunoichi.asc` manifest.
+1. **Raw LZSS** — present when `stored < size` (images, scenario text).
+2. **Raw** — WAVs, the `kunoichi.asc` manifest and structural data.
+3. **KWD1 audio** — every `.xa` entry stores a 32-byte KWD1 audio block.
 
-### KWD1
+`KWD1` is **not** the LZSS compression described below. It is the audio
+codec container used by `xadec.dll`; see [xa.md](xa.md). The extractor keeps
+`.xa` entries raw and the server decodes them to WAV on demand.
 
-```c
-struct KWD1 {
-    char     magic[4];        // "KWD1"
-    uint32_t compressed;      // payload bytes after the header
-    uint32_t uncompressed;
-    uint32_t flags;           // e.g. 0x01085622
-    uint8_t  reserved[20];    // zeros
-};
-```
-
-`kunoichi.arc` wraps every voice file in KWD1. The record's `stored` value
-includes the 32-byte header (`stored == compressed + 32`), which is why
-`size == stored` for those entries even though the payload is compressed.
+The record's `stored` value includes the 32-byte KWD1 header
+(`stored == compressed + 32`), which is why `size == stored` for `.xa` entries.
 
 ## LZSS codec
 
@@ -124,17 +115,15 @@ Go implementation: `pkg/lzss`.
 ```text
 stored := archive[offset : offset+stored]
 
-if stored starts with "KWD1":
-    n = le32(stored[8:12])
-    out = lzss(stored[32 : 32+le32(stored[4:8])], n)
+if entry extension is .xa:
+    out = stored                 # raw KWD1 audio block
 else if len(stored) < size:
-    out = lzss(stored, size)
+    out = lzss(stored, size)     # BMP / scenario text
 else:
-    out = stored
+    out = stored                 # WAV / manifest / structural data
 ```
 
-This one rule handles BMPs, scenario text, WAVs, `.XA` voice files and the
-manifest.
+This handles BMPs, scenario text, WAVs, `.XA` voice files and the manifest.
 
 ## Archive inventory
 
@@ -143,7 +132,7 @@ manifest.
 | `mitama.arc` | 751 | `.bmp` |
 | `shinobi.arc` | 3,444 | `.xa` + `.asc` |
 | `kuno_EX.arc` | 582 | `.xa` + `.asc` |
-| `kunoichi.arc` | 8,054 | `.xa` + `.asc` |
+| `kunoichi.arc` | 8,054 | `.xa` (KWD1) + `.asc` |
 | `bgm.arc` | 42 | `.xa` |
 | `se.arc` | 310 | `.xa` |
 | `text.arc` | 420 | `.txt` |

@@ -1,4 +1,4 @@
-import type { AssetMap, Command, Script } from "./types";
+import type { AssetMap, Command, Option, Script } from "./types";
 
 const W = 640;
 const H = 480;
@@ -14,6 +14,20 @@ export interface PlayerEvents {
   loading(active: boolean): void;
   ended(): void;
   error(message: string): void;
+  /** Current scene or command position changed. */
+  position?(scene: string, pc: number): void;
+  /** A menu is waiting for a selection, or null when it closes. */
+  choice?(options: Option[] | null): void;
+}
+
+export interface Snapshot {
+  version: 1;
+  pack: string;
+  scene: string;
+  pc: number;
+  image: string;
+  thumbnail?: string;
+  savedAt: number;
 }
 
 export class Player {
@@ -23,10 +37,12 @@ export class Player {
   private readonly assets: AssetMap;
   private readonly events: PlayerEvents;
   private readonly pack: string;
+  private scene: string;
   private readonly loadScript?: (name: string) => Promise<Script>;
 
   private pc = 0;
   private current: ImageSource | null = null;
+  private currentImageName = "";
   private pending: Promise<ImageSource> | null = null;
   private running = false;
   private paused = false;
@@ -50,12 +66,15 @@ export class Player {
   private textRaf = 0;
   private textLast = 0;
 
+  private choiceResolve: ((label: string) => void) | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     script: Script,
     assets: AssetMap,
     events: PlayerEvents,
     pack = "demo",
+    scene = "",
     loadScript?: (name: string) => Promise<Script>,
   ) {
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -66,7 +85,36 @@ export class Player {
     this.assets = assets;
     this.events = events;
     this.pack = pack;
+    this.scene = scene.replace(/\.txt$/i, "").toLowerCase();
     this.loadScript = loadScript;
+  }
+
+  get currentScene(): string {
+    return this.scene;
+  }
+
+  get currentPC(): number {
+    // While a TEXT or menu command is waiting for input, point at that
+    // command so a save/restored page replays the pending interaction.
+    return this.textActive || this.choiceResolve ? Math.max(0, this.pc - 1) : this.pc;
+  }
+
+  snapshot(): Snapshot {
+    return {
+      version: 1,
+      pack: this.pack,
+      scene: this.scene,
+      pc: this.currentPC,
+      image: this.currentImageName,
+      savedAt: Date.now(),
+    };
+  }
+
+  choose(label: string): void {
+    const resolve = this.choiceResolve;
+    this.choiceResolve = null;
+    this.events.choice?.(null);
+    if (resolve) resolve(label);
   }
 
   get isPaused(): boolean {
@@ -90,9 +138,10 @@ export class Player {
     }
   }
 
-  start(): void {
-    this.pc = 0;
+  start(pc = 0, imageName = ""): void {
+    this.pc = Math.max(0, pc);
     this.current = null;
+    this.currentImageName = imageName;
     this.pending = null;
     this.running = true;
     this.paused = false;
@@ -100,14 +149,28 @@ export class Player {
     this.resetText();
     this.clear();
     this.events.status("playing");
+    this.events.position?.(this.scene, this.currentPC);
     this.prefetchNext();
-    void this.run();
+    if (imageName) {
+      void this.loadImage(imageName).then((img) => {
+        if (this.stopped) return;
+        this.current = img;
+        this.draw(img);
+        void this.run();
+      });
+    } else {
+      void this.run();
+    }
   }
 
   stop(): void {
     this.stopped = true;
     this.running = false;
     this.resetText();
+    const choiceResolve = this.choiceResolve;
+    this.choiceResolve = null;
+    this.events.choice?.(null);
+    if (choiceResolve) choiceResolve("");
     if (this.bgm) this.bgm.pause();
     for (const a of this.liveSe) a.pause();
     this.liveSe.clear();
@@ -272,6 +335,14 @@ export class Player {
     this.scheduleTyping();
     return new Promise((resolve) => {
       this.textResolve = resolve;
+    });
+  }
+
+  private showChoice(options: Option[]): Promise<string> {
+    if (options.length === 0) return Promise.resolve("");
+    this.events.choice?.(options);
+    return new Promise((resolve) => {
+      this.choiceResolve = resolve;
     });
   }
 
@@ -529,17 +600,21 @@ export class Player {
       this.events.log(`missing bgm: ${name}`);
       return;
     }
-    if (rel.toLowerCase().endsWith(".xa")) {
-      this.events.log(`XA audio not decoded yet: ${name}`);
-      return;
-    }
     const a = this.ensureBgm();
-    if (!a.src.endsWith(rel)) {
-      a.src = `/media/${this.pack}/${rel}`;
+    if (a.dataset.track !== rel) {
+      a.src = this.audioURL(rel);
+      a.dataset.track = rel;
       a.currentTime = 0;
     }
     a.volume = this.audioVolume();
     if (!this.paused) void a.play().catch(() => undefined);
+  }
+
+  private audioURL(rel: string): string {
+    if (rel.toLowerCase().endsWith(".xa")) {
+      return `/api/audio?pack=${encodeURIComponent(this.pack)}&file=${encodeURIComponent(rel)}`;
+    }
+    return `/media/${this.pack}/${rel}`;
   }
 
   private playSe(name: string | undefined): void {
@@ -549,11 +624,7 @@ export class Player {
       this.events.log(`missing se: ${name}`);
       return;
     }
-    if (rel.toLowerCase().endsWith(".xa")) {
-      // TODO: decode the game's XA audio to PCM/WAV.
-      return;
-    }
-    const a = new Audio(`/media/${this.pack}/${rel}`);
+    const a = new Audio(this.audioURL(rel));
     a.volume = this.audioVolume();
     this.liveSe.add(a);
     const done = () => this.liveSe.delete(a);
@@ -575,14 +646,17 @@ export class Player {
         this.events.log(`L${c.line}  ${c.cmd}${args.length ? " " + args.join(" ") : ""}`);
         switch (c.cmd) {
           case "TEXT":
+            this.events.position?.(this.scene, Math.max(0, this.pc - 1));
             await this.showText(c.speaker ?? "", c.message ?? "");
             break;
           case "BMP": {
             if (args.includes("消去") || (args[0] ?? "").toUpperCase() === "ALL") {
+              this.currentImageName = "";
               this.pending = Promise.resolve(this.special("BLACK"));
               break;
             }
             const name = args.find((a) => !["L", "R", "C"].includes(a.toUpperCase())) ?? "BLACK";
+            this.currentImageName = name;
             this.pending = this.loadImage(name);
             break;
           }
@@ -624,8 +698,10 @@ export class Player {
               const next = await this.loadScript(name);
               this.commands = next.commands;
               this.labels = next.labels;
+              this.scene = name.toLowerCase();
               this.pc = 0;
               this.events.status("playing");
+              this.events.position?.(this.scene, 0);
               this.prefetchNext();
             } catch (err) {
               this.events.log(`failed to load ${name}: ${String(err)}`);
@@ -634,11 +710,23 @@ export class Player {
             break;
           }
           case "SLT":
-          case "MSLT":
-            this.events.log(`menu not implemented yet (${args.join(" ")})`);
+          case "MSLT": {
+            const label = await this.showChoice(c.options ?? []);
+            if (label && label in this.labels) {
+              this.pc = this.labels[label];
+              this.events.position?.(this.scene, this.pc);
+            } else {
+              this.events.log(`unknown choice label: ${label}`);
+              this.stopped = true;
+            }
             break;
+          }
           case "SEND":
           case "SHAEND":
+            // The engine treats this as the end of the current scene. Until
+            // map/scene management exists, stop instead of falling through
+            // into the script's branch labels.
+            this.stopped = true;
             break;
           case "JMP": {
             const dest = args[0];
@@ -668,6 +756,8 @@ export class Player {
   private finish(): void {
     this.running = false;
     this.stopped = true;
+    this.choiceResolve = null;
+    this.events.choice?.(null);
     this.events.loading(false);
     this.events.status("ended");
     this.events.ended();

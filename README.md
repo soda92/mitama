@@ -19,14 +19,16 @@ extractor at your own data.
 | --- | --- |
 | CloneCD / ISO / UDF disc reading | ISO 9660 implemented; UDF read from extracted files |
 | `.arc` directory format | ✅ decoded (key `arcana`) |
-| `KWD1` + LZSS payloads | ✅ decoded |
+| LZSS-compressed BMP / text payloads | ✅ decoded |
+| `KWD1` `.XA` audio codec | ✅ decoded, verified against `xadec.dll` |
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
 | Text / dialogue rendering (typewriter, click, `￥` pages) | ✅ implemented |
-| DVD opening (`yr1_00.txt` → `yr1_01.txt`) | ✅ plays with text and images |
-| Full-game commands (SLT/IFT/FLG/MAP/BATTLE/...) | ⛔ next |
+| DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
+| Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
+| Scene URLs and save/load slots | ✅ implemented |
+| Full-game flags (`IFT`/`FLG`/`EQU`), map, battle | ⛔ next |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
-| Voice `.XA` decoding | ⛔ next |
 
 See [docs/progress.md](docs/progress.md) for the working checklist and
 [docs/formats/arc.md](docs/formats/arc.md) for the reverse-engineered archive
@@ -83,15 +85,33 @@ cd web-app && pnpm dev         # http://localhost:5173
 
 Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`.
 
+### Scene links and saves
+
+The current scene and command index are always reflected in the URL:
+
+```text
+http://localhost:8080/?pack=dvd&scene=yr1_02&cmd=123
+```
+
+Open such a link, press Start, and playback resumes at that command. `pack` is
+`demo`, `dvd`, or `disc`; `scene` is a `text.arc` script name; `cmd` is a
+zero-based command index.
+
+The player has four save slots stored in `localStorage`. A snapshot records the
+pack, scene, command index, current background and a thumbnail. Save/load while
+a dialogue or menu is open restores that interaction.
+
 ## Layout
 
 ```text
 cmd/extract/        ARC/ISO asset extractor
+cmd/xadecode/       KWD1 .xa → WAV converter
 cmd/server/         HTTP server + JSON API + static media
-pkg/arc/            ARC directory and payload decoding (KWD1 + LZSS)
+pkg/arc/            ARC directory and LZSS payload decoding
 pkg/disc/           ISO 9660 / CloneCD / MDF image reader
 pkg/lzss/           ARCANA LZSS codec
 pkg/script/         CP932 command-script parser
+pkg/xa/             KWD1 audio codec (PCM output)
 web-app/            React 19 + Vite + TypeScript player
 docs/               Format notes, engine notes, roadmap
 data/               Extracted assets (gitignored)
@@ -112,6 +132,7 @@ advance with Enter, screenshot, inspect console/network).
 
 - [docs/index.md](docs/index.md) — overview
 - [docs/formats/disc.md](docs/formats/disc.md) — CCD/MDF/ISO/UDF notes
-- [docs/formats/arc.md](docs/formats/arc.md) — ARC + KWD1 + LZSS
+- [docs/formats/arc.md](docs/formats/arc.md) — ARC directory + LZSS
+- [docs/formats/xa.md](docs/formats/xa.md) — KWD1 / `.XA` audio
 - [docs/engine/script.md](docs/engine/script.md) — command language
 - [docs/progress.md](docs/progress.md) — what works, what is next

@@ -1,21 +1,63 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Player } from "./game/player";
-import type { AssetMap, PackInfo, Script } from "./game/types";
+import { Player, type Snapshot } from "./game/player";
+import type { AssetMap, Option, PackInfo, Script } from "./game/types";
 
 interface GameData {
   script: Script;
   assets: AssetMap;
 }
 
+interface ResumePoint {
+  pc: number;
+  image: string;
+}
+
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
+const SAVE_KEY = "mitama.saves.v1";
+const SLOT_COUNT = 4;
+
+function readSaves(): (Snapshot | null)[] {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return Array(SLOT_COUNT).fill(null);
+    const parsed = JSON.parse(raw) as (Snapshot | null)[];
+    const out = Array(SLOT_COUNT).fill(null);
+    for (let i = 0; i < SLOT_COUNT; i++) out[i] = parsed[i] ?? null;
+    return out;
+  } catch {
+    return Array(SLOT_COUNT).fill(null);
+  }
+}
+
+function writeSaves(saves: (Snapshot | null)[]): void {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saves));
+  } catch {
+    // localStorage may be unavailable or full; saves are best-effort.
+  }
+}
+
+function initialParams(): { pack: string; scene: string; pc: number } {
+  const q = new URLSearchParams(window.location.search);
+  const pc = Number.parseInt(q.get("cmd") ?? "0", 10);
+  return {
+    pack: q.get("pack") ?? "",
+    scene: q.get("scene") ?? "",
+    pc: Number.isFinite(pc) ? Math.max(0, pc) : 0,
+  };
+}
 
 export default function App() {
+  const params = useMemo(initialParams, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
 
   const [packs, setPacks] = useState<PackInfo[]>([]);
   const [packId, setPackId] = useState<string>("");
+  const [resumeScene, setResumeScene] = useState(params.scene);
+  const [resume, setResume] = useState<ResumePoint>({ pc: params.pc, image: "" });
+  const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<GameData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -26,8 +68,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("loading");
   const [log, setLog] = useState("ready");
+  const [choices, setChoices] = useState<Option[] | null>(null);
+  const [saves, setSaves] = useState<(Snapshot | null)[]>(readSaves);
+  const [saveMode, setSaveMode] = useState<"save" | "load" | null>(null);
 
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
+  const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
 
   // Load the pack list and choose a default.
   useEffect(() => {
@@ -39,12 +85,16 @@ export default function App() {
         const body = (await res.json()) as { packs: PackInfo[] };
         if (cancelled) return;
         setPacks(body.packs);
-        const requested = new URLSearchParams(window.location.search).get("pack");
+        const requested = params.pack;
         const initial =
           body.packs.find((p) => p.id === requested) ??
           body.packs.find((p) => p.startScript) ??
           body.packs[0];
         setPackId(initial?.id ?? "");
+        if (initial?.id !== requested) {
+          setResumeScene("");
+          setResume({ pc: 0, image: "" });
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -52,9 +102,9 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [params.pack]);
 
-  // Load the selected pack's start script and asset index.
+  // Load the selected pack's script and asset index.
   useEffect(() => {
     if (!packId) return;
     let cancelled = false;
@@ -66,8 +116,11 @@ export default function App() {
     setStatus("loading script");
     (async () => {
       try {
+        const scriptURL = resumeScene
+          ? `/api/script?pack=${encodeURIComponent(packId)}&name=${encodeURIComponent(resumeScene)}`
+          : `/api/script?pack=${encodeURIComponent(packId)}`;
         const [scriptRes, assetsRes] = await Promise.all([
-          fetch(`/api/script?pack=${encodeURIComponent(packId)}`),
+          fetch(scriptURL),
           fetch(`/api/assets?pack=${encodeURIComponent(packId)}`),
         ]);
         if (!scriptRes.ok) throw new Error(`script: HTTP ${scriptRes.status}`);
@@ -84,7 +137,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [packId]);
+  }, [packId, resumeScene, reloadKey]);
 
   const loadScript = useCallback(
     async (name: string): Promise<Script> => {
@@ -93,6 +146,18 @@ export default function App() {
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return (await res.json()) as Script;
+    },
+    [packId],
+  );
+
+  const updateURL = useCallback(
+    (scene: string, pc: number) => {
+      const url = new URL(window.location.href);
+      if (packId) url.searchParams.set("pack", packId);
+      if (scene) url.searchParams.set("scene", scene);
+      else url.searchParams.delete("scene");
+      url.searchParams.set("cmd", String(Math.max(0, pc)));
+      window.history.replaceState(null, "", url.toString());
     },
     [packId],
   );
@@ -111,13 +176,17 @@ export default function App() {
           setStarted(false);
           setEnded(true);
           setPaused(false);
+          setChoices(null);
         },
         error: (message) => {
           setError(message);
           setStatus("error");
         },
+        position: updateURL,
+        choice: setChoices,
       },
       packId,
+      startScene,
       loadScript,
     );
     playerRef.current = player;
@@ -128,7 +197,7 @@ export default function App() {
     };
     // Volume is applied separately below; it must not recreate the player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, packId, loadScript]);
+  }, [data, packId, startScene, loadScript, updateURL]);
 
   useEffect(() => {
     playerRef.current?.setVolume(volume);
@@ -147,8 +216,10 @@ export default function App() {
     setEnded(false);
     setStarted(true);
     setPaused(false);
-    player.start();
-  }, []);
+    setChoices(null);
+    player.start(resume.pc, resume.image);
+    setResume({ pc: 0, image: "" });
+  }, [resume]);
 
   const togglePause = useCallback(() => {
     const player = playerRef.current;
@@ -165,8 +236,65 @@ export default function App() {
     else void stageRef.current?.requestFullscreen?.();
   }, []);
 
+  const choose = useCallback((label: string) => {
+    setChoices(null);
+    playerRef.current?.choose(label);
+  }, []);
+
+  const saveTo = useCallback(
+    (slot: number) => {
+      const player = playerRef.current;
+      if (!player) return;
+      const snap = player.snapshot();
+      try {
+        snap.thumbnail = canvasRef.current?.toDataURL("image/jpeg", 0.55);
+      } catch {
+        // Thumbnail is optional.
+      }
+      setSaves((prev) => {
+        const next = [...prev];
+        next[slot] = snap;
+        writeSaves(next);
+        return next;
+      });
+      setSaveMode(null);
+    },
+    [],
+  );
+
+  const loadFrom = useCallback(
+    (slot: number) => {
+      const snap = saves[slot];
+      if (!snap) return;
+      setSaveMode(null);
+      setChoices(null);
+      setStarted(false);
+      setEnded(false);
+      setPaused(false);
+      setResumeScene(snap.scene);
+      setResume({ pc: snap.pc, image: snap.image });
+      if (snap.pack !== packId) setPackId(snap.pack);
+      setReloadKey((k) => k + 1);
+      updateURL(snap.scene, snap.pc);
+    },
+    [saves, packId, updateURL],
+  );
+
+  const reloadCurrent = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    setStarted(false);
+    setEnded(false);
+    setPaused(false);
+    setChoices(null);
+    setResumeScene(player.currentScene);
+    setResume({ pc: player.currentPC, image: "" });
+    setReloadKey((k) => k + 1);
+  }, []);
+
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
+      if (saveMode) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         advance();
@@ -182,7 +310,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [started, togglePause, toggleFullscreen, advance]);
+  }, [started, togglePause, toggleFullscreen, advance, saveMode]);
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const imageCount = Object.keys(assets.game).length;
@@ -205,7 +333,11 @@ export default function App() {
             <select
               className="pack"
               value={packId}
-              onChange={(ev) => setPackId(ev.target.value)}
+              onChange={(ev) => {
+                setPackId(ev.target.value);
+                setResumeScene("");
+                setResume({ pc: 0, image: "" });
+              }}
               aria-label="data pack"
             >
               {packs.map((p) => (
@@ -250,6 +382,72 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {choices && choices.length > 0 && (
+          <div className="choice-overlay">
+            <div className="choice-panel">
+              {choices.map((opt, i) => (
+                <button
+                  key={`${opt.label}-${i}`}
+                  className="choice"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    choose(opt.label);
+                  }}
+                >
+                  {opt.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {saveMode && (
+          <div
+            className="save-overlay"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setSaveMode(null);
+            }}
+          >
+            <div className="save-panel" onClick={(ev) => ev.stopPropagation()}>
+              <div className="save-head">
+                <strong>{saveMode === "save" ? "Save game" : "Load game"}</strong>
+                <button onClick={() => setSaveMode(null)}>✕</button>
+              </div>
+              <div className="slots">
+                {saves.map((snap, i) => (
+                  <button
+                    key={i}
+                    className={`slot ${snap ? "filled" : ""}`}
+                    onClick={() => (saveMode === "save" ? saveTo(i) : loadFrom(i))}
+                    disabled={saveMode === "load" && !snap}
+                  >
+                    {snap?.thumbnail ? (
+                      <img src={snap.thumbnail} alt="" />
+                    ) : (
+                      <span className="slot-empty">{saveMode === "save" ? "empty" : "no data"}</span>
+                    )}
+                    <span className="slot-meta">
+                      <b>Slot {i + 1}</b>
+                      {snap ? (
+                        <>
+                          <em>{snap.scene || snap.pack}</em>
+                          <small>
+                            cmd {snap.pc} · {new Date(snap.savedAt).toLocaleString()}
+                          </small>
+                        </>
+                      ) : (
+                        <small>{saveMode === "save" ? "click to save here" : "—"}</small>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="loading">
             <span /> loading…
@@ -277,6 +475,15 @@ export default function App() {
             onChange={(ev) => setVolume(Number(ev.target.value) / 100)}
           />
         </div>
+        <button onClick={() => setSaveMode("save")} disabled={!started} title="Save">
+          Save
+        </button>
+        <button onClick={() => setSaveMode("load")} disabled={saves.every((s) => !s)} title="Load">
+          Load
+        </button>
+        <button onClick={reloadCurrent} disabled={!started} title="Reload scene">
+          ↻
+        </button>
         <div className="log">{log}</div>
       </footer>
     </main>

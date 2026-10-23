@@ -139,6 +139,18 @@ func parseOptions(lines []string, start int) ([]Option, int) {
 		label := strings.TrimSpace(line[close+len("」"):])
 		opts = append(opts, Option{Text: text, Label: label})
 	}
+	// The menu block is terminated by □SEND. Consume it here so the runtime
+	// never falls through into the branch labels below the menu.
+	for ; i < len(lines); i++ {
+		line := strings.TrimSpace(normalize(lines[i]))
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+		if line == "□SEND" || line == "■SEND" {
+			i++
+		}
+		break
+	}
 	return opts, i - 1
 }
 

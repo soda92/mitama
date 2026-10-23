@@ -44,18 +44,18 @@ offset `0x181C8`:
 
 | Command | Arguments | Meaning | Status |
 | --- | --- | --- | --- |
-| `BMP` | `name [消去]` | stage image; `消去` clears the layer | ✅ demo |
-| `UPD` | `クロス\|ワイプ\|ワイプ２\|上下\|円１\|円２` | transition to pending BMP | ✅ demo |
-| `WAIT` | milliseconds | delay | ✅ demo |
-| `MUS` | `name\|STOP` | BGM from `bgm.arc` | ✅ demo |
-| `SEV` | `name [同]` | sound effect/voice; `同` reuses the channel | ✅ demo |
+| `BMP` | `name [L\|R\|C] [消去]` | stage image; position and clear operators | ✅ |
+| `UPD` | `クロス\|ワイプ\|ワイプ２\|上下\|円１\|円２` | transition to pending BMP | ✅ |
+| `WAIT` | milliseconds | delay | ✅ |
+| `MUS` | `name\|STOP` | BGM from `bgm.arc` (`.xa` decoded to WAV) | ✅ |
+| `SEV` | `name [同]` | sound effect/voice; `同` reuses the channel | ✅ |
 | `JMP` | `label` | jump | ✅ demo |
 | `END` | — | end script | ✅ demo |
-| `STS` | `text` | status/title label (e.g. `旅立`) | ⛔ |
-| `LOD` | `script` | load and run another scenario (`text.arc`) | ⛔ |
-| `SEND` / `SHAEND` | — | end a scene / branch to the shared scene end | ⛔ |
-| `SLT` | `C\|R\|L\|ALL ...` | single choice menu | ⛔ |
-| `MSLT` | — | multi-choice menu | ⛔ |
+| `STS` | `text` | status/title label (e.g. `旅立`) | ✅ (logged) |
+| `LOD` | `script` | load and run another scenario (`text.arc`) | ✅ |
+| `SEND` / `SHAEND` | — | end a scene / menu block | ✅ (menu terminator) |
+| `SLT` | quoted options with labels | single choice menu | ✅ |
+| `MSLT` | quoted options with labels | multi-choice menu (single selection for now) | ✅ |
 | `IFT` | `flag op value label` | conditional jump (`> < =`) | ⛔ |
 | `EQU` | `flag value` | compare/set equality flag | ⛔ |
 | `FLG` | `flag ON\|OFF`, `flag value` | set flag | ⛔ |
@@ -123,10 +123,10 @@ Special BMP names: `BLACK`, `WHITE`, `RED`, `BG`, `ZZ`.
 
 ## Known unknowns
 
-- Exact argument grammar of `IFT`, `EQU`, `SLT`, `MAP`, `SPRATE`, `UIW`,
-  `GSB`, `EQF`, `SHA`.
+- Exact argument grammar of `IFT`, `EQU`, `MAP`, `SPRATE`, `UIW`, `GSB`,
+  `EQF`, `SHA`.
 - Whether `STS` sets the window title or an on-screen location label.
 - The role of `￥` in dialogue, and line-wrapping widths.
 - Battle data formats (`.chr`, `.pty`, `.dat`, `.mtn`, `.spt`, `.o`).
-- `.XA` audio codec details (it is not the PSX XA format; `xadec.dll` and
-  `Sound.dll` are the references).
+- `.XA` is KWD1 audio, not the PSX XA format; the decoder is documented in
+  [../formats/xa.md](../formats/xa.md).

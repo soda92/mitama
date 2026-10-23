@@ -13,15 +13,8 @@
 //	stored    uint32, bytes occupied in the archive
 //	offset    uint32, absolute offset from the start of the archive
 //
-// File payloads are either stored raw or compressed with the ARCANA LZSS
-// codec. A payload may additionally be wrapped in a KWD1 block:
-//
-//	"KWD1"
-//	uint32 compressed_size
-//	uint32 uncompressed_size
-//	uint32 flags
-//	20 bytes zero
-//	compressed payload
+// Non-audio payloads are either stored raw or compressed with the ARCANA LZSS
+// codec. Audio (.xa) entries are raw KWD1 blocks; see package mitama/pkg/xa.
 package arc
 
 import (
@@ -41,7 +34,6 @@ const (
 	recordSize = 36
 	nameSize   = 24
 	key        = "arcana"
-	kwdHeader  = 32
 )
 
 // Entry is one decoded directory record.
@@ -173,22 +165,9 @@ func (a *Archive) Read(e Entry) ([]byte, error) {
 	return DecodePayload(stored, e.Size)
 }
 
-// DecodePayload unwraps a KWD1 block and/or runs the LZSS codec. The
-// uncompressed size is taken from the KWD1 header when present, otherwise
-// from wantSize.
+// DecodePayload runs the LZSS codec. The uncompressed size is wantSize.
+// Audio entries must be kept raw; use xa.Decode for KWD1 blocks.
 func DecodePayload(stored []byte, wantSize uint32) ([]byte, error) {
-	if len(stored) >= kwdHeader && string(stored[:4]) == "KWD1" {
-		cs := binary.LittleEndian.Uint32(stored[4:8])
-		us := binary.LittleEndian.Uint32(stored[8:12])
-		if int64(kwdHeader)+int64(cs) > int64(len(stored)) {
-			return nil, fmt.Errorf("arc: KWD1 payload size %d exceeds block %d", cs, len(stored))
-		}
-		out, err := lzss.Decode(stored[kwdHeader:kwdHeader+cs], int(us))
-		if err != nil {
-			return nil, fmt.Errorf("arc: KWD1: %w", err)
-		}
-		return out, nil
-	}
 	if len(stored) < int(wantSize) {
 		out, err := lzss.Decode(stored, int(wantSize))
 		if err != nil {

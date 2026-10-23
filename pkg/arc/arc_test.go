@@ -70,25 +70,6 @@ func TestOpenAndRead(t *testing.T) {
 	}
 }
 
-func TestKWD1(t *testing.T) {
-	// "abcabcabc" compressed with the LZSS stream from the lzss tests.
-	compressed := []byte{0x07, 'a', 'b', 'c', 0xEE, 0xF3}
-	block := make([]byte, 32+len(compressed))
-	copy(block, "KWD1")
-	binary.LittleEndian.PutUint32(block[4:8], uint32(len(compressed)))
-	binary.LittleEndian.PutUint32(block[8:12], 9)
-	copy(block[32:], compressed)
-
-	a, _ := makeArchive(block)
-	out, err := a.Read(a.Entries[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(out) != "abcabcabc" {
-		t.Fatalf("payload = %q", out)
-	}
-}
-
 func TestRawPayload(t *testing.T) {
 	compressed := []byte{0x07, 'a', 'b', 'c', 0xEE, 0xF3}
 	a, _ := makeArchive(compressed)

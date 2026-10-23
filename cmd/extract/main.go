@@ -162,7 +162,18 @@ func extractFrom(a *arc.Archive, dest string, skip bool) (int, error) {
 				continue
 			}
 		}
-		data, err := a.Read(e)
+		var (
+			data []byte
+			err  error
+		)
+		if strings.EqualFold(filepath.Ext(e.Name), ".xa") {
+			// .xa entries are KWD1 audio blocks (a codec, not the LZSS
+			// compression used by images/scripts). Keep them raw; the server
+			// decodes them on demand.
+			data, err = a.StoredBytes(e)
+		} else {
+			data, err = a.Read(e)
+		}
 		if err != nil {
 			log.Printf("    %s: %v", e.Name, err)
 			continue

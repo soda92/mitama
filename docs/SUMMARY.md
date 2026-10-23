@@ -7,6 +7,7 @@
 
 - [Disc images](formats/disc.md)
 - [ARC archives](formats/arc.md)
+- [KWD1 / .XA audio](formats/xa.md)
 
 # Engine
 

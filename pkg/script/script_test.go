@@ -42,7 +42,7 @@ func TestParseSLTOptions(t *testing.T) {
 □ＳＥＮＤ
 `
 	s := ParseString(src)
-	if len(s.Commands) != 2 {
+	if len(s.Commands) != 1 {
 		t.Fatalf("commands = %d: %#v", len(s.Commands), s.Commands)
 	}
 	slt := s.Commands[0]
@@ -51,8 +51,5 @@ func TestParseSLTOptions(t *testing.T) {
 	}
 	if slt.Options[0].Text != "右に進もう" || slt.Options[0].Label != "a" {
 		t.Fatalf("option 0 = %#v", slt.Options[0])
-	}
-	if s.Commands[1].Cmd != "SEND" {
-		t.Fatalf("SEND = %#v", s.Commands[1])
 	}
 }
