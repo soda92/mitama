@@ -113,6 +113,8 @@ export class Player {
   private stage: Stage = emptyStage();
   private pendingStage: Stage | null = null;
   private pendingLoads: Promise<void>[] = [];
+  private frameCache: HTMLCanvasElement | null = null;
+  private stageDirty = true;
   private running = false;
   private paused = false;
   private stopped = true;
@@ -327,6 +329,10 @@ export class Player {
     }
   }
 
+  private readonly redraw = (): void => {
+    if (!this.stopped) this.draw();
+  };
+
   start(
     pc = 0,
     imageName = "",
@@ -340,6 +346,7 @@ export class Player {
     this.running = true;
     this.paused = false;
     this.stopped = false;
+    this.dialogueHidden = false;
     this.flags = new Map(
       Object.entries(flags ?? {}).map(([k, v]) => [Number.parseInt(k, 10), v]),
     );
@@ -347,6 +354,8 @@ export class Player {
     this.clear();
     this.events.status("playing");
     this.events.position?.(this.scene, this.currentPC);
+    window.addEventListener("resize", this.redraw);
+    document.addEventListener("fullscreenchange", this.redraw);
     this.prefetchNext();
 
     const restore = async () => {
@@ -472,11 +481,13 @@ export class Player {
       }
     }
     this.stage = stage;
+    this.markStageDirty();
     if (music && music.toUpperCase() !== "STOP") this.playBgm(music);
   }
 
   private async restoreBackgrounds(names: string[]): Promise<void> {
     this.stage.bgs = [];
+    this.markStageDirty();
     for (const name of names) {
       const img = await this.loadImage(name);
       this.stage.bgs.push({ name, img });
@@ -487,12 +498,15 @@ export class Player {
     if (!name) return;
     const img = await this.loadImage(name);
     this.stage[slot] = { name, img };
+    this.markStageDirty();
   }
 
   stop(): void {
     this.stopped = true;
     this.running = false;
     this.resetText();
+    window.removeEventListener("resize", this.redraw);
+    document.removeEventListener("fullscreenchange", this.redraw);
     const choiceResolve = this.choiceResolve;
     this.choiceResolve = null;
     this.pendingChoice = null;
@@ -537,7 +551,7 @@ export class Player {
     if (this.textChars < page.length) {
       this.textChars = page.length;
       this.textComplete = true;
-      this.drawText();
+      this.draw();
       return true;
     }
     if (this.textPage + 1 < this.textPages.length) {
@@ -546,7 +560,7 @@ export class Player {
       this.textComplete = false;
       this.textLast = performance.now();
       this.playCues(this.textPage);
-      this.drawText();
+      this.draw();
       this.scheduleTyping();
       return true;
     }
@@ -571,6 +585,10 @@ export class Player {
   }
 
   private clear(): void {
+    // A transition or canvas operation must never leave a scale/alpha behind.
+    this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
+    this.ctx.globalAlpha = 1;
+    this.ctx.globalCompositeOperation = "source-over";
     this.ctx.fillStyle = "#000";
     this.ctx.fillRect(0, 0, W, H);
   }
@@ -690,9 +708,17 @@ export class Player {
     return c;
   }
 
+  private markStageDirty(): void {
+    this.stageDirty = true;
+  }
+
   private draw(): void {
+    if (!this.frameCache || this.stageDirty) {
+      this.frameCache = this.composeStage(this.stage);
+      this.stageDirty = false;
+    }
     this.clear();
-    this.ctx.drawImage(this.composeStage(this.stage), 0, 0, W, H);
+    this.ctx.drawImage(this.frameCache, 0, 0, W, H);
     this.drawText();
   }
 
@@ -722,7 +748,7 @@ export class Player {
     this.textChars = 0;
     this.textComplete = false;
     this.textActive = true;
-    this.drawText();
+    this.draw();
     this.scheduleTyping();
     this.playCues(0);
     return new Promise((resolve) => {
@@ -763,10 +789,10 @@ export class Player {
         this.textChars = page.length;
         this.textComplete = true;
         this.textRaf = 0;
-        this.drawText();
+        this.draw();
         return;
       }
-      this.drawText();
+      this.draw();
       this.textRaf = requestAnimationFrame(tick);
     };
     this.textRaf = requestAnimationFrame(tick);
@@ -796,7 +822,7 @@ export class Player {
     const w = W - 36;
     const h = 142;
     ctx.save();
-    ctx.fillStyle = "rgba(5, 6, 9, 0.82)";
+    ctx.fillStyle = "rgba(7, 8, 12, 1)";
     ctx.strokeStyle = "rgba(201, 168, 106, 0.72)";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -933,6 +959,7 @@ export class Player {
   private transitionTo(nextStage: Stage, kind: string): Promise<void> {
     if (this.stageEmpty(this.stage)) {
       this.stage = nextStage;
+      this.markStageDirty();
       this.draw();
       return Promise.resolve();
     }
@@ -949,6 +976,7 @@ export class Player {
         this.drawTransition(from, to, kind, t);
         if (raw >= 1 || this.stopped) {
           this.stage = nextStage;
+          this.markStageDirty();
           this.draw();
           resolve();
         } else {

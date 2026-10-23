@@ -61,6 +61,8 @@ Last updated: 2026-10-23.
       Settings (pack, volume, debug).
 - [x] Background stack semantics: `BMP BLACK 消去` reveals the background
       underneath instead of clearing it.
+- [x] Dialogue box is opaque and the whole frame is redrawn per typewriter
+      tick (no stale/accumulated box alpha).
 
 ## In progress
 
