@@ -39,6 +39,44 @@ export interface Snapshot {
   savedAt: number;
 }
 
+export interface AudioDebug {
+  bgm: {
+    src: string;
+    track: string;
+    paused: boolean;
+    volume: number;
+    muted: boolean;
+    currentTime: number;
+    duration: number;
+  } | null;
+  lastSe: string;
+  lastSeAt: number;
+  liveSe: number;
+}
+
+export interface DebugState {
+  pack: string;
+  scene: string;
+  pc: number;
+  currentPC: number;
+  running: boolean;
+  paused: boolean;
+  command: { line: number; cmd?: string; args?: string[]; label?: string } | null;
+  text: {
+    active: boolean;
+    speaker: string;
+    page: number;
+    pages: number;
+    chars: number;
+    length: number;
+    complete: boolean;
+  };
+  choice: Option[] | null;
+  flags: Record<string, number>;
+  stage: StageSnapshot;
+  audio: AudioDebug;
+}
+
 interface StageImage {
   name: string;
   img: ImageSource;
@@ -94,7 +132,10 @@ export class Player {
   private textLast = 0;
 
   private choiceResolve: ((label: string) => void) | null = null;
+  private pendingChoice: Option[] | null = null;
   private flags = new Map<number, number>();
+  private lastSeName = "";
+  private lastSeAt = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -105,8 +146,14 @@ export class Player {
     scene = "",
     loadScript?: (name: string) => Promise<Script>,
   ) {
+    // Render the 640x480 stage at 2x internally and let CSS scale it down.
+    // This keeps the bitmap art unchanged but makes dialogue text crisp.
+    const scale = 2;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("canvas 2d context unavailable");
+    ctx.scale(scale, scale);
     this.ctx = ctx;
     this.commands = script.commands;
     this.labels = script.labels;
@@ -152,6 +199,7 @@ export class Player {
   choose(label: string): void {
     const resolve = this.choiceResolve;
     this.choiceResolve = null;
+    this.pendingChoice = null;
     this.events.choice?.(null);
     if (resolve) resolve(label);
   }
@@ -200,13 +248,81 @@ export class Player {
     }
   }
 
+  debugState(): DebugState {
+    const cmd = this.pc > 0 ? this.commands[this.pc - 1] : null;
+    return {
+      pack: this.pack,
+      scene: this.scene,
+      pc: this.pc,
+      currentPC: this.currentPC,
+      running: this.running,
+      paused: this.paused,
+      command: cmd
+        ? { line: cmd.line, cmd: cmd.cmd, args: cmd.args, label: cmd.label }
+        : null,
+      text: {
+        active: this.textActive,
+        speaker: this.textSpeaker,
+        page: this.textPage + 1,
+        pages: this.textPages.length,
+        chars: Math.floor(this.textChars),
+        length: this.textPages[this.textPage]?.length ?? 0,
+        complete: this.textComplete,
+      },
+      choice: this.pendingChoice,
+      flags: Object.fromEntries(this.flags),
+      stage: this.stageSnapshot(),
+      audio: this.audioState(),
+    };
+  }
+
+  audioState(): AudioDebug {
+    const bgm = this.bgm;
+    return {
+      bgm: bgm
+        ? {
+            src: bgm.src ? decodeURIComponent(bgm.src) : "",
+            track: bgm.dataset.track ?? "",
+            paused: bgm.paused,
+            volume: bgm.volume,
+            muted: this.muted,
+            currentTime: Number.isFinite(bgm.currentTime) ? bgm.currentTime : 0,
+            duration: Number.isFinite(bgm.duration) ? bgm.duration : 0,
+          }
+        : null,
+      lastSe: this.lastSeName,
+      lastSeAt: this.lastSeAt,
+      liveSe: this.liveSe.size,
+    };
+  }
+
+  stageSnapshot(): StageSnapshot {
+    const stage: StageSnapshot = {};
+    if (this.stage.bg) stage.bg = this.stage.bg.name;
+    if (this.stage.l) stage.l = this.stage.l.name;
+    if (this.stage.r) stage.r = this.stage.r.name;
+    if (this.stage.c) stage.c = this.stage.c.name;
+    return stage;
+  }
+
+  setDebugFlag(id: number, value: number): void {
+    this.flags.set(id, value);
+  }
+
+  unlockAudio(): void {
+    void this.primeAudio();
+    if (this.bgm?.dataset.track && this.bgm.paused) {
+      void this.bgm.play().catch(() => undefined);
+    }
+  }
+
   start(
     pc = 0,
     imageName = "",
     flags?: Record<string, number>,
     stageSnapshot?: StageSnapshot,
   ): void {
-    this.pc = Math.max(0, pc);
+    this.pc = this.rewindForVoice(Math.max(0, pc));
     this.stage = emptyStage();
     this.pendingStage = null;
     this.pendingLoads = [];
@@ -231,6 +347,10 @@ export class Player {
           this.restoreSlot("r", snap.r),
           this.restoreSlot("c", snap.c),
         ]);
+      } else if (this.pc > 0) {
+        this.events.loading(true);
+        await this.restoreBefore(this.pc);
+        this.events.loading(false);
       } else if (imageName) {
         await this.restoreSlot("bg", imageName);
       }
@@ -240,6 +360,93 @@ export class Player {
       this.draw();
       void this.run();
     });
+  }
+
+  /** Include the SEV immediately before a TEXT so a resumed line has voice. */
+  private rewindForVoice(pc: number): number {
+    if (this.commands[pc]?.cmd !== "TEXT") return pc;
+    let q = pc;
+    while (q > 0 && this.commands[q - 1].cmd === "SEV") q--;
+    return q;
+  }
+
+  private async applyBmp(stage: Stage, args: string[]): Promise<void> {
+    const name = (args.find((a) => !["L", "R", "C", "消去"].includes(a.toUpperCase())) ?? "BLACK").toUpperCase();
+    const clear = args.includes("消去");
+    const posArg = args.find((a) => ["L", "R", "C"].includes(a.toUpperCase()));
+    const slot: Slot =
+      posArg?.toUpperCase() === "L"
+        ? "l"
+        : posArg?.toUpperCase() === "R"
+          ? "r"
+          : posArg?.toUpperCase() === "C"
+            ? "c"
+            : "bg";
+
+    if (clear) {
+      if (name === "ALL" || slot === "bg") {
+        stage.bg = null;
+        stage.l = null;
+        stage.r = null;
+        stage.c = null;
+      } else {
+        stage[slot] = null;
+      }
+      return;
+    }
+    if (name === "BLACK" || name === "WHITE" || name === "RED") {
+      stage.bg = { name, img: this.special(name) };
+      stage.l = null;
+      stage.r = null;
+      stage.c = null;
+      return;
+    }
+    const img = await this.loadImage(name);
+    stage[slot] = { name, img };
+    if (slot === "bg") {
+      const { w, h } = this.sourceSize(img);
+      if (w === W && h === H) {
+        stage.l = null;
+        stage.r = null;
+        stage.c = null;
+      }
+    }
+  }
+
+  /** Rebuild stage, flags and BGM by replaying commands before a scene link. */
+  private async restoreBefore(pc: number): Promise<void> {
+    const stage = emptyStage();
+    let music = "";
+    for (let i = 0; i < pc && i < this.commands.length; i++) {
+      const c = this.commands[i];
+      const args = c.args ?? [];
+      switch (c.cmd) {
+        case "BMP":
+          if (c.args) await this.applyBmp(stage, c.args);
+          break;
+        case "MUS":
+          music = args[0] ?? "";
+          break;
+        case "FLG": {
+          const value = (args[1] ?? "").toUpperCase();
+          this.setFlag(args[0], value === "ON" ? 1 : value === "OFF" ? 0 : this.flagID(args[1]));
+          break;
+        }
+        case "EQU":
+          this.setFlag(args[0], this.flagID(args[1] === "=" ? args[2] : args[1]));
+          break;
+        case "INC":
+          this.setFlag(args[0], this.getFlag(args[0]) + (args[1] ? this.flagID(args[1]) : 1));
+          break;
+        case "DEC":
+          this.setFlag(args[0], this.getFlag(args[0]) - (args[1] ? this.flagID(args[1]) : 1));
+          break;
+        default:
+          break;
+      }
+    }
+    this.stage = stage;
+    if (music && music.toUpperCase() !== "STOP") this.playBgm(music);
   }
 
   private async restoreSlot(slot: Slot, name?: string): Promise<void> {
@@ -254,6 +461,7 @@ export class Player {
     this.resetText();
     const choiceResolve = this.choiceResolve;
     this.choiceResolve = null;
+    this.pendingChoice = null;
     this.events.choice?.(null);
     if (choiceResolve) choiceResolve("");
     if (this.bgm) this.bgm.pause();
@@ -488,6 +696,7 @@ export class Player {
 
   private showChoice(options: Option[]): Promise<string> {
     if (options.length === 0) return Promise.resolve("");
+    this.pendingChoice = options;
     this.events.choice?.(options);
     return new Promise((resolve) => {
       this.choiceResolve = resolve;
@@ -781,6 +990,8 @@ export class Player {
       this.events.log(`missing se: ${name}`);
       return;
     }
+    this.lastSeName = name;
+    this.lastSeAt = Date.now();
     const a = new Audio(this.audioURL(rel));
     a.volume = this.audioVolume();
     this.liveSe.add(a);
@@ -807,44 +1018,9 @@ export class Player {
             await this.showText(c.speaker ?? "", c.message ?? "");
             break;
           case "BMP": {
-            const name = (args.find((a) => !["L", "R", "C", "消去"].includes(a.toUpperCase())) ?? "BLACK").toUpperCase();
-            const clear = args.includes("消去");
-            const posArg = args.find((a) => ["L", "R", "C"].includes(a.toUpperCase()));
-            const slot: Slot =
-              posArg?.toUpperCase() === "L"
-                ? "l"
-                : posArg?.toUpperCase() === "R"
-                  ? "r"
-                  : posArg?.toUpperCase() === "C"
-                    ? "c"
-                    : "bg";
             this.pendingStage ??= { ...this.stage };
-
-            if (clear) {
-              if (name === "ALL") this.pendingStage = emptyStage();
-              else if (slot !== "bg") this.pendingStage[slot] = null;
-              else this.pendingStage = emptyStage();
-              break;
-            }
-            if (name === "BLACK" || name === "WHITE" || name === "RED") {
-              const img = this.special(name);
-              this.pendingStage = { bg: { name, img }, l: null, r: null, c: null };
-              break;
-            }
-            const targetSlot = slot;
-            const load = this.loadImage(name).then((img) => {
-              if (!this.pendingStage) return;
-              this.pendingStage[targetSlot] = { name, img };
-              if (targetSlot === "bg") {
-                const { w, h } = this.sourceSize(img);
-                if (w === W && h === H) {
-                  this.pendingStage.l = null;
-                  this.pendingStage.r = null;
-                  this.pendingStage.c = null;
-                }
-              }
-            });
-            this.pendingLoads.push(load);
+            const stage = this.pendingStage;
+            this.pendingLoads.push(this.applyBmp(stage, args));
             break;
           }
           case "UPD": {
@@ -1013,6 +1189,7 @@ export class Player {
     this.running = false;
     this.stopped = true;
     this.choiceResolve = null;
+    this.pendingChoice = null;
     this.events.choice?.(null);
     this.events.loading(false);
     this.events.status("ended");

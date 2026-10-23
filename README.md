@@ -107,6 +107,36 @@ interaction.
 The **Scenes** button opens a filterable list of all 421 `text.arc` scripts, so
 any chapter/event can be inspected without replaying the story.
 
+### Debugging
+
+Open the player with `?debug=1`, or press **D**, to show the engine debug panel.
+It exposes scene/command position, dialogue progress, stage layers, flags and
+live audio state. The same state is reachable from DevTools:
+
+```js
+window.__mitama.state()   // full snapshot
+window.__mitama.flags()   // flag map
+window.__mitama.audio()   // BGM/SE state
+window.__mitama.stage()   // bg/l/r/c layer names
+window.__mitama.advance()
+window.__mitama.choose("label")
+window.__mitama.setFlag(31, 2)
+```
+
+The browser mirrors the state to the Go server once per second, so it can also
+be inspected with curl:
+
+```sh
+curl localhost:8080/api/debug/state | jq
+curl localhost:8080/api/debug | jq
+```
+
+`/api/debug` also reports the audio cache size and available packs.
+
+Scene links (`?scene=…&cmd=…`) auto-start and reconstruct the stage, flags and
+BGM by replaying the preceding commands. Resuming at a dialogue line also
+replays the immediately preceding `SEV` voice command.
+
 ## Layout
 
 ```text

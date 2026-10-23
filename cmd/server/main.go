@@ -20,6 +20,7 @@ type server struct {
 	dataDir string
 	webDir  string
 	audio   *audioCache
+	debug   *debugStore
 }
 
 func main() {
@@ -28,12 +29,14 @@ func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	flag.Parse()
 
-	s := &server{dataDir: *data, webDir: *web, audio: newAudioCache(128 << 20)}
+	s := &server{dataDir: *data, webDir: *web, audio: newAudioCache(128 << 20), debug: newDebugStore()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/packs", s.handlePacks)
 	mux.HandleFunc("/api/script", s.handleScript)
 	mux.HandleFunc("/api/assets", s.handleAssets)
 	mux.HandleFunc("/api/audio", s.handleAudio)
+	mux.HandleFunc("/api/debug", s.handleDebug)
+	mux.HandleFunc("/api/debug/state", s.handleDebugState)
 	mux.Handle("/media/", http.StripPrefix("/media/", http.FileServer(http.Dir(*data))))
 	mux.Handle("/", http.FileServer(http.Dir(*web)))
 

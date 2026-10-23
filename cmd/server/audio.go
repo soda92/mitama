@@ -33,6 +33,12 @@ func (c *audioCache) get(key string) ([]byte, bool) {
 	return v, ok
 }
 
+func (c *audioCache) stats() (entries int, bytes, max int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.entries), c.size, c.max
+}
+
 func (c *audioCache) put(key string, data []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

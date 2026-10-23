@@ -48,6 +48,11 @@ Last updated: 2026-10-23.
 - [x] Server-side `.xa` → WAV conversion at `/api/audio` with an in-memory
       cache.
 - [x] BGM and voice playback from the DVD data.
+- [x] `kunoichi.arc` extracted into the DVD pack (female voices).
+- [x] Scene URLs auto-start and rebuild stage/flags/BGM.
+- [x] Resuming at a TEXT line replays the preceding `SEV` voice.
+- [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
+- [x] 2× canvas rendering for crisp dialogue text; fit-to-viewport layout.
 
 ## In progress
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
+import DebugPanel from "./components/DebugPanel";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
 
 interface GameData {
@@ -74,7 +75,9 @@ export default function App() {
   const [saves, setSaves] = useState<(Snapshot | null)[]>(readSaves);
   const [saveMode, setSaveMode] = useState<"save" | "load" | null>(null);
   const [sceneMode, setSceneMode] = useState(false);
+  const [autoStart, setAutoStart] = useState(Boolean(params.scene));
   const [sceneFilter, setSceneFilter] = useState("");
+  const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
 
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
   const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
@@ -203,6 +206,42 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, packId, startScene, loadScript, updateURL]);
 
+  // Debug surface for Chrome DevTools MCP / console use.
+  useEffect(() => {
+    if (!data) return;
+    const debug = {
+      state: () => playerRef.current?.debugState() ?? null,
+      flags: () => playerRef.current?.flagState ?? {},
+      audio: () => playerRef.current?.audioState() ?? null,
+      stage: () => playerRef.current?.stageSnapshot() ?? null,
+      scene: () => playerRef.current?.currentScene ?? "",
+      pc: () => playerRef.current?.currentPC ?? 0,
+      advance: () => playerRef.current?.advance(),
+      choose: (label: string) => playerRef.current?.choose(label),
+      setFlag: (id: number, value: number) => playerRef.current?.setDebugFlag(id, value),
+    };
+    (window as Window & { __mitama?: typeof debug }).__mitama = debug;
+    return () => {
+      delete (window as Window & { __mitama?: typeof debug }).__mitama;
+    };
+  }, [data]);
+
+  // Mirror the live state to the Go server so curl / external tools can inspect
+  // it without attaching to the page.
+  useEffect(() => {
+    if (!data) return;
+    const timer = setInterval(() => {
+      const player = playerRef.current;
+      if (!player) return;
+      void fetch("/api/debug/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(player.debugState()),
+      }).catch(() => undefined);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [data]);
+
   useEffect(() => {
     playerRef.current?.setVolume(volume);
   }, [volume]);
@@ -225,6 +264,15 @@ export default function App() {
     setResume({ pc: 0, image: "" });
   }, [resume]);
 
+  // Scene links (?scene=...&cmd=...) should resume immediately instead of
+  // showing the title overlay. Audio may stay blocked until the first gesture;
+  // visuals and text still run.
+  useEffect(() => {
+    if (!autoStart || !data || !playerRef.current || started || error) return;
+    setAutoStart(false);
+    start();
+  }, [autoStart, data, started, error, start]);
+
   const togglePause = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
@@ -232,6 +280,7 @@ export default function App() {
   }, []);
 
   const advance = useCallback(() => {
+    playerRef.current?.unlockAudio();
     playerRef.current?.advance();
   }, []);
 
@@ -328,6 +377,8 @@ export default function App() {
         setMuted((m) => !m);
       } else if (ev.key === "f" || ev.key === "F") {
         toggleFullscreen();
+      } else if ((ev.key === "d" || ev.key === "D") && !(ev.target instanceof HTMLInputElement)) {
+        setDebugOpen((open) => !open);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -511,6 +562,20 @@ export default function App() {
         )}
       </section>
 
+      {debugOpen && (
+        <DebugPanel
+          getState={() => playerRef.current?.debugState() ?? null}
+          log={log}
+          status={status}
+          onClose={() => setDebugOpen(false)}
+          onReload={reloadCurrent}
+          onAdvance={advance}
+          onCopyLink={() => {
+            void navigator.clipboard?.writeText(window.location.href);
+          }}
+        />
+      )}
+
       <footer className="controls">
         <button onClick={togglePause} disabled={!started} title="Pause (Space)">
           {paused ? "▶" : "❚❚"}
@@ -542,6 +607,9 @@ export default function App() {
         </button>
         <button onClick={reloadCurrent} disabled={!started} title="Reload scene">
           ↻
+        </button>
+        <button onClick={() => setDebugOpen((open) => !open)} title="Debug (D)">
+          Debug
         </button>
         <div className="log">{log}</div>
       </footer>
