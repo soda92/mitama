@@ -34,6 +34,8 @@ func main() {
 	mux.HandleFunc("/api/packs", s.handlePacks)
 	mux.HandleFunc("/api/script", s.handleScript)
 	mux.HandleFunc("/api/assets", s.handleAssets)
+	mux.HandleFunc("/api/battle", s.handleBattle)
+	mux.HandleFunc("/api/battle/character", s.handleBattleCharacter)
 	mux.HandleFunc("/api/audio", s.handleAudio)
 	mux.HandleFunc("/api/debug", s.handleDebug)
 	mux.HandleFunc("/api/debug/state", s.handleDebugState)

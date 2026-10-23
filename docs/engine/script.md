@@ -67,7 +67,7 @@ offset `0x181C8`:
 | `TITLE` | — | return to title | ⛔ |
 | `MAP` | `ON\|OFF` | map-mode flag (tracked; movement UI pending) | ◐ |
 | `PARTY` | `IN\|OUT name` | add/remove party member | ◐ tracked |
-| `BATTLE` | `background script` | battle; currently auto-resolved and sets flag `20` | ◐ fallback |
+| `BATTLE` | `background script` | battle screen or auto-resolve; sets flag `20` | ✅ simplified |
 | `LEVEL` | `character stat value` | set/raise level (logged) | ◐ |
 | `SPRATE` | — | sprite operation (name likely a typo for SPRITE) | ⛔ |
 | `FADE` | milliseconds | fade screen | ⛔ |

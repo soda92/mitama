@@ -1,0 +1,62 @@
+package battle
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestParseParty(t *testing.T) {
+	src := `"Yahiro & Ran"		// name
+"guibn007.bmp"		// gauge
+"S024.xa"		// bgm
+416			// hp
+"taizi_in.o"
+"taizi_out.o"
+"nanami.chr"
+"goki.chr",0
+"Empty",2
+:win
+"won"
+:lose
+"lost"
+:end
+`
+	p, err := ParseParty(strings.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Name != "Yahiro & Ran" || p.MaxHP != 416 || p.BGM != "S024.xa" {
+		t.Fatalf("party = %#v", p)
+	}
+	if len(p.Members) != 2 || p.Members[0].File != "nanami.chr" || p.Members[1].Action != 0 {
+		t.Fatalf("members = %#v", p.Members)
+	}
+	if p.WinText != "won" || p.LoseText != "lost" {
+		t.Fatalf("win/lose = %q / %q", p.WinText, p.LoseText)
+	}
+}
+
+func TestParseCharacter(t *testing.T) {
+	src := `"Yahiro"		// name
+1,2,3			// skills
+0			// default
+0,0,0			// resist
+20			// survive
+"cc_yahiro.o"
+:actionrate
+	0,1,8,1
+:actionrate
+	1,5,4,1
+:end
+`
+	c, err := ParseCharacter(strings.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Name != "Yahiro" || c.Skills != [3]int{1, 2, 3} || c.Object != "cc_yahiro.o" {
+		t.Fatalf("character = %#v", c)
+	}
+	if len(c.ActionRates) != 2 || c.ActionRates[1] != [4]int{1, 5, 4, 1} {
+		t.Fatalf("action rates = %#v", c.ActionRates)
+	}
+}

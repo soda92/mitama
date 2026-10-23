@@ -5,6 +5,7 @@ interface DebugPanelProps {
   getState: () => DebugState | null;
   log: string;
   status: string;
+  battlePolicy: string;
   onClose: () => void;
   onReload: () => void;
   onAdvance: () => void;
@@ -15,6 +16,7 @@ export default function DebugPanel({
   getState,
   log,
   status,
+  battlePolicy,
   onClose,
   onReload,
   onAdvance,
@@ -71,7 +73,7 @@ export default function DebugPanel({
             <span>party</span>
             <b>{state?.party.length ? state.party.join("・") : "—"}</b>
             <span>battle</span>
-            <b>{state?.battlePolicy ?? "—"}</b>
+            <b>{battlePolicy}</b>
           </div>
         </section>
 

@@ -9,7 +9,9 @@ import {
 import DebugPanel from "./components/DebugPanel";
 import ArchiveManager from "./components/ArchiveManager";
 import Navigator from "./components/Navigator";
+import BattleScreen from "./components/BattleScreen";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
+import type { BattleCharacter, BattleEncounter } from "./game/battle";
 
 interface GameData {
   script: Script;
@@ -21,6 +23,18 @@ interface ResumePoint {
   image: string;
   stage?: StageSnapshot;
   flags?: Record<string, number>;
+}
+
+interface BattleSession {
+  info: BattleInfo;
+  encounter: BattleEncounter;
+  player: BattleCharacter;
+  backgroundUrl?: string;
+}
+
+interface BattleFlash {
+  info: BattleInfo;
+  winner: "win" | "lose";
 }
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
@@ -118,10 +132,14 @@ export default function App() {
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
-  const [battle, setBattle] = useState<BattleInfo | null>(null);
+  const [battleSession, setBattleSession] = useState<BattleSession | null>(null);
+  const [battleFlash, setBattleFlash] = useState<BattleFlash | null>(null);
+  const battleResolveRef = useRef<((result: "win" | "lose") => void) | null>(null);
+  const battlePolicyRef = useRef<BattlePolicy>("play");
+  const assetsRef = useRef<AssetMap>(EMPTY_ASSETS);
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(() => {
     const raw = localStorage.getItem("mitama.battlePolicy");
-    return raw === "lose" || raw === "random" ? raw : "win";
+    return raw === "win" || raw === "lose" || raw === "random" || raw === "play" ? raw : "play";
   });
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -248,13 +266,61 @@ export default function App() {
         position: updateURL,
         choice: setChoices,
         battle: (info) => {
-          setBattle(info);
-          return new Promise<void>((resolve) => {
-            window.setTimeout(() => {
-              setBattle(null);
-              resolve();
-            }, 1100);
-          });
+          const policy = battlePolicyRef.current;
+          if (policy !== "play") {
+            const winner =
+              policy === "random" ? (Math.random() < 0.5 ? "win" : "lose") : policy;
+            setBattleFlash({ info, winner });
+            return new Promise<"win" | "lose">((resolve) => {
+              window.setTimeout(() => {
+                setBattleFlash(null);
+                resolve(winner);
+              }, 1000);
+            });
+          }
+
+          return (async () => {
+            const leader = /^(oh|os)/i.test(playerRef.current?.currentScene ?? "")
+              ? "oboro"
+              : "yahiro";
+            let player: BattleCharacter = {
+              file: `${leader}.chr`,
+              name: leader === "oboro" ? "朧" : "八尋",
+              skills: [1, 1, 1],
+              defaultAction: 0,
+              resist: [0, 0, 0],
+              survive: 20,
+              object: "",
+            };
+            try {
+              if (!info.script) throw new Error("battle script missing");
+              const [encRes, charRes] = await Promise.all([
+                fetch(
+                  `/api/battle?pack=${encodeURIComponent(packId)}&name=${encodeURIComponent(info.script)}`,
+                ),
+                fetch(
+                  `/api/battle/character?pack=${encodeURIComponent(packId)}&name=${leader}`,
+                ),
+              ]);
+              if (!encRes.ok) throw new Error(`battle: HTTP ${encRes.status}`);
+              const encounter = (await encRes.json()) as BattleEncounter;
+              if (charRes.ok) player = (await charRes.json()) as BattleCharacter;
+              const rel = assetsRef.current.game[info.background.toLowerCase()];
+              const backgroundUrl = rel
+                ? `/media/${encodeURIComponent(packId)}/${rel}`
+                : undefined;
+              setBattleSession({ info, encounter, player, backgroundUrl });
+              return await new Promise<"win" | "lose">((resolve) => {
+                battleResolveRef.current = resolve;
+              });
+            } catch (err) {
+              console.error("battle fallback", err);
+              setBattleFlash({ info, winner: "win" });
+              await new Promise<void>((resolve) => window.setTimeout(resolve, 1000));
+              setBattleFlash(null);
+              return "win";
+            }
+          })();
         },
       },
       packId,
@@ -330,13 +396,17 @@ export default function App() {
   }, [muted]);
 
   useEffect(() => {
-    playerRef.current?.setBattlePolicy(battlePolicy);
+    battlePolicyRef.current = battlePolicy;
     try {
       localStorage.setItem("mitama.battlePolicy", battlePolicy);
     } catch {
       // best-effort setting persistence
     }
-  }, [battlePolicy, data]);
+  }, [battlePolicy]);
+
+  useEffect(() => {
+    assetsRef.current = data?.assets ?? EMPTY_ASSETS;
+  }, [data]);
 
   const start = useCallback(() => {
     const player = playerRef.current;
@@ -378,7 +448,23 @@ export default function App() {
     advance();
   }, [uiHidden, advance]);
 
+  const cancelBattle = useCallback(() => {
+    const resolve = battleResolveRef.current;
+    battleResolveRef.current = null;
+    resolve?.("lose");
+    setBattleSession(null);
+    setBattleFlash(null);
+  }, []);
+
+  const finishBattle = useCallback((result: "win" | "lose") => {
+    const resolve = battleResolveRef.current;
+    battleResolveRef.current = null;
+    setBattleSession(null);
+    resolve?.(result);
+  }, []);
+
   const restart = useCallback(() => {
+    cancelBattle();
     setData(null);
     setStarted(false);
     setEnded(false);
@@ -388,7 +474,7 @@ export default function App() {
     setResume({ pc: 0, image: "" });
     setChoices(null);
     setReloadKey((k) => k + 1);
-  }, []);
+  }, [cancelBattle]);
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen();
@@ -466,6 +552,7 @@ export default function App() {
 
   const loadArchive = useCallback(
     (snap: Snapshot) => {
+      cancelBattle();
       setArchiveOpen(false);
       setChoices(null);
       setData(null);
@@ -479,11 +566,12 @@ export default function App() {
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
     },
-    [updateURL],
+    [updateURL, cancelBattle],
   );
 
   const navigateToScene = useCallback(
     (name: string, pc = 0) => {
+      cancelBattle();
       const scene = name.replace(/\.txt$/i, "");
       setNavigatorOpen(false);
       setData(null);
@@ -496,13 +584,14 @@ export default function App() {
       setReloadKey((k) => k + 1);
       updateURL(scene, pc);
     },
-    [updateURL],
+    [updateURL, cancelBattle],
   );
 
   const seekTo = useCallback(
     (pc: number) => {
       const scene = playerRef.current?.currentScene || currentScene;
       if (!scene) return;
+      cancelBattle();
       setNavigatorOpen(false);
       setData(null);
       setStarted(false);
@@ -514,12 +603,13 @@ export default function App() {
       setReloadKey((k) => k + 1);
       updateURL(scene, pc);
     },
-    [currentScene, updateURL],
+    [currentScene, updateURL, cancelBattle],
   );
 
   const reloadCurrent = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
+    cancelBattle();
     setStarted(false);
     setEnded(false);
     setPaused(false);
@@ -529,7 +619,7 @@ export default function App() {
     setResumeScene(player.currentScene);
     setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
     setReloadKey((k) => k + 1);
-  }, []);
+  }, [cancelBattle]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -539,6 +629,7 @@ export default function App() {
         setMenuOpen(false);
         return;
       }
+      if (battleSession) return;
       if (archiveOpen || navigatorOpen) {
         const typing = ev.target instanceof HTMLInputElement;
         if (!typing && (ev.key === "f" || ev.key === "F")) toggleFullscreen();
@@ -574,6 +665,7 @@ export default function App() {
     advance,
     archiveOpen,
     navigatorOpen,
+    battleSession,
     menuOpen,
     uiHidden,
     openArchives,
@@ -654,6 +746,7 @@ export default function App() {
                     className="pack"
                     value={packId}
                     onChange={(ev) => {
+                      cancelBattle();
                       setData(null);
                       setStarted(false);
                       setEnded(false);
@@ -701,6 +794,7 @@ export default function App() {
                     value={battlePolicy}
                     onChange={(ev) => setBattlePolicy(ev.target.value as BattlePolicy)}
                   >
+                    <option value="play">play battle</option>
                     <option value="win">auto-win</option>
                     <option value="lose">auto-lose</option>
                     <option value="random">random</option>
@@ -747,15 +841,25 @@ export default function App() {
             </div>
           )}
 
-          {battle && (
+          {battleFlash && (
             <div className="battle-overlay">
-              <div className={`battle-card ${battle.winner}`}>
+              <div className={`battle-card ${battleFlash.winner}`}>
                 <strong>BATTLE</strong>
-                <span>{battle.script || battle.background}</span>
-                <b>{battle.winner === "win" ? "Victory" : "Defeat"}</b>
+                <span>{battleFlash.info.script || battleFlash.info.background}</span>
+                <b>{battleFlash.winner === "win" ? "Victory" : "Defeat"}</b>
                 <small>auto-resolved</small>
               </div>
             </div>
+          )}
+
+          {battleSession && (
+            <BattleScreen
+              encounter={battleSession.encounter}
+              player={battleSession.player}
+              party={battleSession.info.party}
+              backgroundUrl={battleSession.backgroundUrl}
+              onFinish={finishBattle}
+            />
           )}
 
           {loading && (
@@ -799,6 +903,7 @@ export default function App() {
           getState={() => playerRef.current?.debugState() ?? null}
           log={log}
           status={status}
+          battlePolicy={battlePolicy}
           onClose={() => setDebugOpen(false)}
           onReload={reloadCurrent}
           onAdvance={advance}

@@ -1369,3 +1369,249 @@ button.navigator-line.cur .navigator-ptr {
     opacity: 1;
   }
 }
+
+/* ---------------------------------------------------------- battle screen */
+.battle-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #05060a center / cover no-repeat;
+  color: #f0eadc;
+  font-size: clamp(12px, 1.35vw, 19px);
+}
+
+.battle-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3, 4, 8, 0.72), rgba(3, 4, 8, 0.18) 38%, rgba(3, 4, 8, 0.86)),
+    radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(0, 0, 0, 0.42) 100%);
+}
+
+.battle-head,
+.battle-field,
+.battle-console {
+  position: relative;
+  z-index: 1;
+}
+
+.battle-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 1.2em 1.6em 0;
+  text-shadow: 0 2px 6px #000;
+}
+
+.battle-head div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  min-width: 0;
+}
+
+.battle-head span {
+  color: var(--accent);
+  font: 0.7em/1 ui-monospace, monospace;
+  letter-spacing: 0.4em;
+}
+
+.battle-head b {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-turn {
+  color: #9b9588;
+  font: 0.65em/1.4 ui-monospace, monospace;
+  letter-spacing: 0.1em;
+}
+
+.battle-field {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2em;
+  padding: 0 2em;
+}
+
+.battle-side {
+  width: min(34%, 320px);
+  padding: 1em 1.1em;
+  border: 1px solid rgba(201, 168, 106, 0.22);
+  border-radius: 8px;
+  background: rgba(5, 6, 10, 0.56);
+  backdrop-filter: blur(3px);
+}
+
+.battle-side h3 {
+  margin: 0 0 0.2em;
+  font: 500 1.5em/1.2 "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: 0.06em;
+}
+
+.battle-side p {
+  margin: 0 0 0.7em;
+  color: #b9b2a4;
+  font-size: 0.72em;
+  line-height: 1.4;
+}
+
+.battle-enemies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  min-height: 2.1em;
+  margin-bottom: 0.5em;
+}
+
+.battle-enemies span {
+  padding: 0.15em 0.55em;
+  border: 1px solid #3a3327;
+  border-radius: 3px;
+  background: rgba(17, 19, 26, 0.8);
+  color: #e6d3aa;
+  font-size: 0.72em;
+}
+
+.battle-hp {
+  height: 0.55em;
+  overflow: hidden;
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  border-radius: 999px;
+  background: #08090c;
+}
+
+.battle-hp i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6f9f75, #b7d39a);
+  transition: width 0.3s ease;
+}
+
+.battle-hp.enemy i {
+  background: linear-gradient(90deg, #9b4b42, #d9a05d);
+}
+
+.battle-side small {
+  display: block;
+  margin-top: 0.45em;
+  color: #8f8a7c;
+  font: 0.62em/1.3 ui-monospace, monospace;
+  letter-spacing: 0.04em;
+}
+
+.battle-vs {
+  flex: none;
+  color: rgba(201, 168, 106, 0.55);
+  font: 500 1em/1 "Hiragino Mincho ProN", Georgia, serif;
+  letter-spacing: 0.25em;
+  text-shadow: 0 2px 10px #000;
+}
+
+.battle-console {
+  display: flex;
+  align-items: flex-end;
+  gap: 1em;
+  padding: 0 2em 1.5em;
+}
+
+.battle-log {
+  flex: 1;
+  min-height: 4.6em;
+  padding: 0.7em 0.9em;
+  border: 1px solid rgba(201, 168, 106, 0.22);
+  border-radius: 6px;
+  background: rgba(5, 6, 10, 0.8);
+  color: #8f8a7c;
+  font: 0.72em/1.55 ui-monospace, monospace;
+}
+
+.battle-log .cur {
+  color: #f0dfb8;
+}
+
+.battle-actions {
+  flex: none;
+  display: flex;
+  gap: 0.45em;
+}
+
+.battle-actions button {
+  min-width: 4.2em;
+  padding: 0.7em 1em;
+  border-color: #5b4828;
+  background: linear-gradient(180deg, #2b2116, #17120c);
+  color: #f1d9a9;
+  font-size: 0.8em;
+  letter-spacing: 0.1em;
+}
+
+.battle-actions button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3a2c1c, #241c12);
+  border-color: var(--accent);
+}
+
+.battle-result {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 4, 8, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.battle-result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7em;
+  min-width: 280px;
+  padding: 2em 2.6em;
+  border: 1px solid #5b4828;
+  border-radius: 10px;
+  background: #0b0c11;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+}
+
+.battle-result-card span {
+  color: var(--accent);
+  font: 0.7em/1 ui-monospace, monospace;
+  letter-spacing: 0.4em;
+}
+
+.battle-result-card strong {
+  font: 500 2em/1.2 "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: 0.12em;
+}
+
+.battle-result-card.lose strong {
+  color: #d9a0a0;
+}
+
+.battle-result-card button {
+  margin-top: 0.5em;
+  padding: 0.6em 2.2em;
+  border-color: #5b4828;
+  color: #f1d9a9;
+}
+
+@media (max-height: 520px) {
+  .battle-side {
+    padding: 0.6em 0.8em;
+  }
+  .battle-log {
+    min-height: 3.4em;
+  }
+}

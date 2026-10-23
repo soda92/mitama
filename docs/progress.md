@@ -75,17 +75,20 @@ Last updated: 2026-10-24.
 - [x] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
 - [x] Flags are included in save snapshots.
 - [x] `MAP`/`PARTY` state tracking for debug and save-resume replay.
-- [x] Temporary `BATTLE` auto-resolver: win/lose/random, sets flag `20`,
-      shows a short result interstitial, then follows the script branch.
-- [ ] Interactive map movement, encounters and the real battle engine.
+- [x] `.pty` / `.chr` battle definition parser and `/api/battle` endpoints.
+- [x] Playable simplified battle screen: shared party HP, enemy strikers,
+      剣/術/受 actions, victory/defeat, flag `20` branching.
+- [x] Battle auto-resolve modes (win/lose/random) remain in Settings.
+- [ ] Battle motion/sprite playback, specials, action rates and exact damage.
+- [ ] Interactive map movement and encounters.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.
 
 ## Next milestone
 
-Make the full story traversable with the temporary battle fallback, then
-implement the real map interaction and battle data formats. Audio, chapter
-loading and story branching are working.
+Flesh out the battle screen with `.o` / `.spt` / `.mtn` sprites, battle BGM and
+the actual action-rate/special-move rules. Then implement map movement and
+encounters. Audio, chapter loading and story branching are working.
 
 ## Notes / decisions
 

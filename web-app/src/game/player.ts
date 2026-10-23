@@ -9,12 +9,12 @@ const RENDER_SCALE = 3;
 
 type ImageSource = HTMLImageElement | HTMLCanvasElement;
 
-export type BattlePolicy = "win" | "lose" | "random";
+export type BattlePolicy = "play" | "win" | "lose" | "random";
 
 export interface BattleInfo {
   background: string;
   script: string;
-  winner: "win" | "lose";
+  party: string[];
 }
 
 export interface PlayerEvents {
@@ -27,8 +27,8 @@ export interface PlayerEvents {
   position?(scene: string, pc: number): void;
   /** A menu is waiting for a selection, or null when it closes. */
   choice?(options: Option[] | null): void;
-  /** Temporary battle interstitial. */
-  battle?(info: BattleInfo): void | Promise<void>;
+  /** Run a battle and return the result. */
+  battle?(info: BattleInfo): "win" | "lose" | void | Promise<"win" | "lose" | void>;
 }
 
 export interface StageSnapshot {
@@ -93,7 +93,6 @@ export interface DebugState {
   flags: Record<string, number>;
   mapMode: boolean;
   party: string[];
-  battlePolicy: BattlePolicy;
   stage: StageSnapshot;
   audio: AudioDebug;
 }
@@ -163,7 +162,6 @@ export class Player {
   private flags = new Map<number, number>();
   private mapMode = false;
   private party = new Set<string>();
-  private battlePolicy: BattlePolicy = "win";
   private lastSeName = "";
   private lastSeAt = 0;
 
@@ -308,7 +306,6 @@ export class Player {
       flags: Object.fromEntries(this.flags),
       mapMode: this.mapMode,
       party: [...this.party],
-      battlePolicy: this.battlePolicy,
       stage: this.stageSnapshot(),
       audio: this.audioState(),
     };
@@ -633,10 +630,6 @@ export class Player {
     this.muted = muted;
     if (this.bgm) this.bgm.volume = this.audioVolume();
     for (const a of this.liveSe) a.volume = this.audioVolume();
-  }
-
-  setBattlePolicy(policy: BattlePolicy): void {
-    this.battlePolicy = policy;
   }
 
   private audioVolume(): number {
@@ -1293,17 +1286,16 @@ export class Player {
           case "BATTLE": {
             const background = args[0] ?? "";
             const battleScript = args[1] ?? "";
-            const winner: "win" | "lose" =
-              this.battlePolicy === "random"
-                ? Math.random() < 0.5
-                  ? "win"
-                  : "lose"
-                : this.battlePolicy;
-            this.events.log(`battle ${background} ${battleScript} -> ${winner}`);
             this.events.status(`battle: ${battleScript || background}`);
-            await this.events.battle?.({ background, script: battleScript, winner });
+            const outcome =
+              (await this.events.battle?.({
+                background,
+                script: battleScript,
+                party: [...this.party],
+              })) ?? "win";
             if (this.stopped) break;
-            this.setFlag("20", winner === "win" ? 1 : 0);
+            this.events.log(`battle ${background} ${battleScript} -> ${outcome}`);
+            this.setFlag("20", outcome === "win" ? 1 : 0);
             this.events.status("playing");
             break;
           }

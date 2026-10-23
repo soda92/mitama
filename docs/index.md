@@ -45,7 +45,10 @@ never modified.
 The DVD opening and first chapter are playable with backgrounds, dialogue,
 choices, BGM, sound effects and voice. Scene links (`?scene=...&cmd=...`),
 archives, the page/chapter navigator and docked side panels work. Flags, party
-and map-mode state are tracked. Battles are temporarily auto-resolved so the
-story can continue; the real map movement and battle engines remain.
+and map-mode state are tracked. `.pty`/`.chr` battles are parsed and playable in
+a simplified screen. Real map movement, battle motions, specials and the full
+damage model remain.
 
 Start with [Progress](progress.md).
+
+Battle file details: [engine/battle.md](engine/battle.md).

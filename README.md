@@ -29,7 +29,7 @@ extractor at your own data.
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
 | Scene URLs, page/chapter navigator and archive manager | ✅ implemented |
 | Full-game flags (`IFT`/`FLG`/`EQU`/`FCK`/`RND`) | ✅ basic implementation |
-| Map/party state, auto-resolved battles | ◐ temporary fallback |
+| Map/party state and playable simplified battles | ◐ partial |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
 
 See [docs/progress.md](docs/progress.md) for the working checklist and
@@ -139,10 +139,12 @@ Archives/Navigate are buttons on the dialogue box. The active side window can
 be closed from its header or by pressing **Escape**. Scene links
 (`?scene=…&cmd=…`) resume directly.
 
-Battles are currently auto-resolved so the story can continue. **Settings →
-battle** selects auto-win, auto-lose or random; the script's `BATTLE` command
-sets flag `20` and branches to the correct victory/defeat label. The result is
-shown as a short interstitial.
+Battles now open a playable simplified battle screen. `.pty` parties and
+`.chr` characters are parsed by the Go server; the screen shows shared party
+HP, enemy strikers, and **剣 / 術 / 受** actions. Victory or defeat sets flag
+`20`, so the script branches normally. **Settings → battle** can instead use
+auto-win, auto-lose or random for story testing. See
+[docs/engine/battle.md](docs/engine/battle.md).
 
 ### Debugging
 
@@ -183,6 +185,7 @@ cmd/server/         HTTP server + JSON API + static media
 pkg/arc/            ARC directory and LZSS payload decoding
 pkg/disc/           ISO 9660 / CloneCD / MDF image reader
 pkg/lzss/           ARCANA LZSS codec
+pkg/battle/         .pty / .chr battle definition parser
 pkg/script/         CP932 command-script parser
 pkg/xa/             KWD1 audio codec (PCM output)
 web-app/            React 19 + Vite + TypeScript player
