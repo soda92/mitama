@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"mitama/pkg/script"
@@ -43,11 +42,12 @@ func main() {
 }
 
 type pack struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Script   string `json:"script,omitempty"`
-	Root     string `json:"root"`
-	HasVoice bool   `json:"hasVoice"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Script      string `json:"script,omitempty"`
+	StartScript string `json:"startScript,omitempty"`
+	Root        string `json:"root"`
+	HasVoice    bool   `json:"hasVoice"`
 }
 
 func (s *server) packs() []pack {
@@ -61,6 +61,14 @@ func (s *server) packs() []pack {
 			p.Script = "mitamademo.txt"
 		}
 		out = append(out, p)
+	}
+	if st, err := os.Stat(filepath.Join(s.dataDir, "dvd")); err == nil && st.IsDir() {
+		out = append(out, pack{
+			ID:          "dvd",
+			Title:       "御魂 ～忍～ DVD-ROM版",
+			StartScript: "yr1_00.txt",
+			Root:        "dvd",
+		})
 	}
 	if st, err := os.Stat(filepath.Join(s.dataDir, "disc")); err == nil && st.IsDir() {
 		out = append(out, pack{ID: "disc", Title: "御魂 ～忍～ 音声ディスク", Root: "disc", HasVoice: true})
@@ -85,11 +93,30 @@ func (s *server) handleScript(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	if p == nil || p.Script == "" {
+	if p == nil {
 		http.Error(w, "pack not found", http.StatusNotFound)
 		return
 	}
-	f, err := os.Open(filepath.Join(s.dataDir, p.Root, p.Script))
+	name := r.URL.Query().Get("name")
+	path := ""
+	if name != "" {
+		name = strings.TrimSpace(name)
+		name = strings.ReplaceAll(name, "\\", "/")
+		name = filepath.Base(name)
+		if !strings.HasSuffix(strings.ToLower(name), ".txt") {
+			name += ".txt"
+		}
+		path = filepath.Join(s.dataDir, p.Root, "text", name)
+	} else if p.StartScript != "" {
+		path = filepath.Join(s.dataDir, p.Root, "text", p.StartScript)
+	} else if p.Script != "" {
+		path = filepath.Join(s.dataDir, p.Root, p.Script)
+	}
+	if path == "" {
+		http.Error(w, "no script for pack", http.StatusNotFound)
+		return
+	}
+	f, err := os.Open(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -109,24 +136,54 @@ func (s *server) handleAssets(w http.ResponseWriter, r *http.Request) {
 		id = "demo"
 	}
 	root := filepath.Join(s.dataDir, id)
-	res := map[string]map[string]string{}
-	for _, sub := range []string{"game", "bgm", "se", "text"} {
-		files, err := os.ReadDir(filepath.Join(root, sub))
-		if err != nil {
-			continue
+	res := map[string]map[string]string{
+		"game": {}, "bgm": {}, "se": {}, "text": {},
+	}
+	add := func(kind, rel string) {
+		name := filepath.Base(rel)
+		base := strings.TrimSuffix(name, filepath.Ext(name))
+		key := strings.ToLower(base)
+		if _, exists := res[kind][key]; !exists {
+			res[kind][key] = filepath.ToSlash(rel)
 		}
-		m := map[string]string{}
-		var names []string
-		for _, f := range files {
-			if f.IsDir() {
+	}
+
+	if id == "demo" {
+		for _, sub := range []string{"game", "bgm", "se", "text"} {
+			files, err := os.ReadDir(filepath.Join(root, sub))
+			if err != nil {
 				continue
 			}
-			names = append(names, f.Name())
-			base := strings.TrimSuffix(f.Name(), filepath.Ext(f.Name()))
-			m[strings.ToLower(base)] = sub + "/" + f.Name()
+			for _, f := range files {
+				if !f.IsDir() {
+					add(sub, filepath.Join(sub, f.Name()))
+				}
+			}
 		}
-		sort.Strings(names)
-		res[sub] = m
+	} else {
+		_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return nil
+			}
+			top := strings.Split(filepath.ToSlash(rel), "/")[0]
+			switch strings.ToLower(filepath.Ext(path)) {
+			case ".bmp":
+				add("game", rel)
+			case ".txt":
+				add("text", rel)
+			case ".xa", ".wav":
+				if top == "bgm" {
+					add("bgm", rel)
+				} else {
+					add("se", rel)
+				}
+			}
+			return nil
+		})
 	}
 	writeJSON(w, res)
 }

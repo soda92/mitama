@@ -32,12 +32,14 @@ Last updated: 2026-10-23.
 - [x] Script commands: `BMP`, `UPD`, `WAIT`, `MUS`, `SEV`, `JMP`, `END`.
 - [x] Shop-demo loop (`JMP デモスタート`).
 - [x] `cmd/extract` CLI for directories and ISO images.
+- [x] CP932 dialogue parser with multi-line quotes and speaker names.
+- [x] Text box, typewriter, click/Enter to advance, `￥` page breaks.
+- [x] DVD pack selection and lazy `LOD` script loading.
+- [x] Opening `yr1_00.txt` plays to `LOD YR1_01`.
 
 ## In progress
 
-- [ ] End-to-end Playwright smoke test.
-- [ ] Text rendering: dialogue box, speaker names, wrapping, click-to-advance.
-- [ ] Full-game script commands (`SLT`, `IFT`, `FLG`, `LOD`, `MAP`, ...).
+- [ ] Full-game script commands (`SLT`, `IFT`, `FLG`, `MAP`, ...).
 - [ ] Save/load (`save%02d.dat`, `save99.dat`).
 - [ ] `.XA` audio decoder (voice/BGM/SE).
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
@@ -45,12 +47,11 @@ Last updated: 2026-10-23.
 
 ## Next milestone
 
-Boot `yr1_00.txt` (the opening) from the DVD data and play through it with
-dialogue, images, music and voice.
+Play the full opening with audio: decode `.XA` voice/BGM, then implement
+choices (`SLT`), flags (`IFT`/`FLG`/`EQU`) and scene loading (`LOD`/`SEND`).
 
-Why `yr1_00.txt`: it is one of the two opening scripts (`yr1_00`, `os1_00`)
-and is present at the root of `text.arc`; the executable also has both names
-hard-coded.
+The opening currently runs through `yr1_00.txt` and loads `yr1_01.txt`; it is
+silent because DVD audio is stored as `.XA`.
 
 ## Notes / decisions
 

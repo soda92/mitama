@@ -73,6 +73,22 @@ body {
   text-transform: uppercase;
 }
 
+.topright {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pack {
+  font: 12px/1.4 "Hiragino Mincho ProN", "Yu Mincho", serif;
+  color: var(--ink);
+  background: #11131a;
+  border: 1px solid #30323c;
+  border-radius: 5px;
+  padding: 5px 8px;
+  max-width: 260px;
+}
+
 .status {
   color: var(--dim);
   font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -135,6 +151,13 @@ canvas {
   color: var(--dim);
   letter-spacing: 0.16em;
   font-size: 13px;
+}
+
+.overlay .counts {
+  margin-top: -12px;
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
 }
 
 button {

@@ -22,8 +22,9 @@ extractor at your own data.
 | `KWD1` + LZSS payloads | ✅ decoded |
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
-| Text / dialogue rendering | ⛔ next |
-| Full-game commands (SLT/IFT/LOD/MAP/BATTLE/...) | ⛔ next |
+| Text / dialogue rendering (typewriter, click, `￥` pages) | ✅ implemented |
+| DVD opening (`yr1_00.txt` → `yr1_01.txt`) | ✅ plays with text and images |
+| Full-game commands (SLT/IFT/FLG/MAP/BATTLE/...) | ⛔ next |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
 | Voice `.XA` decoding | ⛔ next |
 
@@ -101,8 +102,11 @@ data/               Extracted assets (gitignored)
 
 ```sh
 go test ./...
-cd web-app && pnpm test:e2e
+cd web-app && pnpm build
 ```
+
+The UI is smoke-tested manually through Chrome DevTools MCP (navigate, Start,
+advance with Enter, screenshot, inspect console/network).
 
 ## Documentation
 

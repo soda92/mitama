@@ -4,6 +4,7 @@ const W = 640;
 const H = 480;
 const IMAGE_CACHE_MAX = 8;
 const TRANSITION_MS = 560;
+const TEXT_CPS = 38; // characters per second
 
 type ImageSource = HTMLImageElement | HTMLCanvasElement;
 
@@ -17,11 +18,12 @@ export interface PlayerEvents {
 
 export class Player {
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly commands: Command[];
-  private readonly labels: Record<string, number>;
+  private commands: Command[];
+  private labels: Record<string, number>;
   private readonly assets: AssetMap;
   private readonly events: PlayerEvents;
   private readonly pack: string;
+  private readonly loadScript?: (name: string) => Promise<Script>;
 
   private pc = 0;
   private current: ImageSource | null = null;
@@ -37,12 +39,24 @@ export class Player {
   private bgm: HTMLAudioElement | null = null;
   private readonly liveSe = new Set<HTMLAudioElement>();
 
+  // Dialogue state.
+  private textSpeaker = "";
+  private textPages: string[] = [];
+  private textPage = 0;
+  private textChars = 0;
+  private textComplete = false;
+  private textActive = false;
+  private textResolve: (() => void) | null = null;
+  private textRaf = 0;
+  private textLast = 0;
+
   constructor(
     canvas: HTMLCanvasElement,
     script: Script,
     assets: AssetMap,
     events: PlayerEvents,
     pack = "demo",
+    loadScript?: (name: string) => Promise<Script>,
   ) {
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("canvas 2d context unavailable");
@@ -52,6 +66,7 @@ export class Player {
     this.assets = assets;
     this.events = events;
     this.pack = pack;
+    this.loadScript = loadScript;
   }
 
   get isPaused(): boolean {
@@ -82,6 +97,7 @@ export class Player {
     this.running = true;
     this.paused = false;
     this.stopped = false;
+    this.resetText();
     this.clear();
     this.events.status("playing");
     this.prefetchNext();
@@ -91,6 +107,7 @@ export class Player {
   stop(): void {
     this.stopped = true;
     this.running = false;
+    this.resetText();
     if (this.bgm) this.bgm.pause();
     for (const a of this.liveSe) a.pause();
     this.liveSe.clear();
@@ -113,6 +130,37 @@ export class Player {
   togglePaused(): boolean {
     this.setPaused(!this.paused);
     return this.paused;
+  }
+
+  /** True while dialogue is on screen and waiting for the player. */
+  get hasText(): boolean {
+    return this.textActive;
+  }
+
+  /**
+   * Advance dialogue: finish the typewriter, show the next page, or dismiss
+   * the message. Returns false when no text is active.
+   */
+  advance(): boolean {
+    if (!this.textActive) return false;
+    const page = this.textPages[this.textPage] ?? "";
+    if (this.textChars < page.length) {
+      this.textChars = page.length;
+      this.textComplete = true;
+      this.drawText();
+      return true;
+    }
+    if (this.textPage + 1 < this.textPages.length) {
+      this.textPage++;
+      this.textChars = 0;
+      this.textComplete = false;
+      this.textLast = performance.now();
+      this.drawText();
+      this.scheduleTyping();
+      return true;
+    }
+    this.finishText();
+    return true;
   }
 
   setVolume(volume: number): void {
@@ -189,9 +237,155 @@ export class Player {
     return promise;
   }
 
-  private draw(img: ImageSource | null): void {
+  private draw(img: ImageSource | null = this.current): void {
     this.clear();
     if (img) this.ctx.drawImage(img, 0, 0, W, H);
+    this.drawText();
+  }
+
+  private resetText(): void {
+    if (this.textRaf) cancelAnimationFrame(this.textRaf);
+    this.textRaf = 0;
+    this.textActive = false;
+    this.textComplete = false;
+    this.textWaitersResolve();
+  }
+
+  private textWaitersResolve(): void {
+    const resolve = this.textResolve;
+    this.textResolve = null;
+    if (resolve) resolve();
+  }
+
+  private showText(speaker: string, message: string): Promise<void> {
+    const pages = message
+      .split(/[￥¥]/)
+      .map((page) => page.replace(/\r/g, "").trim())
+      .filter((page) => page.length > 0);
+    this.textSpeaker = speaker;
+    this.textPages = pages.length > 0 ? pages : [""];
+    this.textPage = 0;
+    this.textChars = 0;
+    this.textComplete = false;
+    this.textActive = true;
+    this.drawText();
+    this.scheduleTyping();
+    return new Promise((resolve) => {
+      this.textResolve = resolve;
+    });
+  }
+
+  private scheduleTyping(): void {
+    if (this.textRaf) cancelAnimationFrame(this.textRaf);
+    this.textLast = performance.now();
+    const tick = (now: number) => {
+      if (!this.textActive) {
+        this.textRaf = 0;
+        return;
+      }
+      const page = this.textPages[this.textPage] ?? "";
+      if (!this.paused) {
+        const elapsed = now - this.textLast;
+        this.textChars = Math.min(page.length, this.textChars + (elapsed * TEXT_CPS) / 1000);
+      }
+      this.textLast = now;
+      if (this.textChars >= page.length) {
+        this.textChars = page.length;
+        this.textComplete = true;
+        this.textRaf = 0;
+        this.drawText();
+        return;
+      }
+      this.drawText();
+      this.textRaf = requestAnimationFrame(tick);
+    };
+    this.textRaf = requestAnimationFrame(tick);
+  }
+
+  private finishText(): void {
+    if (this.textRaf) cancelAnimationFrame(this.textRaf);
+    this.textRaf = 0;
+    this.textActive = false;
+    this.textComplete = false;
+    this.textPages = [];
+    this.textPage = 0;
+    this.textChars = 0;
+    this.draw();
+    this.textWaitersResolve();
+  }
+
+  private drawText(): void {
+    if (!this.textActive) return;
+    const ctx = this.ctx;
+    const page = this.textPages[this.textPage] ?? "";
+    const visible = page.slice(0, Math.floor(this.textChars));
+
+    const x = 18;
+    const y = 326;
+    const w = W - 36;
+    const h = 142;
+    ctx.save();
+    ctx.fillStyle = "rgba(5, 6, 9, 0.82)";
+    ctx.strokeStyle = "rgba(201, 168, 106, 0.72)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Speaker tab.
+    if (this.textSpeaker) {
+      ctx.font = '600 17px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+      const label = this.textSpeaker;
+      const tw = Math.max(64, ctx.measureText(label).width + 28);
+      ctx.fillStyle = "rgba(12, 12, 16, 0.95)";
+      ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
+      ctx.beginPath();
+      ctx.roundRect(x + 12, y - 15, tw, 28, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x + 26, y - 1);
+    }
+
+    // Body.
+    ctx.font = '18px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(236, 232, 220, 0.96)";
+    const maxWidth = w - 48;
+    const lines: string[] = [];
+    for (const para of visible.split("\n")) {
+      let line = "";
+      for (const ch of para) {
+        const candidate = line + ch;
+        if (ctx.measureText(candidate).width > maxWidth && line.length > 0) {
+          lines.push(line);
+          line = ch;
+        } else {
+          line = candidate;
+        }
+      }
+      lines.push(line);
+    }
+    const visibleLines = lines.slice(0, 5);
+    visibleLines.forEach((line, i) => {
+      ctx.fillText(line, x + 24, y + 40 + i * 23);
+    });
+
+    if (this.textComplete) {
+      const blink = Math.floor(performance.now() / 450) % 2 === 0;
+      if (blink) {
+        ctx.fillStyle = "rgba(201, 168, 106, 0.9)";
+        ctx.beginPath();
+        ctx.moveTo(x + w - 30, y + h - 22);
+        ctx.lineTo(x + w - 20, y + h - 22);
+        ctx.lineTo(x + w - 25, y + h - 15);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
 
   private drawTransition(a: ImageSource, b: ImageSource, kind: string, t: number): void {
@@ -335,6 +529,10 @@ export class Player {
       this.events.log(`missing bgm: ${name}`);
       return;
     }
+    if (rel.toLowerCase().endsWith(".xa")) {
+      this.events.log(`XA audio not decoded yet: ${name}`);
+      return;
+    }
     const a = this.ensureBgm();
     if (!a.src.endsWith(rel)) {
       a.src = `/media/${this.pack}/${rel}`;
@@ -349,6 +547,10 @@ export class Player {
     const rel = this.asset("se", name);
     if (!rel) {
       this.events.log(`missing se: ${name}`);
+      return;
+    }
+    if (rel.toLowerCase().endsWith(".xa")) {
+      // TODO: decode the game's XA audio to PCM/WAV.
       return;
     }
     const a = new Audio(`/media/${this.pack}/${rel}`);
@@ -372,9 +574,18 @@ export class Player {
         const args = c.args ?? [];
         this.events.log(`L${c.line}  ${c.cmd}${args.length ? " " + args.join(" ") : ""}`);
         switch (c.cmd) {
-          case "BMP":
-            this.pending = this.loadImage(args[0] || "BLACK");
+          case "TEXT":
+            await this.showText(c.speaker ?? "", c.message ?? "");
             break;
+          case "BMP": {
+            if (args.includes("消去") || (args[0] ?? "").toUpperCase() === "ALL") {
+              this.pending = Promise.resolve(this.special("BLACK"));
+              break;
+            }
+            const name = args.find((a) => !["L", "R", "C"].includes(a.toUpperCase())) ?? "BLACK";
+            this.pending = this.loadImage(name);
+            break;
+          }
           case "UPD": {
             const kind = args[0] || "クロス";
             if (this.pending) {
@@ -398,6 +609,37 @@ export class Player {
           case "SEV":
             this.playSe(args[0]);
             break;
+          case "STS":
+            this.events.log(`title: ${args.join(" ")}`);
+            break;
+          case "LOD": {
+            const name = (args[0] || "").replace(/\.txt$/i, "");
+            if (!this.loadScript || !name) {
+              this.events.log(`cannot load script: ${name || "(missing)"}`);
+              this.stopped = true;
+              break;
+            }
+            this.events.status(`loading ${name}`);
+            try {
+              const next = await this.loadScript(name);
+              this.commands = next.commands;
+              this.labels = next.labels;
+              this.pc = 0;
+              this.events.status("playing");
+              this.prefetchNext();
+            } catch (err) {
+              this.events.log(`failed to load ${name}: ${String(err)}`);
+              this.stopped = true;
+            }
+            break;
+          }
+          case "SLT":
+          case "MSLT":
+            this.events.log(`menu not implemented yet (${args.join(" ")})`);
+            break;
+          case "SEND":
+          case "SHAEND":
+            break;
           case "JMP": {
             const dest = args[0];
             if (dest && dest in this.labels) this.pc = this.labels[dest];
@@ -411,6 +653,8 @@ export class Player {
             this.stopped = true;
             break;
           default:
+            // Commands used by the full game (MAP/LOD/EVT/...) are ignored by
+            // the current runtime. They are tracked in docs/engine/script.md.
             break;
         }
       }
