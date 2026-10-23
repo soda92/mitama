@@ -8,6 +8,7 @@
 *.mds
 *.ccd
 *.sub
+/server
 
 # Node / frontend
 web-app/node_modules/
