@@ -7,19 +7,28 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
-import {
-  Player,
-  type BattleInfo,
-  type BattlePolicy,
-  type Snapshot,
-  type StageSnapshot,
-} from "./game/player";
+import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
 import ArchiveManager from "./components/ArchiveManager";
 import Navigator from "./components/Navigator";
 import BattleScreen from "./components/BattleScreen";
+import SettingsPanel from "./components/SettingsPanel";
+import DialogueToolbar from "./components/DialogueToolbar";
+import { useGameKeyboard } from "./hooks/useGameKeyboard";
+import { useBattleSession } from "./hooks/useBattleSession";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
-import type { BattleCharacter, BattleEncounter } from "./game/battle";
+import {
+  readArchives,
+  writeArchives,
+  nextArchiveID,
+  makeThumbnail,
+  type ArchiveMap,
+} from "./game/archives";
+import {
+  readSettings,
+  writeSettings,
+  type BattlePolicy,
+} from "./game/settings";
 
 interface GameData {
   script: Script;
@@ -33,149 +42,7 @@ interface ResumePoint {
   flags?: Record<string, number>;
 }
 
-interface BattleSession {
-  info: BattleInfo;
-  encounter: BattleEncounter;
-  player: BattleCharacter;
-  backgroundUrl?: string;
-}
-
-interface BattleFlash {
-  info: BattleInfo;
-  winner: "win" | "lose";
-}
-
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
-const SETTINGS_KEY = "mitama.settings.v1";
-const LEGACY_SAVE_KEY = "mitama.saves.v1";
-
-interface StoredSettings {
-  bgmVolume: number;
-  seVolume: number;
-  muted: boolean;
-  dialogOpacity: number;
-  battlePolicy: BattlePolicy;
-}
-
-const DEFAULT_SETTINGS: StoredSettings = {
-  bgmVolume: 0.7,
-  seVolume: 0.7,
-  muted: false,
-  dialogOpacity: 1,
-  battlePolicy: "play",
-};
-
-function volumeSetting(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.max(0, Math.min(1, value))
-    : fallback;
-}
-
-function readSettings(): StoredSettings {
-  let saved: Partial<StoredSettings> = {};
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<StoredSettings> | null;
-      if (parsed && typeof parsed === "object") saved = parsed;
-    }
-  } catch {
-    saved = {};
-  }
-
-  let legacyOpacity: number | undefined;
-  let legacyBattle: string | null = null;
-  try {
-    const raw = localStorage.getItem("mitama.dialogOpacity");
-    if (raw !== null) legacyOpacity = Number(raw);
-    legacyBattle = localStorage.getItem("mitama.battlePolicy");
-  } catch {
-    // localStorage may be unavailable
-  }
-  const opacity = volumeSetting(saved.dialogOpacity, volumeSetting(legacyOpacity, DEFAULT_SETTINGS.dialogOpacity));
-  const battle =
-    saved.battlePolicy === "play" ||
-    saved.battlePolicy === "win" ||
-    saved.battlePolicy === "lose" ||
-    saved.battlePolicy === "random"
-      ? saved.battlePolicy
-      : legacyBattle === "win" || legacyBattle === "lose" || legacyBattle === "random" || legacyBattle === "play"
-        ? legacyBattle
-        : DEFAULT_SETTINGS.battlePolicy;
-
-  return {
-    bgmVolume: volumeSetting(saved.bgmVolume, DEFAULT_SETTINGS.bgmVolume),
-    seVolume: volumeSetting(saved.seVolume, DEFAULT_SETTINGS.seVolume),
-    muted: typeof saved.muted === "boolean" ? saved.muted : DEFAULT_SETTINGS.muted,
-    dialogOpacity: opacity,
-    battlePolicy: battle,
-  };
-}
-
-function writeSettings(settings: StoredSettings): void {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    // best-effort setting persistence
-  }
-}
-const ARCHIVE_KEY = "mitama.archives.v1";
-
-type ArchiveMap = Record<string, Snapshot>;
-
-function readArchives(): ArchiveMap {
-  try {
-    const raw = localStorage.getItem(ARCHIVE_KEY);
-    if (raw) return JSON.parse(raw) as ArchiveMap;
-  } catch {
-    // fall through to legacy migration
-  }
-  try {
-    const raw = localStorage.getItem(LEGACY_SAVE_KEY);
-    if (!raw) return {};
-    const old = JSON.parse(raw) as (Snapshot | null)[];
-    const out: ArchiveMap = {};
-    old.forEach((snap, i) => {
-      if (snap) out[String(i + 1)] = snap;
-    });
-    writeArchives(out);
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function writeArchives(archives: ArchiveMap): void {
-  try {
-    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives));
-  } catch {
-    // localStorage may be unavailable or full; saves are best-effort.
-  }
-}
-
-function nextArchiveID(archives: ArchiveMap): string {
-  let max = 0;
-  for (const id of Object.keys(archives)) {
-    const n = Number.parseInt(id, 10);
-    if (Number.isFinite(n) && n > max) max = n;
-  }
-  return String(max + 1);
-}
-
-function makeThumbnail(canvas: HTMLCanvasElement | null): string | undefined {
-  if (!canvas) return undefined;
-  try {
-    const t = document.createElement("canvas");
-    t.width = 320;
-    t.height = 240;
-    const g = t.getContext("2d");
-    if (!g) return undefined;
-    g.drawImage(canvas, 0, 0, t.width, t.height);
-    return t.toDataURL("image/jpeg", 0.6);
-  } catch {
-    return undefined;
-  }
-}
 
 function initialParams(): { pack: string; scene: string; pc: number } {
   const q = new URLSearchParams(window.location.search);
@@ -214,11 +81,6 @@ export default function App() {
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
-  const [battleSession, setBattleSession] = useState<BattleSession | null>(null);
-  const [battleFlash, setBattleFlash] = useState<BattleFlash | null>(null);
-  const battleResolveRef = useRef<((result: "win" | "lose") => void) | null>(null);
-  const battlePolicyRef = useRef<BattlePolicy>("play");
-  const assetsRef = useRef<AssetMap>(EMPTY_ASSETS);
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -226,6 +88,19 @@ export default function App() {
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
+
+  const {
+    battleSession,
+    battleFlash,
+    runBattle,
+    cancelBattle,
+    finishBattle,
+  } = useBattleSession({
+    policy: battlePolicy,
+    packId,
+    assets: data?.assets ?? EMPTY_ASSETS,
+    currentScene: () => playerRef.current?.currentScene ?? "",
+  });
 
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
   const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
@@ -341,63 +216,7 @@ export default function App() {
         },
         position: updateURL,
         choice: setChoices,
-        battle: (info) => {
-          const policy = battlePolicyRef.current;
-          if (policy !== "play") {
-            const winner =
-              policy === "random" ? (Math.random() < 0.5 ? "win" : "lose") : policy;
-            setBattleFlash({ info, winner });
-            return new Promise<"win" | "lose">((resolve) => {
-              window.setTimeout(() => {
-                setBattleFlash(null);
-                resolve(winner);
-              }, 1000);
-            });
-          }
-
-          return (async () => {
-            const leader = /^(oh|os)/i.test(playerRef.current?.currentScene ?? "")
-              ? "oboro"
-              : "yahiro";
-            let player: BattleCharacter = {
-              file: `${leader}.chr`,
-              name: leader === "oboro" ? "朧" : "八尋",
-              skills: [1, 1, 1],
-              defaultAction: 0,
-              resist: [0, 0, 0],
-              survive: 20,
-              object: "",
-            };
-            try {
-              if (!info.script) throw new Error("battle script missing");
-              const [encRes, charRes] = await Promise.all([
-                fetch(
-                  `/api/battle?pack=${encodeURIComponent(packId)}&name=${encodeURIComponent(info.script)}`,
-                ),
-                fetch(
-                  `/api/battle/character?pack=${encodeURIComponent(packId)}&name=${leader}`,
-                ),
-              ]);
-              if (!encRes.ok) throw new Error(`battle: HTTP ${encRes.status}`);
-              const encounter = (await encRes.json()) as BattleEncounter;
-              if (charRes.ok) player = (await charRes.json()) as BattleCharacter;
-              const rel = assetsRef.current.game[info.background.toLowerCase()];
-              const backgroundUrl = rel
-                ? `/media/${encodeURIComponent(packId)}/${rel}`
-                : undefined;
-              setBattleSession({ info, encounter, player, backgroundUrl });
-              return await new Promise<"win" | "lose">((resolve) => {
-                battleResolveRef.current = resolve;
-              });
-            } catch (err) {
-              console.error("battle fallback", err);
-              setBattleFlash({ info, winner: "win" });
-              await new Promise<void>((resolve) => window.setTimeout(resolve, 1000));
-              setBattleFlash(null);
-              return "win";
-            }
-          })();
-        },
+        battle: runBattle,
       },
       packId,
       startScene,
@@ -412,7 +231,7 @@ export default function App() {
     };
     // Volume is applied separately below; it must not recreate the player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, packId, startScene, loadScript, updateURL]);
+  }, [data, packId, startScene, loadScript, updateURL, runBattle]);
 
   // Debug surface for Chrome DevTools MCP / console use.
   useEffect(() => {
@@ -472,16 +291,8 @@ export default function App() {
   }, [muted]);
 
   useEffect(() => {
-    battlePolicyRef.current = battlePolicy;
-  }, [battlePolicy]);
-
-  useEffect(() => {
     writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, battlePolicy });
   }, [bgmVolume, seVolume, muted, dialogOpacity, battlePolicy]);
-
-  useEffect(() => {
-    assetsRef.current = data?.assets ?? EMPTY_ASSETS;
-  }, [data]);
 
   const start = useCallback(() => {
     const player = playerRef.current;
@@ -553,21 +364,6 @@ export default function App() {
     [canvasPoint],
   );
 
-  const cancelBattle = useCallback(() => {
-    const resolve = battleResolveRef.current;
-    battleResolveRef.current = null;
-    resolve?.("lose");
-    setBattleSession(null);
-    setBattleFlash(null);
-  }, []);
-
-  const finishBattle = useCallback((result: "win" | "lose") => {
-    const resolve = battleResolveRef.current;
-    battleResolveRef.current = null;
-    setBattleSession(null);
-    resolve?.(result);
-  }, []);
-
   const restart = useCallback(() => {
     cancelBattle();
     setData(null);
@@ -595,6 +391,23 @@ export default function App() {
     setArchiveOpen(false);
     setNavigatorOpen(true);
   }, []);
+
+  const changePack = useCallback(
+    (id: string) => {
+      cancelBattle();
+      setData(null);
+      setStarted(false);
+      setEnded(false);
+      setUiHidden(false);
+      setMenuOpen(false);
+      setPackId(id);
+      setResumeScene("");
+      setCurrentScene("");
+      setCurrentPC(0);
+      setResume({ pc: 0, image: "" });
+    },
+    [cancelBattle],
+  );
 
   const choose = useCallback((label: string) => {
     setChoices(null);
@@ -726,69 +539,26 @@ export default function App() {
     setReloadKey((k) => k + 1);
   }, [cancelBattle]);
 
-  useEffect(() => {
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") {
-        setArchiveOpen(false);
-        setNavigatorOpen(false);
-        setMenuOpen(false);
-        return;
-      }
-      if (battleSession) return;
-      const target = ev.target instanceof HTMLElement ? ev.target : null;
-      const typing =
-        !!target &&
-        (target.matches("input, textarea, select") || target.isContentEditable);
-      if (archiveOpen || navigatorOpen) {
-        const inSideWindow = !!target?.closest(".side-window");
-        if (!typing && !inSideWindow) {
-          if (ev.key === "Enter" || ev.key === "ArrowRight" || ev.key === "ArrowDown") {
-            ev.preventDefault();
-            if (uiHidden) setUiHidden(false);
-            else advance();
-          } else if (ev.key === "f" || ev.key === "F") {
-            toggleFullscreen();
-          } else if (archiveOpen && (ev.key === "n" || ev.key === "N")) {
-            openNavigator();
-          }
-        }
-        return;
-      }
-      if (menuOpen || typing) return;
-      if (ev.key === "Enter" || ev.key === "ArrowRight" || ev.key === "ArrowDown") {
-        ev.preventDefault();
-        if (uiHidden) setUiHidden(false);
-        else advance();
-      } else if (ev.code === "Space") {
-        ev.preventDefault();
-        setUiHidden((hidden) => !hidden);
-      } else if (ev.key === "p" || ev.key === "P") {
-        if (started) togglePause();
-      } else if (ev.key === "m" || ev.key === "M") {
-        setMuted((m) => !m);
-      } else if (ev.key === "f" || ev.key === "F") {
-        toggleFullscreen();
-      } else if ((ev.key === "d" || ev.key === "D") && !(ev.target instanceof HTMLInputElement)) {
-        setDebugOpen((open) => !open);
-      } else if ((ev.key === "n" || ev.key === "N") && !(ev.target instanceof HTMLInputElement)) {
-        openNavigator();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [
-    started,
-    togglePause,
-    toggleFullscreen,
-    advance,
+  useGameKeyboard({
     archiveOpen,
     navigatorOpen,
-    battleSession,
+    battleOpen: !!battleSession,
     menuOpen,
     uiHidden,
-    openArchives,
+    started,
+    muted,
+    debugOpen,
+    advance,
+    togglePause,
+    toggleFullscreen,
     openNavigator,
-  ]);
+    setArchiveOpen,
+    setNavigatorOpen,
+    setMenuOpen,
+    setUiHidden,
+    setMuted,
+    setDebugOpen,
+  });
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const scriptCount = Object.keys(assets.text).length;
@@ -805,139 +575,52 @@ export default function App() {
         <div className="screen" onClick={handleStageClick} onMouseMove={handleStageMove}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
 
-          {started && (
-            <div className="dialogue-tools" onClick={(ev) => ev.stopPropagation()}>
-              <button className="tool" onClick={togglePause} title="Pause (P)">
-                {paused ? "▶" : "❚❚"}
-              </button>
-              <button
-                className={`tool ${archiveOpen ? "on" : ""}`}
-                onClick={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
-                title="Archives"
-              >
-                Archives
-              </button>
-              <button
-                className={`tool ${navigatorOpen ? "on" : ""}`}
-                onClick={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
-                disabled={scriptCount === 0}
-                title="Navigator (N)"
-              >
-                Navigate
-              </button>
-              <button className="tool" onClick={() => setMuted((m) => !m)} title="Mute (M)">
-                {muted ? "🔇" : "🔊"}
-              </button>
-              <button className="tool" onClick={toggleFullscreen} title="Fullscreen (F)">
-                ⛶
-              </button>
-              <button className="tool" onClick={() => setMenuOpen(true)} title="Settings">
-                ☰
-              </button>
-            </div>
-          )}
+          <DialogueToolbar
+            started={started}
+            paused={paused}
+            archiveOpen={archiveOpen}
+            navigatorOpen={navigatorOpen}
+            scriptCount={scriptCount}
+            muted={muted}
+            onPause={togglePause}
+            onArchives={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
+            onNavigator={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
+            onMute={() => setMuted((m) => !m)}
+            onFullscreen={toggleFullscreen}
+            onSettings={() => setMenuOpen(true)}
+          />
 
           {menuOpen && (
-            <div
-              className="save-overlay"
-              onClick={(ev) => {
-                ev.stopPropagation();
+            <SettingsPanel
+              packId={packId}
+              packs={packs}
+              currentScene={currentScene}
+              currentPC={currentPC}
+              status={status}
+              bgmVolume={bgmVolume}
+              seVolume={seVolume}
+              dialogOpacity={dialogOpacity}
+              battlePolicy={battlePolicy}
+              onClose={() => setMenuOpen(false)}
+              onPackChange={changePack}
+              onBgmVolume={setBgmVolume}
+              onSeVolume={setSeVolume}
+              onDialogOpacity={setDialogOpacity}
+              onBattlePolicy={setBattlePolicy}
+              onArchives={() => {
                 setMenuOpen(false);
+                openArchives();
               }}
-            >
-              <div className="save-panel settings-panel" onClick={(ev) => ev.stopPropagation()}>
-                <div className="save-head">
-                  <strong>Settings</strong>
-                  <button onClick={() => setMenuOpen(false)}>✕</button>
-                </div>
-                <div className="kv settings-kv">
-                  <span>scene</span>
-                  <b>{currentScene || "—"}</b>
-                  <span>command</span>
-                  <b>cmd {currentPC}</b>
-                  <span>status</span>
-                  <b>{status}</b>
-                </div>
-                <label className="settings-row">
-                  <span>pack</span>
-                  <select
-                    className="pack"
-                    value={packId}
-                    onChange={(ev) => {
-                      cancelBattle();
-                      setData(null);
-                      setStarted(false);
-                      setEnded(false);
-                      setUiHidden(false);
-                      setMenuOpen(false);
-                      setPackId(ev.target.value);
-                      setResumeScene("");
-                      setCurrentScene("");
-                      setCurrentPC(0);
-                      setResume({ pc: 0, image: "" });
-                    }}
-                  >
-                    {packs.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="settings-row">
-                  <span>BGM volume</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={Math.round(bgmVolume * 100)}
-                    onChange={(ev) => setBgmVolume(Number(ev.target.value) / 100)}
-                  />
-                  <b className="setting-value">{Math.round(bgmVolume * 100)}%</b>
-                </label>
-                <label className="settings-row">
-                  <span>SE volume</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={Math.round(seVolume * 100)}
-                    onChange={(ev) => setSeVolume(Number(ev.target.value) / 100)}
-                  />
-                  <b className="setting-value">{Math.round(seVolume * 100)}%</b>
-                </label>
-                <label className="settings-row">
-                  <span>dialog opacity</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={Math.round(dialogOpacity * 100)}
-                    onChange={(ev) => setDialogOpacity(Number(ev.target.value) / 100)}
-                  />
-                  <b className="setting-value">{Math.round(dialogOpacity * 100)}%</b>
-                </label>
-                <label className="settings-row">
-                  <span>battle</span>
-                  <select
-                    className="pack"
-                    value={battlePolicy}
-                    onChange={(ev) => setBattlePolicy(ev.target.value as BattlePolicy)}
-                  >
-                    <option value="play">play battle</option>
-                    <option value="win">auto-win</option>
-                    <option value="lose">auto-lose</option>
-                    <option value="random">random</option>
-                  </select>
-                </label>
-                <div className="settings-actions">
-                  <button onClick={() => { setMenuOpen(false); openArchives(); }}>Archives</button>
-                  <button onClick={() => { setMenuOpen(false); openNavigator(); }}>Navigate</button>
-                  <button onClick={() => { setMenuOpen(false); setDebugOpen(true); }}>Debug</button>
-                  <button onClick={reloadCurrent}>Reload scene</button>
-                </div>
-              </div>
-            </div>
+              onNavigate={() => {
+                setMenuOpen(false);
+                openNavigator();
+              }}
+              onDebug={() => {
+                setMenuOpen(false);
+                setDebugOpen(true);
+              }}
+              onReload={reloadCurrent}
+            />
           )}
 
           {error && (

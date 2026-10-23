@@ -1,15 +1,19 @@
 import type { AssetMap, Command, Cue, Option, Script } from "./types";
+import { AudioEngine, type AudioSnapshot } from "./player/audio";
+import { drawDialogue, type ReplayBounds } from "./player/dialogue";
+import {
+  STAGE_H as H,
+  STAGE_W as W,
+  RENDER_SCALE,
+  TEXT_CPS,
+} from "./player/constants";
+import {
+  StageRenderer,
+  emptyStage,
+  type StageSnapshot,
+} from "./player/stage";
 
-const W = 640;
-const H = 480;
-const IMAGE_CACHE_MAX = 8;
-const TRANSITION_MS = 560;
-const TEXT_CPS = 38; // characters per second
-const RENDER_SCALE = 3;
-
-type ImageSource = HTMLImageElement | HTMLCanvasElement;
-
-export type BattlePolicy = "play" | "win" | "lose" | "random";
+export type { StageSnapshot } from "./player/stage";
 
 export interface BattleInfo {
   background: string;
@@ -31,14 +35,6 @@ export interface PlayerEvents {
   battle?(info: BattleInfo): "win" | "lose" | void | Promise<"win" | "lose" | void>;
 }
 
-export interface StageSnapshot {
-  bg?: string;
-  bgs?: string[];
-  l?: string;
-  r?: string;
-  c?: string;
-}
-
 export interface Snapshot {
   version: 1;
   pack: string;
@@ -55,20 +51,7 @@ export interface Snapshot {
   savedAt: number;
 }
 
-export interface AudioDebug {
-  bgm: {
-    src: string;
-    track: string;
-    paused: boolean;
-    volume: number;
-    muted: boolean;
-    currentTime: number;
-    duration: number;
-  } | null;
-  lastSe: string;
-  lastSeAt: number;
-  liveSe: number;
-}
+export type AudioDebug = AudioSnapshot;
 
 export interface DebugState {
   pack: string;
@@ -97,25 +80,6 @@ export interface DebugState {
   audio: AudioDebug;
 }
 
-interface StageImage {
-  name: string;
-  img: ImageSource;
-}
-
-interface Stage {
-  bgs: StageImage[];
-  l: StageImage | null;
-  r: StageImage | null;
-  c: StageImage | null;
-}
-
-type Slot = "l" | "r" | "c";
-type BmpSlot = Slot | "bg";
-
-function emptyStage(): Stage {
-  return { bgs: [], l: null, r: null, c: null };
-}
-
 export class Player {
   private readonly ctx: CanvasRenderingContext2D;
   private commands: Command[];
@@ -127,24 +91,11 @@ export class Player {
   private readonly loadScript?: (name: string) => Promise<Script>;
 
   private pc = 0;
-  private stage: Stage = emptyStage();
-  private pendingStage: Stage | null = null;
-  private pendingLoads: Promise<void>[] = [];
-  private frameCache: HTMLCanvasElement | null = null;
-  private stageDirty = true;
   private running = false;
   private paused = false;
   private stopped = true;
-  private bgmVolume = 0.7;
-  private seVolume = 0.7;
-  private muted = false;
-
-  private readonly imageCache = new Map<string, ImageSource>();
-  private readonly imagePromises = new Map<string, Promise<ImageSource>>();
-  private bgm: HTMLAudioElement | null = null;
-  private bgmWanted = false;
-  private audioUnlocked = false;
-  private readonly liveSe = new Set<HTMLAudioElement>();
+  private readonly audio: AudioEngine;
+  private readonly stageRenderer: StageRenderer;
 
   // Dialogue state.
   private textSpeaker = "";
@@ -156,7 +107,7 @@ export class Player {
   private textActive = false;
   private textResolve: (() => void) | null = null;
   private textFallbackVoice = "";
-  private replayBounds: { x: number; y: number; w: number; h: number } | null = null;
+  private replayBounds: ReplayBounds | null = null;
   private textRaf = 0;
   private textLast = 0;
   private dialogueHidden = false;
@@ -167,8 +118,6 @@ export class Player {
   private flags = new Map<number, number>();
   private mapMode = false;
   private party = new Set<string>();
-  private lastSeName = "";
-  private lastSeAt = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -194,6 +143,14 @@ export class Player {
     this.pack = pack;
     this.scene = scene.replace(/\.txt$/i, "").toLowerCase();
     this.loadScript = loadScript;
+    this.audio = new AudioEngine(pack);
+    this.stageRenderer = new StageRenderer(
+      pack,
+      assets,
+      (text) => this.events.log(text),
+      () => this.paused,
+      () => this.stopped,
+    );
   }
 
   get currentScene(): string {
@@ -272,23 +229,7 @@ export class Player {
   }
 
   async primeAudio(): Promise<void> {
-    if (this.audioUnlocked) return;
-    const a = this.ensureBgm();
-    if (a.dataset.track && !a.paused) {
-      this.audioUnlocked = true;
-      return;
-    }
-    a.volume = 0;
-    try {
-      await a.play();
-      this.audioUnlocked = true;
-      a.pause();
-      a.currentTime = 0;
-    } catch {
-      // Autoplay may still be blocked; BGM will start on the next attempt.
-    } finally {
-      a.volume = this.bgmGain();
-    }
+    return this.audio.prime();
   }
 
   debugState(): DebugState {
@@ -324,35 +265,11 @@ export class Player {
   }
 
   audioState(): AudioDebug {
-    const bgm = this.bgm;
-    return {
-      bgm: bgm
-        ? {
-            src: bgm.src ? decodeURIComponent(bgm.src) : "",
-            track: bgm.dataset.track ?? "",
-            paused: bgm.paused,
-            volume: bgm.volume,
-            muted: this.muted,
-            currentTime: Number.isFinite(bgm.currentTime) ? bgm.currentTime : 0,
-            duration: Number.isFinite(bgm.duration) ? bgm.duration : 0,
-          }
-        : null,
-      lastSe: this.lastSeName,
-      lastSeAt: this.lastSeAt,
-      liveSe: this.liveSe.size,
-    };
+    return this.audio.snapshot();
   }
 
   stageSnapshot(): StageSnapshot {
-    const stage: StageSnapshot = {};
-    if (this.stage.bgs.length > 0) {
-      stage.bgs = this.stage.bgs.map((b) => b.name);
-      stage.bg = stage.bgs[stage.bgs.length - 1];
-    }
-    if (this.stage.l) stage.l = this.stage.l.name;
-    if (this.stage.r) stage.r = this.stage.r.name;
-    if (this.stage.c) stage.c = this.stage.c.name;
-    return stage;
+    return this.stageRenderer.snapshot();
   }
 
   setDebugFlag(id: number, value: number): void {
@@ -373,14 +290,7 @@ export class Player {
   }
 
   async unlockAudio(): Promise<void> {
-    if (this.bgm?.dataset.track && !this.bgm.paused) {
-      this.audioUnlocked = true;
-      return;
-    }
-    await this.primeAudio();
-    if (this.bgmWanted && !this.paused && this.bgm?.dataset.track && this.bgm.paused) {
-      await this.bgm.play().catch(() => undefined);
-    }
+    return this.audio.unlock();
   }
 
   private readonly redraw = (): void => {
@@ -394,9 +304,7 @@ export class Player {
     stageSnapshot?: StageSnapshot,
   ): void {
     this.pc = this.rewindForVoice(Math.max(0, pc));
-    this.stage = emptyStage();
-    this.pendingStage = null;
-    this.pendingLoads = [];
+    this.stageRenderer.reset();
     this.running = true;
     this.paused = false;
     this.stopped = false;
@@ -406,31 +314,30 @@ export class Player {
     );
     this.mapMode = false;
     this.party.clear();
-    this.bgmWanted = false;
+    this.audio.resetForStart();
     this.resetText();
-    this.clear();
     this.events.status("playing");
     this.events.position?.(this.scene, this.currentPC);
     window.addEventListener("resize", this.redraw);
     document.addEventListener("fullscreenchange", this.redraw);
-    this.prefetchNext();
+    this.stageRenderer.prefetch(this.commands, this.pc);
 
     const restore = async () => {
       const snap = stageSnapshot;
       if (snap) {
         const bgs = snap.bgs && snap.bgs.length > 0 ? snap.bgs : snap.bg ? [snap.bg] : [];
-        await this.restoreBackgrounds(bgs);
+        await this.stageRenderer.restoreBackgrounds(bgs);
         await Promise.all([
-          this.restoreSlot("l", snap.l),
-          this.restoreSlot("r", snap.r),
-          this.restoreSlot("c", snap.c),
+          this.stageRenderer.restoreSlot("l", snap.l),
+          this.stageRenderer.restoreSlot("r", snap.r),
+          this.stageRenderer.restoreSlot("c", snap.c),
         ]);
       } else if (this.pc > 0) {
         this.events.loading(true);
         await this.restoreBefore(this.pc);
         this.events.loading(false);
       } else if (imageName) {
-        await this.restoreBackgrounds([imageName]);
+        await this.stageRenderer.restoreBackgrounds([imageName]);
       }
     };
     void restore().then(() => {
@@ -448,63 +355,6 @@ export class Player {
     return q;
   }
 
-  private async applyBmp(stage: Stage, args: string[]): Promise<void> {
-    const name = (args.find((a) => !["L", "R", "C", "消去"].includes(a.toUpperCase())) ?? "BLACK").toUpperCase();
-    const clear = args.includes("消去");
-    const posArg = args.find((a) => ["L", "R", "C"].includes(a.toUpperCase()));
-    const slot: BmpSlot =
-      posArg?.toUpperCase() === "L"
-        ? "l"
-        : posArg?.toUpperCase() === "R"
-          ? "r"
-          : posArg?.toUpperCase() === "C"
-            ? "c"
-            : "bg";
-
-    if (clear) {
-      if (name === "ALL") {
-        stage.bgs = [];
-        stage.l = null;
-        stage.r = null;
-        stage.c = null;
-      } else if (slot !== "bg") {
-        stage[slot] = null;
-      } else {
-        // Remove the matching background layer (e.g. BLACK 消去 reveals the
-        // background underneath it) rather than clearing the whole stage.
-        for (let i = stage.bgs.length - 1; i >= 0; i--) {
-          if (stage.bgs[i].name.toUpperCase() === name) {
-            stage.bgs.splice(i, 1);
-            break;
-          }
-        }
-      }
-      return;
-    }
-    if (name === "BLACK" || name === "WHITE" || name === "RED") {
-      if (stage.bgs[stage.bgs.length - 1]?.name.toUpperCase() !== name) {
-        stage.bgs.push({ name, img: this.special(name) });
-      }
-      return;
-    }
-    const img = await this.loadImage(name);
-    if (slot === "bg") {
-      if (stage.bgs[stage.bgs.length - 1]?.name.toUpperCase() === name) {
-        stage.bgs[stage.bgs.length - 1] = { name, img };
-      } else {
-        stage.bgs.push({ name, img });
-      }
-      const { w, h } = this.sourceSize(img);
-      if (w === W && h === H) {
-        stage.l = null;
-        stage.r = null;
-        stage.c = null;
-      }
-    } else {
-      stage[slot] = { name, img };
-    }
-  }
-
   /** Rebuild stage, flags and BGM by replaying commands before a scene link. */
   private async restoreBefore(pc: number): Promise<void> {
     const stage = emptyStage();
@@ -514,7 +364,7 @@ export class Player {
       const args = c.args ?? [];
       switch (c.cmd) {
         case "BMP":
-          if (c.args) await this.applyBmp(stage, c.args);
+          if (c.args) await this.stageRenderer.applyBmp(stage, c.args);
           break;
         case "MUS":
           music = args[0] ?? "";
@@ -549,25 +399,8 @@ export class Player {
           break;
       }
     }
-    this.stage = stage;
-    this.markStageDirty();
+    this.stageRenderer.setStage(stage);
     if (music && music.toUpperCase() !== "STOP") this.playBgm(music);
-  }
-
-  private async restoreBackgrounds(names: string[]): Promise<void> {
-    this.stage.bgs = [];
-    this.markStageDirty();
-    for (const name of names) {
-      const img = await this.loadImage(name);
-      this.stage.bgs.push({ name, img });
-    }
-  }
-
-  private async restoreSlot(slot: Slot, name?: string): Promise<void> {
-    if (!name) return;
-    const img = await this.loadImage(name);
-    this.stage[slot] = { name, img };
-    this.markStageDirty();
   }
 
   stop(): void {
@@ -581,24 +414,14 @@ export class Player {
     this.pendingChoice = null;
     this.events.choice?.(null);
     if (choiceResolve) choiceResolve("");
-    this.bgmWanted = false;
-    if (this.bgm) this.bgm.pause();
-    for (const a of this.liveSe) a.pause();
-    this.liveSe.clear();
+    this.audio.stop();
   }
 
   setPaused(paused: boolean): void {
     if (!this.running || this.stopped) return;
     this.paused = paused;
     this.events.status(paused ? "paused" : "playing");
-    if (this.bgm) {
-      if (paused) this.bgm.pause();
-      else if (this.bgmWanted) void this.bgm.play().catch(() => undefined);
-    }
-    for (const a of this.liveSe) {
-      if (paused) a.pause();
-      else void a.play().catch(() => undefined);
-    }
+    this.audio.setPaused(paused);
   }
 
   togglePaused(): boolean {
@@ -658,36 +481,15 @@ export class Player {
   }
 
   setBgmVolume(volume: number): void {
-    this.bgmVolume = Math.max(0, Math.min(1, volume));
-    if (this.bgm) this.bgm.volume = this.bgmGain();
+    this.audio.setBgmVolume(volume);
   }
 
   setSeVolume(volume: number): void {
-    this.seVolume = Math.max(0, Math.min(1, volume));
-    for (const a of this.liveSe) a.volume = this.seGain();
+    this.audio.setSeVolume(volume);
   }
 
   setMuted(muted: boolean): void {
-    this.muted = muted;
-    if (this.bgm) this.bgm.volume = this.bgmGain();
-    for (const a of this.liveSe) a.volume = this.seGain();
-  }
-
-  private bgmGain(): number {
-    return this.muted ? 0 : this.bgmVolume;
-  }
-
-  private seGain(): number {
-    return this.muted ? 0 : this.seVolume;
-  }
-
-  private clear(): void {
-    // A transition or canvas operation must never leave a scale/alpha behind.
-    this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
-    this.ctx.globalAlpha = 1;
-    this.ctx.globalCompositeOperation = "source-over";
-    this.ctx.fillStyle = "#000";
-    this.ctx.fillRect(0, 0, W, H);
+    this.audio.setMuted(muted);
   }
 
   private asset(kind: keyof AssetMap, name: string | undefined): string | null {
@@ -695,128 +497,8 @@ export class Player {
     return this.assets[kind]?.[name.toLowerCase()] ?? null;
   }
 
-  private special(name: string): HTMLCanvasElement {
-    const c = document.createElement("canvas");
-    c.width = W;
-    c.height = H;
-    const g = c.getContext("2d");
-    if (g) {
-      g.fillStyle =
-        name.toUpperCase() === "WHITE" ? "#fff" : name.toUpperCase() === "RED" ? "#b00016" : "#000";
-      g.fillRect(0, 0, W, H);
-    }
-    return c;
-  }
-
-  private loadImage(name: string): Promise<ImageSource> {
-    const key = name.toUpperCase();
-    if (key === "BLACK" || key === "WHITE" || key === "RED")
-      return Promise.resolve(this.special(key));
-    const cached = this.imageCache.get(key);
-    if (cached) return Promise.resolve(cached);
-    const inFlight = this.imagePromises.get(key);
-    if (inFlight) return inFlight;
-
-    const rel = this.asset("game", name);
-    if (!rel) {
-      this.events.log(`missing image: ${name}`);
-      return Promise.resolve(this.special("BLACK"));
-    }
-    const img = new Image();
-    img.decoding = "async";
-    const promise = new Promise<ImageSource>((resolve) => {
-      img.onload = () => {
-        this.imageCache.set(key, img);
-        if (this.imageCache.size > IMAGE_CACHE_MAX) {
-          const oldest = this.imageCache.keys().next().value;
-          if (oldest !== undefined) this.imageCache.delete(oldest);
-        }
-        this.imagePromises.delete(key);
-        resolve(img);
-      };
-      img.onerror = () => {
-        this.imagePromises.delete(key);
-        this.events.log(`failed to load image: ${name}`);
-        resolve(this.special("BLACK"));
-      };
-    });
-    img.src = `/media/${this.pack}/${rel}`;
-    this.imagePromises.set(key, promise);
-    return promise;
-  }
-
-  private sourceSize(img: ImageSource): { w: number; h: number } {
-    if (img instanceof HTMLCanvasElement) return { w: img.width, h: img.height };
-    return { w: img.naturalWidth || W, h: img.naturalHeight || H };
-  }
-
-  private readonly spriteCache = new Map<string, HTMLCanvasElement>();
-
-  private spriteCanvas(name: string, img: ImageSource): HTMLCanvasElement {
-    const key = name.toUpperCase();
-    const cached = this.spriteCache.get(key);
-    if (cached) return cached;
-    const { w, h } = this.sourceSize(img);
-    const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    const g = c.getContext("2d");
-    if (g) {
-      g.drawImage(img, 0, 0, w, h);
-      const pixels = g.getImageData(0, 0, w, h);
-      const d = pixels.data;
-      for (let i = 0; i < d.length; i += 4) {
-        // Character stands are stored on a pure-black key background.
-        if (d[i] === 0 && d[i + 1] === 0 && d[i + 2] === 0) d[i + 3] = 0;
-      }
-      g.putImageData(pixels, 0, 0);
-    }
-    this.spriteCache.set(key, c);
-    if (this.spriteCache.size > 12) {
-      const oldest = this.spriteCache.keys().next().value;
-      if (oldest !== undefined) this.spriteCache.delete(oldest);
-    }
-    return c;
-  }
-
-  private composeStage(stage: Stage): HTMLCanvasElement {
-    const c = document.createElement("canvas");
-    c.width = W;
-    c.height = H;
-    const g = c.getContext("2d");
-    if (!g) return c;
-    g.fillStyle = "#000";
-    g.fillRect(0, 0, W, H);
-
-    for (const bg of stage.bgs) {
-      const { w, h } = this.sourceSize(bg.img);
-      if (w === W && h === H) g.drawImage(bg.img, 0, 0, W, H);
-      else g.drawImage(bg.img, 0, 0, w, h);
-    }
-
-    for (const slot of ["l", "r", "c"] as const) {
-      const layer = stage[slot];
-      if (!layer) continue;
-      const sprite = this.spriteCanvas(layer.name, layer.img);
-      const { w, h } = this.sourceSize(sprite);
-      const x = slot === "l" ? 0 : slot === "r" ? W - w : Math.round((W - w) / 2);
-      g.drawImage(sprite, x, H - h, w, h);
-    }
-    return c;
-  }
-
-  private markStageDirty(): void {
-    this.stageDirty = true;
-  }
-
   private draw(): void {
-    if (!this.frameCache || this.stageDirty) {
-      this.frameCache = this.composeStage(this.stage);
-      this.stageDirty = false;
-    }
-    this.clear();
-    this.ctx.drawImage(this.frameCache, 0, 0, W, H);
-    this.drawText();
+    this.stageRenderer.draw(this.ctx, () => this.drawText());
   }
 
   private resetText(): void {
@@ -929,200 +611,16 @@ export class Player {
       this.replayBounds = null;
       return;
     }
-    const ctx = this.ctx;
-    const page = this.textPages[this.textPage] ?? "";
-    const visible = page.slice(0, Math.floor(this.textChars));
-
-    const x = 18;
-    const y = 326;
-    const w = W - 36;
-    const h = 142;
-    ctx.save();
-    ctx.fillStyle = `rgba(7, 8, 12, ${this.dialogueOpacity})`;
-    ctx.strokeStyle = "rgba(201, 168, 106, 0.72)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 8);
-    ctx.fill();
-    ctx.stroke();
-
-    // Speaker tab.
-    if (this.textSpeaker) {
-      ctx.font = '600 17px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-      const label = this.textSpeaker;
-      const tw = Math.max(64, ctx.measureText(label).width + 28);
-      ctx.fillStyle = `rgba(12, 12, 16, ${this.dialogueOpacity})`;
-      ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
-      ctx.beginPath();
-      ctx.roundRect(x + 12, y - 15, tw, 28, 5);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, x + 26, y - 1);
-
-      if (this.hasReplayVoice) {
-        const bx = Math.min(x + 12 + tw + 6, x + w - 38);
-        const by = y - 14;
-        const bw = 32;
-        const bh = 26;
-        this.replayBounds = { x: bx, y: by, w: bw, h: bh };
-        ctx.fillStyle = `rgba(20, 18, 14, ${this.dialogueOpacity})`;
-        ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
-        ctx.beginPath();
-        ctx.roundRect(bx, by, bw, bh, 5);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
-        ctx.font = '600 13px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-        ctx.textAlign = "center";
-        ctx.fillText("声", bx + bw / 2, by + bh / 2 + 1);
-        ctx.textAlign = "start";
-      } else {
-        this.replayBounds = null;
-      }
-    } else {
-      this.replayBounds = null;
-    }
-
-    // Body.
-    ctx.font = '18px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-    ctx.textBaseline = "top";
-    ctx.fillStyle = "rgba(236, 232, 220, 0.96)";
-    const maxWidth = w - 48;
-    const lines: string[] = [];
-    for (const para of visible.split("\n")) {
-      let line = "";
-      for (const ch of para) {
-        const candidate = line + ch;
-        if (ctx.measureText(candidate).width > maxWidth && line.length > 0) {
-          lines.push(line);
-          line = ch;
-        } else {
-          line = candidate;
-        }
-      }
-      lines.push(line);
-    }
-    const visibleLines = lines.slice(0, 5);
-    visibleLines.forEach((line, i) => {
-      ctx.fillText(line, x + 24, y + 40 + i * 23);
-    });
-
-    if (this.textComplete) {
-      const blink = Math.floor(performance.now() / 450) % 2 === 0;
-      if (blink) {
-        ctx.fillStyle = "rgba(201, 168, 106, 0.9)";
-        ctx.beginPath();
-        ctx.moveTo(x + w - 30, y + h - 22);
-        ctx.lineTo(x + w - 20, y + h - 22);
-        ctx.lineTo(x + w - 25, y + h - 15);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  private paint(img: ImageSource): void {
-    this.ctx.drawImage(img, 0, 0, W, H);
-  }
-
-  private drawTransition(a: ImageSource, b: ImageSource, kind: string, t: number): void {
-    const ctx = this.ctx;
-    this.clear();
-    switch (kind) {
-      case "ワイプ":
-        this.paint(a);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, 0, W * t, H);
-        ctx.clip();
-        ctx.drawImage(b, 0, 0, W, H);
-        ctx.restore();
-        break;
-      case "ワイプ２":
-        this.paint(a);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(W * (1 - t), 0, W * t, H);
-        ctx.clip();
-        ctx.drawImage(b, 0, 0, W, H);
-        ctx.restore();
-        break;
-      case "上下":
-        this.paint(a);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, 0, W, H * t);
-        ctx.clip();
-        ctx.drawImage(b, 0, 0, W, H);
-        ctx.restore();
-        break;
-      case "円１": {
-        this.paint(a);
-        const r = Math.hypot(W, H) * 0.5 * t;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(b, 0, 0, W, H);
-        ctx.restore();
-        break;
-      }
-      case "円２": {
-        this.paint(b);
-        const r = Math.hypot(W, H) * 0.5 * (1 - t);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(a, 0, 0, W, H);
-        ctx.restore();
-        break;
-      }
-      case "クロス":
-      default:
-        this.paint(a);
-        ctx.globalAlpha = t;
-        ctx.drawImage(b, 0, 0, W, H);
-        ctx.globalAlpha = 1;
-        break;
-    }
-  }
-
-  private stageEmpty(stage: Stage): boolean {
-    return stage.bgs.length === 0 && !stage.l && !stage.r && !stage.c;
-  }
-
-  private transitionTo(nextStage: Stage, kind: string): Promise<void> {
-    if (this.stageEmpty(this.stage)) {
-      this.stage = nextStage;
-      this.markStageDirty();
-      this.draw();
-      return Promise.resolve();
-    }
-    const from = this.composeStage(this.stage);
-    const to = this.composeStage(nextStage);
-    return new Promise((resolve) => {
-      let elapsed = 0;
-      let last = performance.now();
-      const frame = (now: number) => {
-        if (!this.paused) elapsed += now - last;
-        last = now;
-        const raw = Math.min(1, elapsed / TRANSITION_MS);
-        const t = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
-        this.drawTransition(from, to, kind, t);
-        if (raw >= 1 || this.stopped) {
-          this.stage = nextStage;
-          this.markStageDirty();
-          this.draw();
-          resolve();
-        } else {
-          requestAnimationFrame(frame);
-        }
-      };
-      requestAnimationFrame(frame);
+    this.replayBounds = drawDialogue(this.ctx, {
+      width: W,
+      height: H,
+      speaker: this.textSpeaker,
+      pages: this.textPages,
+      page: this.textPage,
+      chars: this.textChars,
+      complete: this.textComplete,
+      opacity: this.dialogueOpacity,
+      showReplay: this.hasReplayVoice,
     });
   }
 
@@ -1141,35 +639,10 @@ export class Player {
     });
   }
 
-  private prefetchNext(): void {
-    const end = Math.min(this.commands.length, this.pc + 60);
-    for (let i = this.pc; i < end; i++) {
-      const c = this.commands[i];
-      if (c?.cmd === "BMP" && c.args?.[0]) {
-        void this.loadImage(c.args[0]);
-        return;
-      }
-    }
-  }
-
-  private ensureBgm(): HTMLAudioElement {
-    if (!this.bgm) {
-      this.bgm = new Audio();
-      this.bgm.loop = true;
-      this.bgm.preload = "auto";
-      this.bgm.volume = this.bgmGain();
-    }
-    return this.bgm;
-  }
-
   private playBgm(name: string | undefined): void {
     if (!name) return;
     if (name.toUpperCase() === "STOP") {
-      this.bgmWanted = false;
-      if (this.bgm) {
-        this.bgm.pause();
-        this.bgm.currentTime = 0;
-      }
+      this.audio.stopBgm();
       return;
     }
     const rel = this.asset("bgm", name);
@@ -1177,22 +650,7 @@ export class Player {
       this.events.log(`missing bgm: ${name}`);
       return;
     }
-    this.bgmWanted = true;
-    const a = this.ensureBgm();
-    if (a.dataset.track !== rel) {
-      a.src = this.audioURL(rel);
-      a.dataset.track = rel;
-      a.currentTime = 0;
-    }
-    a.volume = this.bgmGain();
-    if (!this.paused) void a.play().catch(() => undefined);
-  }
-
-  private audioURL(rel: string): string {
-    if (rel.toLowerCase().endsWith(".xa")) {
-      return `/api/audio?pack=${encodeURIComponent(this.pack)}&file=${encodeURIComponent(rel)}`;
-    }
-    return `/media/${this.pack}/${rel}`;
+    this.audio.playBgm(rel);
   }
 
   private playSe(name: string | undefined): void {
@@ -1202,15 +660,7 @@ export class Player {
       this.events.log(`missing se: ${name}`);
       return;
     }
-    this.lastSeName = name;
-    this.lastSeAt = Date.now();
-    const a = new Audio(this.audioURL(rel));
-    a.volume = this.seGain();
-    this.liveSe.add(a);
-    const done = () => this.liveSe.delete(a);
-    a.addEventListener("ended", done, { once: true });
-    a.addEventListener("error", done, { once: true });
-    void a.play().catch(done);
+    this.audio.playSe(rel, name);
   }
 
   private async run(): Promise<void> {
@@ -1229,23 +679,16 @@ export class Player {
             this.events.position?.(this.scene, Math.max(0, this.pc - 1));
             await this.showText(c.speaker ?? "", c.message ?? "", c.cues ?? []);
             break;
-          case "BMP": {
-            this.pendingStage ??= { ...this.stage };
-            const stage = this.pendingStage;
-            this.pendingLoads.push(this.applyBmp(stage, args));
+          case "BMP":
+            this.stageRenderer.queueBmp(args);
             break;
-          }
           case "UPD": {
             const kind = args[0] || "クロス";
-            if (this.pendingStage) {
+            if (this.stageRenderer.hasPending) {
               this.events.loading(true);
-              await Promise.all(this.pendingLoads);
-              this.pendingLoads = [];
+              await this.stageRenderer.commitPending(kind, this.ctx, () => this.drawText());
               this.events.loading(false);
-              const next = this.pendingStage;
-              this.pendingStage = null;
-              await this.transitionTo(next, kind);
-              this.prefetchNext();
+              this.stageRenderer.prefetch(this.commands, this.pc);
             }
             break;
           }
@@ -1350,7 +793,7 @@ export class Player {
               this.pc = 0;
               this.events.status("playing");
               this.events.position?.(this.scene, 0);
-              this.prefetchNext();
+              this.stageRenderer.prefetch(this.commands, this.pc);
             } catch (err) {
               this.events.log(`failed to load ${name}: ${String(err)}`);
               this.stopped = true;

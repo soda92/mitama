@@ -208,6 +208,7 @@ pkg/battle/         .pty / .chr battle definition parser
 pkg/script/         CP932 command-script parser
 pkg/xa/             KWD1 audio codec (PCM output)
 web-app/            React 19 + Vite + TypeScript player
+  src/game/player/  audio, dialogue and stage renderer modules
 docs/               Format notes, engine notes, roadmap
 data/               Extracted assets (gitignored)
 .cache/             Disc images and intermediate files (gitignored)
