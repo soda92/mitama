@@ -1,4 +1,5 @@
 import type { AssetMap, Command } from "../types";
+import { clearBlackBackground } from "../chroma";
 import { IMAGE_CACHE_MAX, RENDER_SCALE, STAGE_H, STAGE_W, TRANSITION_MS } from "./constants";
 
 type ImageSource = HTMLImageElement | HTMLCanvasElement;
@@ -383,12 +384,7 @@ export class StageRenderer {
     const g = c.getContext("2d");
     if (g) {
       g.drawImage(img, 0, 0, w, h);
-      const pixels = g.getImageData(0, 0, w, h);
-      const d = pixels.data;
-      for (let i = 0; i < d.length; i += 4) {
-        if (d[i] === 0 && d[i + 1] === 0 && d[i + 2] === 0) d[i + 3] = 0;
-      }
-      g.putImageData(pixels, 0, 0);
+      clearBlackBackground(g, w, h);
     }
     this.spriteCache.set(key, c);
     if (this.spriteCache.size > 12) {

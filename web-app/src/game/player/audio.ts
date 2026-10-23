@@ -21,6 +21,7 @@ export class AudioEngine {
   private bgm: HTMLAudioElement | null = null;
   private bgmWanted = false;
   private audioUnlocked = false;
+  private primePromise: Promise<void> | null = null;
   private paused = false;
   private suspended = false;
   private bgmVolume = 0.7;
@@ -34,6 +35,16 @@ export class AudioEngine {
 
   async prime(): Promise<void> {
     if (this.audioUnlocked) return;
+    if (this.primePromise) return this.primePromise;
+    this.primePromise = this.doPrime();
+    try {
+      await this.primePromise;
+    } finally {
+      this.primePromise = null;
+    }
+  }
+
+  private async doPrime(): Promise<void> {
     const a = this.ensureBgm();
     if (a.dataset.track && !a.paused) {
       this.audioUnlocked = true;

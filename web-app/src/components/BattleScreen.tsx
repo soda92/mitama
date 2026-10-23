@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BattleCharacter, BattleEncounter } from "../game/battle";
+import { clearBlackBackground } from "../game/chroma";
 
 interface BattleScreenProps {
   encounter: BattleEncounter;
@@ -39,12 +40,7 @@ function SpriteActor({ character }: { character: BattleCharacter }) {
       if (cancelled) return;
       ctx.clearRect(0, 0, frame.w, frame.h);
       ctx.drawImage(img, -frame.x, -frame.y);
-      const pixels = ctx.getImageData(0, 0, frame.w, frame.h);
-      const data = pixels.data;
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0) data[i + 3] = 0;
-      }
-      ctx.putImageData(pixels, 0, 0);
+      clearBlackBackground(ctx, frame.w, frame.h);
     };
     img.src = sprite.bmp;
     return () => {

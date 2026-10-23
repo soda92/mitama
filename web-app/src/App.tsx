@@ -307,6 +307,18 @@ export default function App() {
     writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, battlePolicy });
   }, [bgmVolume, seVolume, muted, dialogOpacity, battlePolicy]);
 
+  useEffect(() => {
+    const unlock = () => {
+      void playerRef.current?.unlockAudio();
+    };
+    window.addEventListener("pointerdown", unlock, true);
+    window.addEventListener("keydown", unlock, true);
+    return () => {
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
+    };
+  }, []);
+
   const start = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
