@@ -99,10 +99,16 @@ Open such a link, press Start, and playback resumes at that command. `pack` is
 `demo`, `dvd`, or `disc`; `scene` is a `text.arc` script name; `cmd` is a
 zero-based command index.
 
-The player has four save slots stored in `localStorage`. A snapshot records the
-pack, scene, command index, stage layers (background/left/right/center), flags
-and a thumbnail. Save/load while a dialogue or menu is open restores that
-interaction.
+The **Archives** manager keeps saves in `localStorage` and supports:
+
+- Recent / Pinned / Chapters views
+- search across scene, note, speaker and dialogue
+- thumbnails, notes, pinning, overwrite, delete
+- save-current with speaker/dialogue metadata
+- restoring pack, scene, command, stage layers, flags and audio position
+
+Old four-slot saves are migrated automatically. Save/load while a dialogue or
+menu is open restores that interaction.
 
 The **Scenes** button opens a filterable list of all 421 `text.arc` scripts, so
 any chapter/event can be inspected without replaying the story.

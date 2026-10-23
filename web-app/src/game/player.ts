@@ -37,6 +37,10 @@ export interface Snapshot {
   image: string;
   stage?: StageSnapshot;
   flags?: Record<string, number>;
+  speaker?: string;
+  dialogue?: string;
+  note?: string;
+  pinned?: boolean;
   thumbnail?: string;
   savedAt: number;
 }
@@ -193,6 +197,10 @@ export class Player {
       image: stage.bg ?? "",
       stage,
       flags: Object.fromEntries(this.flags),
+      speaker: this.textSpeaker || undefined,
+      dialogue: this.textActive
+        ? (this.textPages[this.textPage] ?? "").slice(0, 160)
+        : undefined,
       savedAt: Date.now(),
     };
   }

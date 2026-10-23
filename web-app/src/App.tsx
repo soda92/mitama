@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
+import ArchiveManager from "./components/ArchiveManager";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
 
 interface GameData {
@@ -16,27 +17,62 @@ interface ResumePoint {
 }
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
-const SAVE_KEY = "mitama.saves.v1";
-const SLOT_COUNT = 4;
+const LEGACY_SAVE_KEY = "mitama.saves.v1";
+const ARCHIVE_KEY = "mitama.archives.v1";
 
-function readSaves(): (Snapshot | null)[] {
+type ArchiveMap = Record<string, Snapshot>;
+
+function readArchives(): ArchiveMap {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return Array(SLOT_COUNT).fill(null);
-    const parsed = JSON.parse(raw) as (Snapshot | null)[];
-    const out = Array(SLOT_COUNT).fill(null);
-    for (let i = 0; i < SLOT_COUNT; i++) out[i] = parsed[i] ?? null;
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    if (raw) return JSON.parse(raw) as ArchiveMap;
+  } catch {
+    // fall through to legacy migration
+  }
+  try {
+    const raw = localStorage.getItem(LEGACY_SAVE_KEY);
+    if (!raw) return {};
+    const old = JSON.parse(raw) as (Snapshot | null)[];
+    const out: ArchiveMap = {};
+    old.forEach((snap, i) => {
+      if (snap) out[String(i + 1)] = snap;
+    });
+    writeArchives(out);
     return out;
   } catch {
-    return Array(SLOT_COUNT).fill(null);
+    return {};
   }
 }
 
-function writeSaves(saves: (Snapshot | null)[]): void {
+function writeArchives(archives: ArchiveMap): void {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saves));
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives));
   } catch {
     // localStorage may be unavailable or full; saves are best-effort.
+  }
+}
+
+function nextArchiveID(archives: ArchiveMap): string {
+  let max = 0;
+  for (const id of Object.keys(archives)) {
+    const n = Number.parseInt(id, 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return String(max + 1);
+}
+
+function makeThumbnail(canvas: HTMLCanvasElement | null): string | undefined {
+  if (!canvas) return undefined;
+  try {
+    const t = document.createElement("canvas");
+    t.width = 320;
+    t.height = 240;
+    const g = t.getContext("2d");
+    if (!g) return undefined;
+    g.drawImage(canvas, 0, 0, t.width, t.height);
+    return t.toDataURL("image/jpeg", 0.6);
+  } catch {
+    return undefined;
   }
 }
 
@@ -72,8 +108,8 @@ export default function App() {
   const [status, setStatus] = useState("loading");
   const [log, setLog] = useState("ready");
   const [choices, setChoices] = useState<Option[] | null>(null);
-  const [saves, setSaves] = useState<(Snapshot | null)[]>(readSaves);
-  const [saveMode, setSaveMode] = useState<"save" | "load" | null>(null);
+  const [archives, setArchives] = useState<ArchiveMap>(readArchives);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [sceneMode, setSceneMode] = useState(false);
   const [sceneFilter, setSceneFilter] = useState("");
   const [uiHidden, setUiHidden] = useState(false);
@@ -335,44 +371,76 @@ export default function App() {
     playerRef.current?.choose(label);
   }, []);
 
-  const saveTo = useCallback(
-    (slot: number) => {
-      const player = playerRef.current;
-      if (!player) return;
-      const snap = player.snapshot();
-      try {
-        snap.thumbnail = canvasRef.current?.toDataURL("image/jpeg", 0.55);
-      } catch {
-        // Thumbnail is optional.
-      }
-      setSaves((prev) => {
-        const next = [...prev];
-        next[slot] = snap;
-        writeSaves(next);
-        return next;
-      });
-      setSaveMode(null);
-    },
-    [],
-  );
+  const saveCurrent = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const snap = player.snapshot();
+    snap.thumbnail = makeThumbnail(canvasRef.current);
+    setArchives((prev) => {
+      const id = nextArchiveID(prev);
+      const next = { ...prev, [id]: snap };
+      writeArchives(next);
+      return next;
+    });
+  }, []);
 
-  const loadFrom = useCallback(
-    (slot: number) => {
-      const snap = saves[slot];
-      if (!snap) return;
-      setSaveMode(null);
+  const overwriteArchive = useCallback((id: string) => {
+    const player = playerRef.current;
+    if (!player) return;
+    const snap = player.snapshot();
+    snap.thumbnail = makeThumbnail(canvasRef.current);
+    setArchives((prev) => {
+      const old = prev[id];
+      if (!old) return prev;
+      const next = {
+        ...prev,
+        [id]: {
+          ...snap,
+          note: old.note,
+          pinned: old.pinned,
+          thumbnail: snap.thumbnail ?? old.thumbnail,
+        },
+      };
+      writeArchives(next);
+      return next;
+    });
+  }, []);
+
+  const deleteArchive = useCallback((id: string) => {
+    setArchives((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      writeArchives(next);
+      return next;
+    });
+  }, []);
+
+  const updateArchive = useCallback((id: string, patch: { note?: string; pinned?: boolean }) => {
+    setArchives((prev) => {
+      const old = prev[id];
+      if (!old) return prev;
+      const next = { ...prev, [id]: { ...old, ...patch } };
+      writeArchives(next);
+      return next;
+    });
+  }, []);
+
+  const loadArchive = useCallback(
+    (snap: Snapshot) => {
+      setArchiveOpen(false);
       setChoices(null);
       setData(null);
       setStarted(false);
       setEnded(false);
       setPaused(false);
+      setUiHidden(false);
       setResumeScene(snap.scene);
       setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
-      if (snap.pack !== packId) setPackId(snap.pack);
+      setPackId(snap.pack);
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
     },
-    [saves, packId, updateURL],
+    [updateURL],
   );
 
   const jumpToScene = useCallback(
@@ -410,12 +478,12 @@ export default function App() {
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
-        setSaveMode(null);
+        setArchiveOpen(false);
         setSceneMode(false);
         setMenuOpen(false);
         return;
       }
-      if (saveMode || sceneMode || menuOpen) return;
+      if (archiveOpen || sceneMode || menuOpen) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         if (uiHidden) setUiHidden(false);
@@ -435,7 +503,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [started, togglePause, toggleFullscreen, advance, saveMode, sceneMode, menuOpen, uiHidden]);
+  }, [started, togglePause, toggleFullscreen, advance, archiveOpen, sceneMode, menuOpen, uiHidden]);
 
   const assets = data?.assets ?? EMPTY_ASSETS;
   const scriptCount = Object.keys(assets.text).length;
@@ -456,11 +524,8 @@ export default function App() {
               <button className="tool" onClick={togglePause} title="Pause (P)">
                 {paused ? "▶" : "❚❚"}
               </button>
-              <button className="tool" onClick={() => setSaveMode("save")} title="Save">
-                Save
-              </button>
-              <button className="tool" onClick={() => setSaveMode("load")} disabled={saves.every((s) => !s)} title="Load">
-                Load
+              <button className="tool" onClick={() => setArchiveOpen(true)} title="Archives">
+                Archives
               </button>
               <button className="tool" onClick={() => setSceneMode(true)} disabled={scriptCount === 0} title="Scenes">
                 Scenes
@@ -545,8 +610,7 @@ export default function App() {
                   <b className="setting-value">{Math.round(dialogOpacity * 100)}%</b>
                 </label>
                 <div className="settings-actions">
-                  <button onClick={() => { setMenuOpen(false); setSaveMode("save"); }}>Save</button>
-                  <button onClick={() => { setMenuOpen(false); setSaveMode("load"); }} disabled={saves.every((s) => !s)}>Load</button>
+                  <button onClick={() => { setMenuOpen(false); setArchiveOpen(true); }}>Archives</button>
                   <button onClick={() => { setMenuOpen(false); setSceneMode(true); }}>Scenes</button>
                   <button onClick={() => { setMenuOpen(false); setDebugOpen(true); }}>Debug</button>
                   <button onClick={reloadCurrent}>Reload scene</button>
@@ -586,50 +650,19 @@ export default function App() {
             </div>
           )}
 
-          {saveMode && (
-            <div
-              className="save-overlay"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                setSaveMode(null);
-              }}
-            >
-              <div className="save-panel" onClick={(ev) => ev.stopPropagation()}>
-                <div className="save-head">
-                  <strong>{saveMode === "save" ? "Save game" : "Load game"}</strong>
-                  <button onClick={() => setSaveMode(null)}>✕</button>
-                </div>
-                <div className="slots">
-                  {saves.map((snap, i) => (
-                    <button
-                      key={i}
-                      className={`slot ${snap ? "filled" : ""}`}
-                      onClick={() => (saveMode === "save" ? saveTo(i) : loadFrom(i))}
-                      disabled={saveMode === "load" && !snap}
-                    >
-                      {snap?.thumbnail ? (
-                        <img src={snap.thumbnail} alt="" />
-                      ) : (
-                        <span className="slot-empty">{saveMode === "save" ? "empty" : "no data"}</span>
-                      )}
-                      <span className="slot-meta">
-                        <b>Slot {i + 1}</b>
-                        {snap ? (
-                          <>
-                            <em>{snap.scene || snap.pack}</em>
-                            <small>
-                              cmd {snap.pc} · {new Date(snap.savedAt).toLocaleString()}
-                            </small>
-                          </>
-                        ) : (
-                          <small>{saveMode === "save" ? "click to save here" : "—"}</small>
-                        )}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+          {archiveOpen && (
+            <ArchiveManager
+              slots={archives}
+              canSave={started && !!playerRef.current}
+              currentScene={currentScene}
+              currentPC={currentPC}
+              onClose={() => setArchiveOpen(false)}
+              onSaveNew={saveCurrent}
+              onOverwrite={overwriteArchive}
+              onLoad={loadArchive}
+              onDelete={deleteArchive}
+              onUpdate={updateArchive}
+            />
           )}
 
           {sceneMode && (
