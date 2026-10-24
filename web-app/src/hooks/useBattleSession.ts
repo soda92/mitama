@@ -10,6 +10,8 @@ export interface BattleSession {
   player: BattleCharacter;
   backgroundUrl?: string;
   bgmUrl?: string;
+  winBgmUrl?: string;
+  loseBgmUrl?: string;
 }
 
 interface BattleFlash {
@@ -78,10 +80,16 @@ export function useBattleSession(options: Options) {
           : undefined;
         const bgmKey = encounter.party.bgm.replace(/\.xa$/i, "").toLowerCase();
         const bgmRel = assets.bgm[bgmKey];
-        const bgmUrl = bgmRel
-          ? `/api/audio?pack=${encodeURIComponent(packId)}&file=${encodeURIComponent(bgmRel)}`
-          : undefined;
-        setSession({ info, encounter, player, backgroundUrl, bgmUrl });
+        const audioUrl = (rel: string | undefined) =>
+          rel
+            ? `/api/audio?pack=${encodeURIComponent(packId)}&file=${encodeURIComponent(rel)}`
+            : undefined;
+        const bgmUrl = audioUrl(bgmRel);
+        const winKey = encounter.party.winBgm?.replace(/\.xa$/i, "").toLowerCase() ?? "";
+        const loseKey = encounter.party.loseBgm?.replace(/\.xa$/i, "").toLowerCase() ?? "";
+        const winBgmUrl = audioUrl(assets.bgm[winKey] ?? assets.se[winKey]);
+        const loseBgmUrl = audioUrl(assets.bgm[loseKey] ?? assets.se[loseKey]);
+        setSession({ info, encounter, player, backgroundUrl, bgmUrl, winBgmUrl, loseBgmUrl });
         return await new Promise<"win" | "lose">((resolve) => {
           resolver.current = resolve;
         });

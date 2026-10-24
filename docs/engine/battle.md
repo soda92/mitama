@@ -81,7 +81,7 @@ The web engine currently consumes:
 - default action
 - resistances and survival chance
 - object file
-- `:actionrate` rows (parsed, not yet used by combat resolution)
+- `:actionrate` rows (weight and power range used by combat resolution)
 
 Special-move blocks and motion numbers are parsed only as opaque sections for
 now.
@@ -135,7 +135,8 @@ Motion events at the current frame are replayed as well: `se`, `c_se` and
 `se_attack` trigger sound effects, `flash` overlays a short white/red/black
 flash, and `effectem` loads an `ef_*.o` effect animation and draws its frames
 additively. `movjmpbase` / `movjmpland` / `movjmp` offsets are applied as a
-short sprite translation; precise landing timing and effect offsets remain
+short sprite translation; `waitmov` and `attackend` are parsed and motion
+duration is used to pace the next action. Precise landing/effect timing remains
 approximate.
 
 ## Runtime approximation
@@ -173,6 +174,6 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - Actual damage formula, turn order and action-rate weighting.
 - Special techniques and `:spname` learn conditions.
 - `.o` / `.spt` / `.mtn` battle sprites and animations.
-- `waitmov` / `attackend` sequencing and battle BGM jingles.
-- Exact action-rate range meaning and damage formula.
+- Exact attack/hit/damage formula; action-rate power is currently the average
+  of the row's min/max values.
 - Player party level/HP persistence in archive snapshots.

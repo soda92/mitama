@@ -88,9 +88,10 @@ Last updated: 2026-10-24.
 - [x] Battle auto-resolve modes (win/lose/random) remain in Settings.
 - [x] Weighted enemy actions from `:actionrate`, special techniques from
       `:special` / `:spname`, and special attack motions.
-- [x] Motion `se` / `c_se` / `se_attack`, `flash`, `effectem` and movement
-      offsets.
-- [ ] `waitmov` / `attackend` sequencing, jingles and exact damage formulas.
+- [x] Motion `se` / `c_se` / `se_attack`, `flash`, `effectem`, movement
+      offsets and parsed `waitmov` / `attackend`.
+- [x] `:actionrate` power range and optional `:win`/`:lose` jingles.
+- [ ] Exact attack/hit/damage formula and map encounters.
 - [ ] Interactive map movement and encounters.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.

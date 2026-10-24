@@ -13,6 +13,8 @@ export interface BattleParty {
   members: BattleMember[];
   winText?: string;
   loseText?: string;
+  winBgm?: string;
+  loseBgm?: string;
 }
 
 export interface SpriteFrame {

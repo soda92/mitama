@@ -14,6 +14,8 @@ interface BattleScreenProps {
   party: string[];
   backgroundUrl?: string;
   bgmUrl?: string;
+  winBgmUrl?: string;
+  loseBgmUrl?: string;
   bgmVolume: number;
   seVolume: number;
   packId: string;
@@ -132,6 +134,7 @@ interface EnemyAction {
   type: number;
   motion: number;
   multiplier: number;
+  power: number;
   special?: BattleSpecial;
 }
 
@@ -145,6 +148,7 @@ function conditionMatches(move: BattleSpecial, selfAction: number, otherAction: 
 function chooseEnemyAction(character: BattleCharacter, playerAction: number): EnemyAction {
   const rows = (character.actionRates ?? []).filter((row) => row[3] > 0);
   let type = character.defaultAction;
+  let power = 4;
   if (rows.length > 0) {
     const total = rows.reduce((sum, row) => sum + row[3], 0);
     let roll = Math.random() * total;
@@ -152,6 +156,7 @@ function chooseEnemyAction(character: BattleCharacter, playerAction: number): En
       roll -= row[3];
       if (roll <= 0) {
         type = row[0];
+        power = (row[1] + row[2]) / 2;
         break;
       }
     }
@@ -166,6 +171,7 @@ function chooseEnemyAction(character: BattleCharacter, playerAction: number): En
     type,
     motion: special?.motion ?? (type === 2 ? 9 : type === 1 ? 8 : 7),
     multiplier: special ? 1 + special.multiplier * 0.5 : 1,
+    power,
     special,
   };
 }
@@ -236,12 +242,20 @@ type Action = "ken" | "zyutu" | "uke";
 
 const rand = (n: number) => Math.floor(Math.random() * n);
 
+function motionDuration(character: BattleCharacter, index: number, fallback = 560): number {
+  const clip = character.motions?.find((motion) => motion.index === index);
+  if (!clip || clip.steps.length === 0) return fallback;
+  return clip.steps.reduce((sum, step) => sum + Math.max(40, step.wait * 16.67), 0);
+}
+
 export default function BattleScreen({
   encounter,
   player,
   party,
   backgroundUrl,
   bgmUrl,
+  winBgmUrl,
+  loseBgmUrl,
   bgmVolume,
   seVolume,
   packId,
@@ -296,6 +310,19 @@ export default function BattleScreen({
   useEffect(() => {
     if (bgm.current) bgm.current.volume = muted ? 0 : bgmVolume;
   }, [bgmVolume, muted]);
+
+  useEffect(() => {
+    if (!result) return;
+    const jingle = result === "win" ? winBgmUrl : loseBgmUrl;
+    if (!jingle || !bgm.current) return;
+    const audio = bgm.current;
+    audio.pause();
+    audio.src = jingle;
+    audio.loop = false;
+    audio.currentTime = 0;
+    audio.volume = muted ? 0 : bgmVolume;
+    void audio.play().catch(() => undefined);
+  }, [result, winBgmUrl, loseBgmUrl, bgmVolume, muted]);
 
   const enemyNames = useMemo(() => {
     const names = encounter.characters.map((c) => c.name).filter(Boolean);
@@ -382,7 +409,9 @@ export default function BattleScreen({
         Math.random() * 100 < move.chance,
     );
     lastPlayerAction.current = actionType;
-    setPlayerMotion(special?.motion ?? (action === "ken" ? 7 : action === "zyutu" ? 8 : 9));
+    const actionMotion = special?.motion ?? (action === "ken" ? 7 : action === "zyutu" ? 8 : 9);
+    const actionDuration = motionDuration(player, actionMotion);
+    setPlayerMotion(actionMotion);
     let damage = 0;
     if (action === "ken") damage = 30 + player.skills[0] * 8 + rand(9);
     else if (action === "zyutu") damage = 42 + player.skills[1] * 8 + rand(11);
@@ -399,7 +428,7 @@ export default function BattleScreen({
     }
 
     if (nextEnemyHp <= 0) {
-      timer.current = window.setTimeout(() => finish("win"), 500);
+      timer.current = window.setTimeout(() => finish("win"), Math.max(500, actionDuration));
       return;
     }
 
@@ -409,7 +438,7 @@ export default function BattleScreen({
       const enemyName = attacker?.name || enemyNames[0];
       const chosen = attacker
         ? chooseEnemyAction(attacker, lastPlayerAction.current)
-        : { type: 0, motion: 7, multiplier: 1 };
+        : { type: 0, motion: 7, multiplier: 1, power: 4 };
       lastEnemyAction.current = chosen.type;
       setEnemyMotions({ [attackerIndex]: chosen.motion });
 
@@ -422,7 +451,7 @@ export default function BattleScreen({
       setPlayerMotion(14);
 
       const skill = attacker ? Math.max(...attacker.skills) : enemySkill;
-      let incoming = 16 + skill * 3 + rand(9);
+      let incoming = 8 + chosen.power * 4 + skill * 2 + rand(9);
       incoming = Math.round(incoming * chosen.multiplier);
       if (defending) incoming = Math.max(1, Math.round(incoming * 0.45));
       const nextPlayerHp = Math.max(0, playerHp - incoming);
@@ -439,7 +468,7 @@ export default function BattleScreen({
       } else {
         setPhase("select");
       }
-    }, 560);
+    }, Math.max(560, actionDuration));
   };
 
   return (

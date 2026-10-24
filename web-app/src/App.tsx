@@ -697,6 +697,8 @@ export default function App() {
               party={battleSession.info.party}
               backgroundUrl={battleSession.backgroundUrl}
               bgmUrl={battleSession.bgmUrl}
+              winBgmUrl={battleSession.winBgmUrl}
+              loseBgmUrl={battleSession.loseBgmUrl}
               bgmVolume={bgmVolume}
               seVolume={seVolume}
               packId={packId}

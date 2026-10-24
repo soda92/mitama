@@ -32,6 +32,8 @@ type Party struct {
 	Members  []Member `json:"members"`
 	WinText  string   `json:"winText,omitempty"`
 	LoseText string   `json:"loseText,omitempty"`
+	WinBGM   string   `json:"winBgm,omitempty"`
+	LoseBGM  string   `json:"loseBgm,omitempty"`
 }
 
 // Special is one :special block in a .chr file.
@@ -100,8 +102,14 @@ func ParseParty(r io.Reader) (Party, error) {
 	for i, line := range lines {
 		if strings.EqualFold(line, ":win") && i+1 < len(lines) {
 			p.WinText = unquote(lines[i+1])
+			if i+2 < len(lines) && !strings.HasPrefix(lines[i+2], ":") {
+				p.WinBGM = unquote(lines[i+2])
+			}
 		} else if strings.EqualFold(line, ":lose") && i+1 < len(lines) {
 			p.LoseText = unquote(lines[i+1])
+			if i+2 < len(lines) && !strings.HasPrefix(lines[i+2], ":") {
+				p.LoseBGM = unquote(lines[i+2])
+			}
 		}
 	}
 	return p, nil
@@ -403,7 +411,7 @@ func ParseMotion(r io.Reader) (Motion, error) {
 	sprite := 0
 	for _, line := range lines {
 		fields := strings.Fields(line)
-		if len(fields) < 2 {
+		if len(fields) == 0 {
 			continue
 		}
 		switch strings.ToLower(fields[0]) {
@@ -421,7 +429,8 @@ func ParseMotion(r io.Reader) (Motion, error) {
 		case "animtime":
 			out.AnimTime = firstInt(fields[1])
 		case "flash", "se", "c_se", "se_attack", "effectem", "attack", "attackend",
-			"movjmpbase", "movjmpland", "movjmptarget", "movjmp", "movjmpos", "postion":
+			"waitmov", "waitZK", "waitUke", "movjmpbase", "movjmpland",
+			"movjmptarget", "movjmp", "movjmpos", "postion":
 			value := ""
 			if len(fields) > 1 {
 				value = strings.Join(fields[1:], " ")
