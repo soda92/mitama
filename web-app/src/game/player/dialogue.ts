@@ -47,10 +47,12 @@ export function drawDialogue(
   ctx.stroke();
 
   let replay: ReplayBounds | null = null;
+  let tagWidth = 0;
   if (frame.speaker) {
     ctx.font = '600 17px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
     const label = frame.speaker;
     const tw = Math.max(64, ctx.measureText(label).width + 28);
+    tagWidth = tw;
     ctx.fillStyle = `rgba(12, 12, 16, ${frame.opacity})`;
     ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
     ctx.beginPath();
@@ -60,25 +62,28 @@ export function drawDialogue(
     ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
     ctx.textBaseline = "middle";
     ctx.fillText(label, x + 26, y - 1);
+  }
 
-    if (frame.showReplay) {
-      const bx = Math.min(x + 12 + tw + 6, x + w - 38);
-      const by = y - 14;
-      const bw = 32;
-      const bh = 26;
-      replay = { x: bx, y: by, w: bw, h: bh };
-      ctx.fillStyle = `rgba(20, 18, 14, ${frame.opacity})`;
-      ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
-      ctx.beginPath();
-      ctx.roundRect(bx, by, bw, bh, 5);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
-      ctx.font = '600 13px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-      ctx.textAlign = "center";
-      ctx.fillText("声", bx + bw / 2, by + bh / 2 + 1);
-      ctx.textAlign = "start";
-    }
+  // Narration has no name tag but can still have a replayable voice clip.
+  if (frame.showReplay) {
+    const bx = frame.speaker
+      ? Math.min(x + 12 + tagWidth + 6, x + w - 38)
+      : x + 12;
+    const by = y - 14;
+    const bw = 32;
+    const bh = 26;
+    replay = { x: bx, y: by, w: bw, h: bh };
+    ctx.fillStyle = `rgba(20, 18, 14, ${frame.opacity})`;
+    ctx.strokeStyle = "rgba(201, 168, 106, 0.55)";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(230, 196, 132, 0.95)";
+    ctx.font = '600 13px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+    ctx.textAlign = "center";
+    ctx.fillText("声", bx + bw / 2, by + bh / 2 + 1);
+    ctx.textAlign = "start";
   }
 
   ctx.font = '18px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';

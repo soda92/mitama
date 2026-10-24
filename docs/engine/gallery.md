@@ -21,7 +21,6 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
           "scene": "eyk1_06",
           "pc": 4,
           "line": 7,
-          "speaker": "説",
           "dialogue": "そこでは…"
         }
       ]

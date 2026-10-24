@@ -547,7 +547,8 @@ export class Player {
       .split(/[￥¥]/)
       .map((page) => page.replace(/\r/g, "").trim())
       .filter((page) => page.length > 0);
-    this.textSpeaker = speaker;
+    // The script uses "説" to mark narration; it is not a speaker label.
+    this.textSpeaker = speaker.trim() === "説" ? "" : speaker;
     this.textCues = cues;
     this.textPages = pages.length > 0 ? pages : [""];
     this.textPage = 0;

@@ -126,7 +126,8 @@ stay beside the stage and remain docked in fullscreen.
 ### Controls
 
 - **Click / Enter / ↓ / →** — advance dialogue
-- **声** — replay the current line's voice (button beside the speaker tag)
+- **声** — replay the current line's voice (beside the speaker tag, or at the
+  left edge for narration)
 - **Space** — hide/show the dialogue and HUD
 - **P** — pause
 - **M** — mute

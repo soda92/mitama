@@ -23,7 +23,7 @@ func TestParseCommandsAndText(t *testing.T) {
 		t.Fatalf("BMP = %#v", s.Commands[1])
 	}
 	text := s.Commands[3]
-	if text.Cmd != "TEXT" || text.Speaker != "説" {
+	if text.Cmd != "TEXT" || text.Speaker != "" {
 		t.Fatalf("TEXT = %#v", text)
 	}
 	want := "文永捨壱年　文永の役￥\n弘安四年　　弘安の役"

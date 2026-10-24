@@ -32,7 +32,8 @@ Last updated: 2026-10-24.
 - [x] Script commands: `BMP`, `UPD`, `WAIT`, `MUS`, `SEV`, `JMP`, `END`.
 - [x] Shop-demo loop (`JMP デモスタート`).
 - [x] `cmd/extract` CLI for directories and ISO images.
-- [x] CP932 dialogue parser with multi-line quotes and speaker names.
+- [x] CP932 dialogue parser with multi-line quotes and speaker names;
+      `説` narration is normalized to an unnamed speaker.
 - [x] Text box, typewriter, click/Enter to advance, `￥` page breaks.
 - [x] Layered stage: background + L/R/C character stands, composited at
       natural size with a black color key (fixes stretched sprites).
