@@ -32,7 +32,8 @@ Last updated: 2026-10-24.
 - [x] Script commands: `BMP`, `UPD`, `WAIT`, `MUS`, `SEV`, `JMP`, `END`.
 - [x] Shop-demo loop (`JMP デモスタート`).
 - [x] `cmd/extract` CLI for directories and ISO images.
-- [x] CP932 dialogue parser with multi-line quotes and speaker names.
+- [x] CP932 dialogue parser with multi-line quotes and speaker names;
+      `説` narration is normalized to an unnamed speaker.
 - [x] Text box, typewriter, click/Enter to advance, `￥` page breaks.
 - [x] Layered stage: background + L/R/C character stands, composited at
       natural size with a black color key (fixes stretched sprites).
@@ -40,7 +41,8 @@ Last updated: 2026-10-24.
 - [x] Opening `yr1_00.txt` plays to `LOD YR1_01`.
 - [x] Scene/chapter links in the URL (`?pack=dvd&scene=yr1_02&cmd=123`).
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
-      thumbnails, overwrite/delete, save current, legacy-slot migration.
+      thumbnails, overwrite/delete, save current, legacy-slot migration;
+      snapshots record the 八尋/朧 route and show it on archive cards.
 - [x] Page/chapter navigator: command scrubbing, dialogue previews,
       chapter grouping, filtering and direct scene entry.
 - [x] Archives and navigator docked as side windows beside the stage
@@ -57,9 +59,11 @@ Last updated: 2026-10-24.
 - [x] Scene URLs auto-start and rebuild stage/flags/BGM.
 - [x] Resuming at a TEXT line replays the preceding `SEV` voice.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
-- [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
+- [x] Canvas stage with a DOM dialogue overlay; selectable text and
+      fit-to-viewport layout.
 - [x] Original title screen with new/continue, gallery, settings and quit entries;
-      scene links still auto-start. In-game Title button/Settings entry returns
+      new game shows the original 八尋/朧 主人公選択 screen; scene links still
+      auto-start. In-game Title button/Settings entry returns
       to it and Continue resumes the current position.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
@@ -68,7 +72,7 @@ Last updated: 2026-10-24.
       Settings (pack, volume, debug).
 - [x] Background stack semantics: `BMP BLACK 消去` reveals the background
       underneath instead of clearing it.
-- [x] Dialogue box is opaque and the whole frame is redrawn per typewriter
+- [x] Dialogue box is opaque and the DOM overlay updates per typewriter
       tick (no stale/accumulated box alpha).
 - [x] Adjustable dialogue opacity and immersive subtitle mode in Settings
       (persisted per browser).
@@ -77,8 +81,8 @@ Last updated: 2026-10-24.
 - [x] Replay-voice button beside the speaker name tag (current page/line).
 - [x] Gallery: CG viewer, scene review, music player with official BGM
       titles/durations, seen tracking and CG-to-script story jumps.
-- [x] URL-addressable title and Gallery tabs, including refresh-safe
-      `view`/`tab`/`from` state.
+- [x] URL-addressable title, protagonist select, and Gallery tabs, including
+      refresh-safe `view`/`tab`/`from` state.
 - [x] Refactor: App settings/archive/keyboard/battle modules and Player
       audio/dialogue/stage modules extracted.
 

@@ -26,8 +26,8 @@ Dialogue uses Japanese quotation marks:
 瑞「んんん…や、八尋様…あ…」
 ```
 
-The part before `「` is the speaker token (`説` = narration). `￥` is a page
-break. Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
+The part before `「` is the speaker token. `説` marks narration and is
+normalized to an empty speaker, so no name tag is drawn. `￥` is a page break. Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
 carry voice/SE cues. They are stripped from the displayed text and replayed
 when the corresponding page is shown.
 
@@ -110,6 +110,9 @@ Example (from `yr1_00.txt`):
 弘安四年　　弘安の役￥
 弘安八年　　霜月騒動」
 ```
+
+For the decoded story-level meaning of individual flags, route gates and
+ending conditions, see [flags.md](flags.md).
 
 ## Asset routing
 

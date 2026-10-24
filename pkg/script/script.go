@@ -172,6 +172,10 @@ func parseText(lines []string, start int) (Command, int, bool) {
 		return Command{Line: start + 1, Cmd: "TEXT", Message: first}, start + 1, true
 	}
 	speaker := strings.TrimSpace(first[:open])
+	// "説" is the script's narration marker, not a character name.
+	if speaker == "説" {
+		speaker = ""
+	}
 	content := first[open+len("「"):]
 	var parts []string
 	i := start

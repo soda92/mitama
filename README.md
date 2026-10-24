@@ -7,7 +7,8 @@ The project has two halves:
 
 - **Go backend** — disc/ISO reader, ARC archive reader, LZSS decoder, asset
   extractor, and HTTP server.
-- **React + Vite frontend** — a 640×480 canvas player that reimplements the
+- **React + Vite frontend** — a 640×480 canvas stage with a DOM dialogue
+  overlay that reimplements the
   engine's script VM, transitions, audio and (eventually) the RPG systems.
 
 Nothing from the original game is included. You must own the game and point the
@@ -23,7 +24,7 @@ extractor at your own data.
 | `KWD1` `.XA` audio codec | ✅ decoded, verified against `xadec.dll` |
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
-| Text / dialogue rendering (typewriter, click, `￥` pages) | ✅ implemented |
+| Text / dialogue rendering (DOM overlay, typewriter, click, `￥` pages) | ✅ implemented |
 | Layered stage (BG + L/R/C stands, black color key) | ✅ implemented |
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
@@ -106,8 +107,8 @@ supports:
 - Recent / Pinned / Chapters views
 - search across scene, note, speaker and dialogue
 - thumbnails, notes, pinning, overwrite, delete
-- save-current with speaker/dialogue metadata
-- restoring pack, scene, command, stage layers, flags and audio position
+- save-current with speaker/dialogue and protagonist-route metadata
+- restoring pack, scene, command, stage layers, flags, party and map mode
 
 Old four-slot saves are migrated automatically. Save/load while a dialogue or
 menu is open restores that interaction.
@@ -125,8 +126,10 @@ stay beside the stage and remain docked in fullscreen.
 
 ### Controls
 
-- **Click / Enter / ↓ / →** — advance dialogue
-- **声** — replay the current line's voice (button beside the speaker tag)
+- **Click / Enter / ↓ / →** — advance dialogue (select text with the mouse
+  without advancing)
+- **声** — replay the current line's voice (beside the speaker tag, or at the
+  left edge for narration)
 - **Space** — hide/show the dialogue and HUD
 - **P** — pause
 - **M** — mute
@@ -181,7 +184,7 @@ auto-win, auto-lose or random for story testing. See
 A normal launch (`/?pack=dvd`) shows the original title image and its seven
 entries:
 
-- **任務開始** — new game from the pack opening
+- **任務開始** — protagonist select (八尋 / 朧), then that route's opening
 - **任務再開** — most recent archive, otherwise the pack opening
 - **絵巻鑑賞** — Gallery → Pictures
 - **回想閲覧** — Gallery → Scenes
@@ -192,17 +195,25 @@ entries:
 Scene/debug links with `?scene=…&cmd=…` bypass the title screen. `?home=1`
 forces it; `?home=0` disables it.
 
+**任務開始** opens the original 主人公選択 screen (`GUIS001.bmp`): 八尋 導かれし魂
+starts `yr1_00`, and 朧 黒き刃の輝き starts `os1_00`. These are the two main
+scenario routes. Later story choices lead into character-specific branches and
+endings (紅羽, 瑞希, 紫芳, 阿佐弥, 諏慧姫, 更紗); they are not separate
+protagonist selections. **戻る** or Escape returns to the title.
+
 The current view is also addressable:
 
 ```text
 ?pack=dvd&view=title
+?pack=dvd&view=protagonist
 ?pack=dvd&view=gallery&tab=music
 ?pack=dvd&scene=yr1_05&cmd=137&view=title
 ?pack=dvd&scene=yr1_05&cmd=137&view=gallery&tab=pictures
 ```
 
 `from=title` is added when Gallery was opened over the title screen. Refreshing
-keeps the title/Gallery tab and the underlying story position.
+keeps the title, protagonist select, or Gallery tab and the underlying story
+position.
 
 ### Gallery
 
@@ -261,7 +272,7 @@ pkg/battle/         .pty / .chr battle definition parser
 pkg/script/         CP932 command-script parser
 pkg/xa/             KWD1 audio codec (PCM output)
 web-app/            React 19 + Vite + TypeScript player
-  src/game/player/  audio, dialogue and stage renderer modules
+  src/game/player/  audio and stage renderer modules
 docs/               Format notes, engine notes, roadmap
 data/               Extracted assets (gitignored)
 .cache/             Disc images and intermediate files (gitignored)
@@ -284,4 +295,5 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/formats/arc.md](docs/formats/arc.md) — ARC directory + LZSS
 - [docs/formats/xa.md](docs/formats/xa.md) — KWD1 / `.XA` audio
 - [docs/engine/script.md](docs/engine/script.md) — command language
+- [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
 - [docs/progress.md](docs/progress.md) — what works, what is next
