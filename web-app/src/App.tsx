@@ -726,9 +726,9 @@ export default function App() {
               muted={muted}
               onSeen={markSeen}
               onClose={closeGallery}
-              onPlayScene={(name) => {
+              onPlayScene={(name, pc = 0) => {
                 closeGallery();
-                navigateToScene(name, 0);
+                navigateToScene(name, pc);
               }}
             />
           )}

@@ -15,7 +15,16 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
       "name": "CGA_A01",
       "full": "/media/dvd/mitama/CGA_a01.bmp",
       "thumb": "/media/dvd/mitama/CGA_a01s.bmp",
-      "variants": ["/media/dvd/mitama/CGA_a01.bmp"]
+      "variants": ["/media/dvd/mitama/CGA_a01.bmp"],
+      "uses": [
+        {
+          "scene": "eyk1_06",
+          "pc": 4,
+          "line": 7,
+          "speaker": "説",
+          "dialogue": "そこでは…"
+        }
+      ]
     }
   ],
   "scenes": [
@@ -57,6 +66,9 @@ Opening a picture or replaying a scene also marks it seen.
 
 ## Player
 
-Pictures use an image viewer with left/right variant navigation. Music can be
-previewed with play/stop; the story BGM is suspended while the gallery is open.
-Scenes can be replayed through the same scene-loading path as the navigator.
+Pictures use an image viewer with left/right variant navigation. Each picture's
+**Story** buttons list the scenes/commands where that CG appears, including the
+first following dialogue line; clicking one closes the gallery and resumes the
+script at that command. Music can be previewed with play/stop; the story BGM is
+suspended while the gallery is open. Scenes can be replayed through the same
+scene-loading path as the navigator.

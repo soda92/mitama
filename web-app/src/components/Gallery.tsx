@@ -13,7 +13,7 @@ interface GalleryProps {
   muted: boolean;
   onSeen: (kind: keyof GallerySeen, key: string) => void;
   onClose: () => void;
-  onPlayScene: (name: string) => void;
+  onPlayScene: (name: string, pc?: number) => void;
 }
 
 type Tab = "pictures" | "scenes" | "music";
@@ -299,6 +299,26 @@ export default function Gallery({
             >
               ›
             </button>
+            {viewer.picture.uses && viewer.picture.uses.length > 0 && (
+              <div className="gallery-viewer-uses">
+                <span>Story</span>
+                {viewer.picture.uses.slice(0, 5).map((use) => (
+                  <button
+                    key={`${use.scene}:${use.pc}`}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onSeen("scenes", use.scene);
+                      onPlayScene(use.scene, use.pc);
+                    }}
+                    title={use.dialogue}
+                  >
+                    <b>{use.scene}</b>
+                    {use.speaker && <em>{use.speaker}</em>}
+                    {use.dialogue && <small>{use.dialogue}</small>}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="gallery-viewer-caption">
               {viewer.picture.name} · {viewer.index + 1}/{viewer.picture.variants.length}
             </div>

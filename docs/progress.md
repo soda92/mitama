@@ -72,7 +72,8 @@ Last updated: 2026-10-24.
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
 - [x] Replay-voice button beside the speaker name tag (current page/line).
-- [x] Gallery: CG viewer, scene review, music player and seen tracking.
+- [x] Gallery: CG viewer, scene review, music player, seen tracking and
+      CG-to-script story jumps.
 - [x] Refactor: App settings/archive/keyboard/battle modules and Player
       audio/dialogue/stage modules extracted.
 

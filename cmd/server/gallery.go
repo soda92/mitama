@@ -11,12 +11,21 @@ import (
 	"mitama/pkg/script"
 )
 
+type galleryUse struct {
+	Scene    string `json:"scene"`
+	PC       int    `json:"pc"`
+	Line     int    `json:"line,omitempty"`
+	Speaker  string `json:"speaker,omitempty"`
+	Dialogue string `json:"dialogue,omitempty"`
+}
+
 type galleryPicture struct {
-	Key      string   `json:"key"`
-	Name     string   `json:"name"`
-	Full     string   `json:"full"`
-	Thumb    string   `json:"thumb,omitempty"`
-	Variants []string `json:"variants"`
+	Key      string       `json:"key"`
+	Name     string       `json:"name"`
+	Full     string       `json:"full"`
+	Thumb    string       `json:"thumb,omitempty"`
+	Variants []string     `json:"variants"`
+	Uses     []galleryUse `json:"uses"`
 }
 
 type galleryScene struct {
@@ -39,6 +48,13 @@ type galleryData struct {
 }
 
 var variantSuffix = regexp.MustCompile(`_[0-9]+$`)
+
+func galleryPictureKey(name string) string {
+	name = strings.ToLower(strings.TrimSpace(name))
+	name = strings.TrimSuffix(name, ".bmp")
+	name = strings.TrimSuffix(name, "s")
+	return variantSuffix.ReplaceAllString(name, "")
+}
 
 func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 	packID := r.URL.Query().Get("pack")
@@ -102,9 +118,7 @@ func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 			p.Thumb = p.Full
 		}
 		sort.Strings(p.Variants)
-		out.Pictures = append(out.Pictures, *p)
 	}
-	sort.Slice(out.Pictures, func(i, j int) bool { return out.Pictures[i].Key < out.Pictures[j].Key })
 
 	// Scenes and BGM usage.
 	music := map[string]*galleryTrack{}
@@ -135,7 +149,27 @@ func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 			chapter = name[:i]
 		}
 		out.Scenes = append(out.Scenes, galleryScene{Name: name, Title: title, Chapter: chapter})
-		for _, c := range sc.Commands {
+		for i, c := range sc.Commands {
+			if c.Cmd == "BMP" && len(c.Args) > 0 {
+				key := galleryPictureKey(c.Args[0])
+				if picture := pictures[key]; picture != nil {
+					use := galleryUse{Scene: name, PC: i, Line: c.Line}
+					for j := i + 1; j < len(sc.Commands) && j <= i+12; j++ {
+						if sc.Commands[j].Cmd == "TEXT" {
+							use.Speaker = sc.Commands[j].Speaker
+							use.Dialogue = strings.ReplaceAll(sc.Commands[j].Message, "\n", " ")
+							runes := []rune(use.Dialogue)
+							if len(runes) > 80 {
+								use.Dialogue = string(runes[:80])
+							}
+							break
+						}
+					}
+					if len(picture.Uses) < 20 {
+						picture.Uses = append(picture.Uses, use)
+					}
+				}
+			}
 			if c.Cmd != "MUS" || len(c.Args) == 0 || strings.EqualFold(c.Args[0], "STOP") {
 				continue
 			}
@@ -166,6 +200,10 @@ func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	for _, p := range pictures {
+		out.Pictures = append(out.Pictures, *p)
+	}
+	sort.Slice(out.Pictures, func(i, j int) bool { return out.Pictures[i].Key < out.Pictures[j].Key })
 	sort.Slice(out.Scenes, func(i, j int) bool { return out.Scenes[i].Name < out.Scenes[j].Name })
 	for _, t := range music {
 		out.Music = append(out.Music, *t)

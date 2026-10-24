@@ -1,9 +1,18 @@
+export interface GalleryPictureUse {
+  scene: string;
+  pc: number;
+  line?: number;
+  speaker?: string;
+  dialogue?: string;
+}
+
 export interface GalleryPicture {
   key: string;
   name: string;
   full: string;
   thumb?: string;
   variants: string[];
+  uses?: GalleryPictureUse[];
 }
 
 export interface GalleryScene {
