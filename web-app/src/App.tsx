@@ -15,6 +15,7 @@ import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import DialogueToolbar from "./components/DialogueToolbar";
 import Gallery from "./components/Gallery";
+import ProtagonistSelect, { type ProtagonistRoute } from "./components/ProtagonistSelect";
 import TitleScreen from "./components/TitleScreen";
 import { useGameKeyboard } from "./hooks/useGameKeyboard";
 import { useBattleSession } from "./hooks/useBattleSession";
@@ -107,11 +108,18 @@ export default function App() {
     params.tab === "scenes" || params.tab === "music" ? params.tab : "pictures",
   );
   const [galleryFromTitle, setGalleryFromTitle] = useState(params.from === "title");
+  const [protagonistOpen, setProtagonistOpen] = useState(params.view === "protagonist");
   const [gallerySeen, setGallerySeen] = useState<GallerySeen>(readSeen);
   const [homeOpen, setHomeOpen] = useState(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get("home") === "0") return false;
-    if (q.get("home") === "1" || q.get("view") === "title" || q.get("from") === "title") return true;
+    if (
+      q.get("home") === "1" ||
+      q.get("view") === "title" ||
+      q.get("view") === "protagonist" ||
+      q.get("from") === "title"
+    )
+      return true;
     if (q.get("view") === "gallery") return false;
     return !q.has("scene") && !q.has("cmd");
   });
@@ -258,12 +266,15 @@ export default function App() {
   );
 
   const updateView = useCallback(
-    (view: "title" | "gallery" | null, tab?: "pictures" | "scenes" | "music") => {
+    (
+      view: "title" | "gallery" | "protagonist" | null,
+      tab?: "pictures" | "scenes" | "music",
+    ) => {
       const url = new URL(window.location.href);
       if (!packId) url.searchParams.delete("pack");
       else url.searchParams.set("pack", packId);
-      if (view === "title") {
-        url.searchParams.set("view", "title");
+      if (view === "title" || view === "protagonist") {
+        url.searchParams.set("view", view);
         url.searchParams.delete("tab");
         url.searchParams.delete("from");
       } else if (view === "gallery") {
@@ -411,8 +422,8 @@ export default function App() {
   }, [gallerySeen]);
 
   useEffect(() => {
-    if (homeOpen && !galleryOpen) updateView("title");
-  }, [homeOpen, galleryOpen, updateView]);
+    if (homeOpen && !galleryOpen && !protagonistOpen) updateView("title");
+  }, [homeOpen, galleryOpen, protagonistOpen, updateView]);
 
   useEffect(() => {
     const unlock = () => {
@@ -450,10 +461,19 @@ export default function App() {
 
   // The player has no title screen: start as soon as data and the stage exist.
   useEffect(() => {
-    if (!data || !playerRef.current || started || ended || error || homeOpen || galleryOpen)
+    if (
+      !data ||
+      !playerRef.current ||
+      started ||
+      ended ||
+      error ||
+      homeOpen ||
+      galleryOpen ||
+      protagonistOpen
+    )
       return;
     start();
-  }, [data, started, ended, error, start, homeOpen, galleryOpen]);
+  }, [data, started, ended, error, start, homeOpen, galleryOpen, protagonistOpen]);
 
   const togglePause = useCallback(() => {
     const player = playerRef.current;
@@ -579,16 +599,53 @@ export default function App() {
     setNavigatorOpen(false);
     setGalleryOpen(false);
     setGalleryFromTitle(false);
+    setProtagonistOpen(false);
     setMenuOpen(false);
     updateView("title");
   }, [cancelBattle, updateView]);
 
+  const openProtagonist = useCallback(() => {
+    setProtagonistOpen(true);
+    setArchiveOpen(false);
+    setNavigatorOpen(false);
+    setGalleryOpen(false);
+    setMenuOpen(false);
+    updateView("protagonist");
+  }, [updateView]);
+
+  const closeProtagonist = useCallback(() => {
+    setProtagonistOpen(false);
+    updateView("title");
+  }, [updateView]);
+
+  const beginRoute = useCallback(
+    (route: ProtagonistRoute) => {
+      const scene = route === "oboro" ? "os1_00" : "yr1_00";
+      cancelBattle();
+      setProtagonistOpen(false);
+      setHomeOpen(false);
+      setGalleryFromTitle(false);
+      setArchiveOpen(false);
+      setNavigatorOpen(false);
+      setGalleryOpen(false);
+      setMenuOpen(false);
+      setData(null);
+      setStarted(false);
+      setEnded(false);
+      setPaused(false);
+      setChoices(null);
+      setUiHidden(false);
+      setResumeScene(scene);
+      setResume({ pc: 0, image: "" });
+      setReloadKey((k) => k + 1);
+      updateURL(scene, 0);
+    },
+    [cancelBattle, updateURL],
+  );
+
   const newGame = useCallback(() => {
-    setHomeOpen(false);
-    setGalleryFromTitle(false);
-    updateView(null);
-    restart();
-  }, [restart, updateView]);
+    openProtagonist();
+  }, [openProtagonist]);
 
   const changePack = useCallback(
     (id: string) => {
@@ -598,6 +655,7 @@ export default function App() {
       setEnded(false);
       setUiHidden(false);
       setMenuOpen(false);
+      setProtagonistOpen(false);
       setPackId(id);
       setResumeScene("");
       setCurrentScene("");
@@ -676,6 +734,7 @@ export default function App() {
       setEnded(false);
       setPaused(false);
       setUiHidden(false);
+      setProtagonistOpen(false);
       setResumeScene(snap.scene);
       setResume({
         pc: snap.pc,
@@ -695,6 +754,7 @@ export default function App() {
   const continueGame = useCallback(() => {
     setHomeOpen(false);
     setGalleryFromTitle(false);
+    setProtagonistOpen(false);
     updateView(null);
     if (resumeScene || resume.pc > 0 || resume.stage) {
       setData(null);
@@ -710,6 +770,7 @@ export default function App() {
       const scene = name.replace(/\.txt$/i, "");
       setNavigatorOpen(false);
       setGalleryOpen(false);
+      setProtagonistOpen(false);
       setData(null);
       setStarted(false);
       setEnded(false);
@@ -818,6 +879,17 @@ export default function App() {
               onMusic={() => openGallery("music")}
               onSettings={() => setMenuOpen(true)}
               onQuit={() => window.close()}
+            />
+          )}
+
+          {protagonistOpen && (
+            <ProtagonistSelect
+              backgroundUrl={(() => {
+                const rel = assets.game["guis001"];
+                return rel ? `/media/${encodeURIComponent(packId)}/${rel}` : undefined;
+              })()}
+              onSelect={beginRoute}
+              onBack={closeProtagonist}
             />
           )}
 

@@ -181,7 +181,7 @@ auto-win, auto-lose or random for story testing. See
 A normal launch (`/?pack=dvd`) shows the original title image and its seven
 entries:
 
-- **任務開始** — new game from the pack opening
+- **任務開始** — protagonist select (八尋 / 朧), then that route's opening
 - **任務再開** — most recent archive, otherwise the pack opening
 - **絵巻鑑賞** — Gallery → Pictures
 - **回想閲覧** — Gallery → Scenes
@@ -192,17 +192,25 @@ entries:
 Scene/debug links with `?scene=…&cmd=…` bypass the title screen. `?home=1`
 forces it; `?home=0` disables it.
 
+**任務開始** opens the original 主人公選択 screen (`GUIS001.bmp`): 八尋 導かれし魂
+starts `yr1_00`, and 朧 黒き刃の輝き starts `os1_00`. These are the two main
+scenario routes. Later story choices lead into character-specific branches and
+endings (紅羽, 瑞希, 紫芳, 阿佐弥, 諏慧姫, 更紗); they are not separate
+protagonist selections. **戻る** or Escape returns to the title.
+
 The current view is also addressable:
 
 ```text
 ?pack=dvd&view=title
+?pack=dvd&view=protagonist
 ?pack=dvd&view=gallery&tab=music
 ?pack=dvd&scene=yr1_05&cmd=137&view=title
 ?pack=dvd&scene=yr1_05&cmd=137&view=gallery&tab=pictures
 ```
 
 `from=title` is added when Gallery was opened over the title screen. Refreshing
-keeps the title/Gallery tab and the underlying story position.
+keeps the title, protagonist select, or Gallery tab and the underlying story
+position.
 
 ### Gallery
 

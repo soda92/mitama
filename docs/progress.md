@@ -59,7 +59,8 @@ Last updated: 2026-10-24.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
 - [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
 - [x] Original title screen with new/continue, gallery, settings and quit entries;
-      scene links still auto-start. In-game Title button/Settings entry returns
+      new game shows the original 八尋/朧 主人公選択 screen; scene links still
+      auto-start. In-game Title button/Settings entry returns
       to it and Continue resumes the current position.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
@@ -77,8 +78,8 @@ Last updated: 2026-10-24.
 - [x] Replay-voice button beside the speaker name tag (current page/line).
 - [x] Gallery: CG viewer, scene review, music player with official BGM
       titles/durations, seen tracking and CG-to-script story jumps.
-- [x] URL-addressable title and Gallery tabs, including refresh-safe
-      `view`/`tab`/`from` state.
+- [x] URL-addressable title, protagonist select, and Gallery tabs, including
+      refresh-safe `view`/`tab`/`from` state.
 - [x] Refactor: App settings/archive/keyboard/battle modules and Player
       audio/dialogue/stage modules extracted.
 
