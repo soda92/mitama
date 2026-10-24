@@ -43,6 +43,8 @@ export interface Snapshot {
   image: string;
   stage?: StageSnapshot;
   flags?: Record<string, number>;
+  party?: string[];
+  mapMode?: boolean;
   speaker?: string;
   dialogue?: string;
   note?: string;
@@ -177,6 +179,8 @@ export class Player {
       image: stage.bg ?? "",
       stage,
       flags: Object.fromEntries(this.flags),
+      party: [...this.party],
+      mapMode: this.mapMode,
       speaker: this.textSpeaker || undefined,
       dialogue: this.textActive
         ? (this.textPages[this.textPage] ?? "").slice(0, 160)
@@ -310,6 +314,8 @@ export class Player {
     imageName = "",
     flags?: Record<string, number>,
     stageSnapshot?: StageSnapshot,
+    party?: string[],
+    mapMode?: boolean,
   ): void {
     this.pc = this.rewindForVoice(Math.max(0, pc));
     this.stageRenderer.reset();
@@ -320,8 +326,8 @@ export class Player {
     this.flags = new Map(
       Object.entries(flags ?? {}).map(([k, v]) => [Number.parseInt(k, 10), v]),
     );
-    this.mapMode = false;
-    this.party.clear();
+    this.mapMode = mapMode ?? false;
+    this.party = new Set(party ?? []);
     this.audio.resetForStart();
     this.resetText();
     this.events.status("playing");

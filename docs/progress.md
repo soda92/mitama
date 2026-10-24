@@ -79,7 +79,7 @@ Last updated: 2026-10-24.
 
 - [x] Full-game flags (`IFT`, `FLG`, `EQU`, `INC`, `DEC`, `FCK`, `RND`).
 - [x] Flags are included in save snapshots.
-- [x] `MAP`/`PARTY` state tracking for debug and save-resume replay.
+- [x] `MAP`/`PARTY` state tracking, includes archive snapshots and resume.
 - [x] `.pty` / `.chr` battle definition parser and `/api/battle` endpoints.
 - [x] Playable simplified battle screen: shared party HP, enemy strikers,
       剣/術/受 actions, victory/defeat, flag `20` branching.
@@ -92,7 +92,8 @@ Last updated: 2026-10-24.
       offsets and parsed `waitmov` / `attackend`.
 - [x] `:actionrate` power range and optional `:win`/`:lose` jingles.
 - [ ] Exact attack/hit/damage formula and map encounters.
-- [ ] Interactive map movement and encounters.
+- [ ] Interactive map movement and encounters (map scenes are currently
+      script-driven through `BMP MAPxxx` + `MSLT`).
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.
 

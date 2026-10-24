@@ -40,6 +40,8 @@ interface ResumePoint {
   image: string;
   stage?: StageSnapshot;
   flags?: Record<string, number>;
+  party?: string[];
+  mapMode?: boolean;
 }
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
@@ -330,7 +332,14 @@ export default function App() {
     setPaused(false);
     setUiHidden(false);
     setChoices(null);
-    player.start(resume.pc, resume.image, resume.flags, resume.stage);
+    player.start(
+      resume.pc,
+      resume.image,
+      resume.flags,
+      resume.stage,
+      resume.party,
+      resume.mapMode,
+    );
     setResume({ pc: 0, image: "" });
   }, [resume]);
 
@@ -504,7 +513,14 @@ export default function App() {
       setPaused(false);
       setUiHidden(false);
       setResumeScene(snap.scene);
-      setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
+      setResume({
+        pc: snap.pc,
+        image: snap.image,
+        stage: snap.stage,
+        flags: snap.flags,
+        party: snap.party,
+        mapMode: snap.mapMode,
+      });
       setPackId(snap.pack);
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
@@ -560,7 +576,14 @@ export default function App() {
     const snap = player.snapshot();
     setData(null);
     setResumeScene(player.currentScene);
-    setResume({ pc: snap.pc, image: snap.image, stage: snap.stage, flags: snap.flags });
+    setResume({
+      pc: snap.pc,
+      image: snap.image,
+      stage: snap.stage,
+      flags: snap.flags,
+      party: snap.party,
+      mapMode: snap.mapMode,
+    });
     setReloadKey((k) => k + 1);
   }, [cancelBattle]);
 

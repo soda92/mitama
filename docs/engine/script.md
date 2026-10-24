@@ -65,7 +65,7 @@ offset `0x181C8`:
 | `RND` | `flag max` | random value into flag | ✅ |
 | `SAV` | — | open save menu | ⛔ |
 | `TITLE` | — | return to title | ⛔ |
-| `MAP` | `ON\|OFF` | map-mode flag (tracked; movement UI pending) | ◐ |
+| `MAP` | `ON\|OFF` | map-mode flag, saved in snapshots; movement UI pending | ◐ |
 | `PARTY` | `IN\|OUT name` | add/remove party member | ◐ tracked |
 | `BATTLE` | `background script` | battle screen or auto-resolve; sets flag `20` | ✅ simplified |
 | `LEVEL` | `character stat value` | set/raise level (logged) | ◐ |
