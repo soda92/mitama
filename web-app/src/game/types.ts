@@ -33,6 +33,24 @@ export interface AssetMap {
   text: Record<string, string>;
 }
 
+export type Protagonist = "yahiro" | "oboro";
+
+/** Route prefix: eY* / Y* = 八尋, eO* / O* = 朧. */
+export function protagonistOfScene(scene?: string): Protagonist | undefined {
+  const name = (scene ?? "").trim().toLowerCase();
+  if (/^e?y[a-z0-9_]/.test(name)) return "yahiro";
+  if (/^e?o[a-z0-9_]/.test(name)) return "oboro";
+  return undefined;
+}
+
+export function protagonistLabel(protagonist?: Protagonist): string {
+  return protagonist === "yahiro"
+    ? "八尋編"
+    : protagonist === "oboro"
+      ? "朧編"
+      : "";
+}
+
 /** Visible dialogue state rendered by the DOM overlay. */
 export interface DialogueOverlayState {
   speaker: string;

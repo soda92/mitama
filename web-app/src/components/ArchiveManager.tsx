@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Snapshot } from "../game/player";
+import { protagonistLabel, protagonistOfScene } from "../game/types";
 
 type Tab = "recent" | "pinned" | "chapters";
 
@@ -20,6 +21,10 @@ function chapterOf(scene?: string): string {
   if (!scene) return "Other";
   const m = scene.match(/^([a-z]+)(\d+)/i);
   return m ? `${m[1].toUpperCase()} ${m[2]}` : scene;
+}
+
+function protagonistOf(s: Snapshot): string {
+  return protagonistLabel(s.protagonist ?? protagonistOfScene(s.scene));
 }
 
 function when(ts: number): string {
@@ -61,6 +66,7 @@ export default function ArchiveManager({
           s.note,
           s.speaker,
           s.dialogue,
+          protagonistOf(s),
           chapterOf(s.scene),
         ]
           .filter(Boolean)
@@ -98,6 +104,7 @@ export default function ArchiveManager({
           <b>
             {s.scene || s.pack}:{s.pc}
           </b>
+          {protagonistOf(s) && <span>{protagonistOf(s)}</span>}
           <span>{chapterOf(s.scene)}</span>
           <time>{when(s.savedAt)}</time>
         </div>

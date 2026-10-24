@@ -107,8 +107,8 @@ supports:
 - Recent / Pinned / Chapters views
 - search across scene, note, speaker and dialogue
 - thumbnails, notes, pinning, overwrite, delete
-- save-current with speaker/dialogue metadata
-- restoring pack, scene, command, stage layers, flags and audio position
+- save-current with speaker/dialogue and protagonist-route metadata
+- restoring pack, scene, command, stage layers, flags, party and map mode
 
 Old four-slot saves are migrated automatically. Save/load while a dialogue or
 menu is open restores that interaction.

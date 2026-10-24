@@ -1,9 +1,11 @@
+import { protagonistOfScene } from "./types";
 import type {
   AssetMap,
   Command,
   Cue,
   DialogueOverlayState,
   Option,
+  Protagonist,
   Script,
 } from "./types";
 import { AudioEngine, type AudioSnapshot } from "./player/audio";
@@ -57,6 +59,7 @@ export interface Snapshot {
   flags?: Record<string, number>;
   party?: string[];
   mapMode?: boolean;
+  protagonist?: Protagonist;
   speaker?: string;
   dialogue?: string;
   note?: string;
@@ -194,6 +197,7 @@ export class Player {
       flags: Object.fromEntries(this.flags),
       party: [...this.party],
       mapMode: this.mapMode,
+      protagonist: protagonistOfScene(this.scene),
       speaker: this.textSpeaker || undefined,
       dialogue: this.textActive
         ? (this.textPages[this.textPage] ?? "").slice(0, 160)
