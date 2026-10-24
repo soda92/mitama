@@ -90,7 +90,7 @@ func TestParseObjectSpriteAndMotion(t *testing.T) {
 		t.Fatalf("frames = %#v", frames)
 	}
 
-	motion, err := ParseMotion(strings.NewReader("spno 3\nspidx 0\nwait 16\nspidx 1\nwait 16\n"))
+	motion, err := ParseMotion(strings.NewReader("spno 3\nspidx 0\nwait 16\nspidx 1\nse 010\nwait 16\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +99,9 @@ func TestParseObjectSpriteAndMotion(t *testing.T) {
 	}
 	if len(motion.Steps) != 2 || motion.Steps[0].Wait != 16 || motion.Steps[1].Frame != 1 {
 		t.Fatalf("motion steps = %#v", motion.Steps)
+	}
+	if len(motion.Events) != 1 || motion.Events[0].Kind != "se" || motion.Events[0].At != 2 {
+		t.Fatalf("motion events = %#v", motion.Events)
 	}
 }
 

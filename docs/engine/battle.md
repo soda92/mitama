@@ -131,6 +131,11 @@ battle screen chroma-keys black to transparency and plays:
 - motion 13 for damage
 - motion 15 for defeat
 
+Motion events at the current frame are replayed as well: `se`, `c_se` and
+`se_attack` trigger sound effects, while `flash` overlays a short white/red/
+black flash. `effectem` and the full `attackend`/`movjmpbase` semantics remain
+to be implemented.
+
 ## Runtime approximation
 
 The browser battle screen is deliberately simple until the real damage,
@@ -165,7 +170,6 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - Actual damage formula, turn order and action-rate weighting.
 - Special techniques and `:spname` learn conditions.
 - `.o` / `.spt` / `.mtn` battle sprites and animations.
-- Full `.mtn` event semantics (`attackend`, `flash`, `se`, `effectem`,
-  `movjmpbase`) and battle BGM jingles.
+- `effectem`, `movjmpbase`, `attackend` timing and battle BGM jingles.
 - Exact action-rate range meaning and damage formula.
 - Player party level/HP persistence in archive snapshots.

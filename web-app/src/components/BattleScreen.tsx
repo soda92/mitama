@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { BattleCharacter, BattleEncounter, BattleSpecial } from "../game/battle";
+import type {
+  BattleCharacter,
+  BattleEncounter,
+  BattleMotionEvent,
+  BattleSpecial,
+} from "../game/battle";
 import { clearBlackBackground } from "../game/chroma";
 
 interface BattleScreenProps {
@@ -9,6 +14,8 @@ interface BattleScreenProps {
   backgroundUrl?: string;
   bgmUrl?: string;
   bgmVolume: number;
+  seVolume: number;
+  packId: string;
   muted: boolean;
   onFinish: (result: "win" | "lose") => void;
 }
@@ -17,10 +24,12 @@ function MotionActor({
   character,
   motion,
   onDone,
+  onEvent,
 }: {
   character: BattleCharacter;
   motion?: number;
   onDone?: () => void;
+  onEvent?: (event: BattleMotionEvent) => void;
 }) {
   const clip = useMemo(() => {
     const motions = character.motions ?? [];
@@ -31,12 +40,21 @@ function MotionActor({
   const doneRef = useRef(false);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     setStep(0);
     doneRef.current = false;
   }, [clip, isAction]);
+
+  useEffect(() => {
+    if (!clip) return;
+    for (const event of clip.events ?? []) {
+      if (event.at === step) onEventRef.current?.(event);
+    }
+  }, [clip, step]);
 
   useEffect(() => {
     if (!clip || clip.steps.length === 0) return;
@@ -145,6 +163,8 @@ export default function BattleScreen({
   backgroundUrl,
   bgmUrl,
   bgmVolume,
+  seVolume,
+  packId,
   muted,
   onFinish,
 }: BattleScreenProps) {
@@ -161,11 +181,17 @@ export default function BattleScreen({
   const lastPlayerAction = useRef(0);
   const lastEnemyAction = useRef(0);
   const timer = useRef<number | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const liveSe = useRef(new Set<HTMLAudioElement>());
+  const [flash, setFlash] = useState<"white" | "red" | "black" | null>(null);
   const bgm = useRef<HTMLAudioElement | null>(null);
 
   useEffect(
     () => () => {
       if (timer.current !== null) window.clearTimeout(timer.current);
+      if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+      for (const audio of liveSe.current) audio.pause();
+      liveSe.current.clear();
     },
     [],
   );
@@ -198,6 +224,30 @@ export default function BattleScreen({
     ...encounter.characters.map((c) => Math.max(...c.skills)),
   );
   const playerLabel = player.name || "八尋";
+
+  const handleMotionEvent = (event: BattleMotionEvent) => {
+    if (event.kind === "se" || event.kind === "c_se" || event.kind === "se_attack") {
+      const name = (event.value ?? "").split(",").pop()?.trim();
+      if (!name) return;
+      const audio = new Audio(
+        `/api/audio?pack=${encodeURIComponent(packId)}&file=${encodeURIComponent(`se/${name}.xa`)}`,
+      );
+      audio.volume = muted ? 0 : seVolume;
+      liveSe.current.add(audio);
+      const done = () => liveSe.current.delete(audio);
+      audio.addEventListener("ended", done, { once: true });
+      audio.addEventListener("error", done, { once: true });
+      void audio.play().catch(done);
+      return;
+    }
+    if (event.kind === "flash") {
+      const rgb = (event.value ?? "").split(",").slice(0, 3).map(Number);
+      const [r = 0, g = 0, b = 0] = rgb;
+      setFlash(r + g + b > 300 ? "white" : r > g + b ? "red" : "black");
+      if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => setFlash(null), 140);
+    }
+  };
 
   const pushLog = (line: string) => {
     setLog((prev) => [...prev.slice(-3), line]);
@@ -289,6 +339,7 @@ export default function BattleScreen({
       onClick={(ev) => ev.stopPropagation()}
     >
       <div className="battle-shade" />
+      {flash && <div className={`battle-flash ${flash}`} />}
 
       <header className="battle-head">
         <div>
@@ -305,6 +356,7 @@ export default function BattleScreen({
               character={player}
               motion={playerMotion}
               onDone={() => setPlayerMotion(undefined)}
+              onEvent={handleMotionEvent}
             />
           </div>
           <h3>{playerLabel}</h3>
@@ -326,6 +378,7 @@ export default function BattleScreen({
                 key={`${character.file}-${index}`}
                 character={character}
                 motion={enemyMotions[index]}
+                onEvent={handleMotionEvent}
                 onDone={() =>
                   setEnemyMotions((prev) => {
                     if (prev[index] === undefined) return prev;

@@ -198,7 +198,7 @@ func (s *server) attachSprite(packID, battleDir string, character *battle.Charac
 		if err != nil {
 			continue
 		}
-		clip := battle.MotionClip{Index: index, File: motionFile}
+		clip := battle.MotionClip{Index: index, File: motionFile, Events: motion.Events}
 		for _, step := range motion.Steps {
 			sprite, ok := loadSprite(step.Sprite)
 			if !ok || step.Frame < 0 || step.Frame >= len(sprite.Frames) {

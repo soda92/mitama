@@ -698,6 +698,8 @@ export default function App() {
               backgroundUrl={battleSession.backgroundUrl}
               bgmUrl={battleSession.bgmUrl}
               bgmVolume={bgmVolume}
+              seVolume={seVolume}
+              packId={packId}
               muted={muted}
               onFinish={finishBattle}
             />

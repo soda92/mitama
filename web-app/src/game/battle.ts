@@ -36,10 +36,17 @@ export interface BattleMotionStep {
   wait: number;
 }
 
+export interface BattleMotionEvent {
+  at: number;
+  kind: string;
+  value?: string;
+}
+
 export interface BattleMotion {
   index: number;
   file: string;
   steps: BattleMotionStep[];
+  events?: BattleMotionEvent[];
 }
 
 export interface BattleSpecial {

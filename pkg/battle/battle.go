@@ -315,12 +315,20 @@ type MotionStep struct {
 	Wait   int `json:"wait"`
 }
 
+// MotionEvent is an event attached to the frame at which it occurs.
+type MotionEvent struct {
+	At    int    `json:"at"`
+	Kind  string `json:"kind"`
+	Value string `json:"value,omitempty"`
+}
+
 // Motion is a parsed .mtn file.
 type Motion struct {
-	Sprite   int          `json:"sprite"`
-	Frames   []int        `json:"frames"`
-	AnimTime int          `json:"animTime"`
-	Steps    []MotionStep `json:"steps,omitempty"`
+	Sprite   int           `json:"sprite"`
+	Frames   []int         `json:"frames"`
+	AnimTime int           `json:"animTime"`
+	Steps    []MotionStep  `json:"steps,omitempty"`
+	Events   []MotionEvent `json:"events,omitempty"`
 }
 
 // MotionStepFrame is a fully resolved motion frame for the browser.
@@ -332,9 +340,10 @@ type MotionStepFrame struct {
 
 // MotionClip is a resolved animation for one .o motion slot.
 type MotionClip struct {
-	Index int               `json:"index"`
-	File  string            `json:"file"`
-	Steps []MotionStepFrame `json:"steps"`
+	Index  int               `json:"index"`
+	File   string            `json:"file"`
+	Steps  []MotionStepFrame `json:"steps"`
+	Events []MotionEvent     `json:"events,omitempty"`
 }
 
 // ParseObject reads a character .o file.
@@ -411,6 +420,16 @@ func ParseMotion(r io.Reader) (Motion, error) {
 			}
 		case "animtime":
 			out.AnimTime = firstInt(fields[1])
+		case "flash", "se", "c_se", "se_attack", "effectem", "attack", "attackend":
+			value := ""
+			if len(fields) > 1 {
+				value = strings.Join(fields[1:], " ")
+			}
+			out.Events = append(out.Events, MotionEvent{
+				At:    len(out.Steps),
+				Kind:  strings.ToLower(fields[0]),
+				Value: value,
+			})
 		}
 	}
 	return out, nil

@@ -1642,3 +1642,33 @@ button.navigator-line.cur .navigator-ptr {
 .battle-side.enemy .battle-sprite {
   transform: scale(0.82);
 }
+
+/* battle motion effects */
+.battle-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: battle-flash-out 0.14s ease-out both;
+}
+
+.battle-flash.white {
+  background: #fff;
+}
+
+.battle-flash.red {
+  background: #b82020;
+}
+
+.battle-flash.black {
+  background: #000;
+}
+
+@keyframes battle-flash-out {
+  from {
+    opacity: 0.82;
+  }
+  to {
+    opacity: 0;
+  }
+}
