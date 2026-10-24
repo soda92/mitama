@@ -2077,52 +2077,52 @@ button.title-hit:focus-visible {
 }
 
 .title-hit.start {
-  left: 30.5%;
-  top: 72.2%;
-  width: 18.5%;
-  height: 8%;
+  left: 22.6%;
+  top: 68.7%;
+  width: 26%;
+  height: 8.4%;
 }
 
 .title-hit.continue {
-  left: 60.2%;
-  top: 72.2%;
-  width: 18.5%;
-  height: 8%;
+  left: 52.3%;
+  top: 68.7%;
+  width: 23.5%;
+  height: 8.4%;
 }
 
 .title-hit.pictures {
-  left: 21.5%;
-  top: 83.7%;
-  width: 20.5%;
-  height: 7.6%;
+  left: 13.2%;
+  top: 78.1%;
+  width: 25%;
+  height: 8.4%;
 }
 
 .title-hit.scenes {
-  left: 45.8%;
-  top: 83.7%;
-  width: 20.5%;
-  height: 7.6%;
+  left: 39.0%;
+  top: 78.1%;
+  width: 22%;
+  height: 8.4%;
 }
 
 .title-hit.music {
-  left: 70.8%;
-  top: 83.7%;
-  width: 20.5%;
-  height: 7.6%;
+  left: 64.0%;
+  top: 78.1%;
+  width: 24.3%;
+  height: 8.4%;
 }
 
 .title-hit.settings {
-  left: 26.5%;
-  top: 93.5%;
-  width: 20.5%;
-  height: 6.5%;
+  left: 23.4%;
+  top: 88.5%;
+  width: 24.3%;
+  height: 8.1%;
 }
 
 .title-hit.quit {
-  left: 64.5%;
-  top: 93.5%;
-  width: 16%;
-  height: 6.5%;
+  left: 57.8%;
+  top: 88.5%;
+  width: 15.7%;
+  height: 8.1%;
 }
 
 /* immersive mode hides the dialogue chrome; subtitle is drawn on-canvas */
