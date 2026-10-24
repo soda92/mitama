@@ -420,7 +420,8 @@ func ParseMotion(r io.Reader) (Motion, error) {
 			}
 		case "animtime":
 			out.AnimTime = firstInt(fields[1])
-		case "flash", "se", "c_se", "se_attack", "effectem", "attack", "attackend":
+		case "flash", "se", "c_se", "se_attack", "effectem", "attack", "attackend",
+			"movjmpbase", "movjmpland", "movjmptarget", "movjmp", "movjmpos", "postion":
 			value := ""
 			if len(fields) > 1 {
 				value = strings.Join(fields[1:], " ")

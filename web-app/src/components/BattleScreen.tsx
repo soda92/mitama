@@ -38,6 +38,8 @@ function MotionActor({
   }, [character, motion]);
   const isAction = motion != null;
   const [step, setStep] = useState(0);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [moveMs, setMoveMs] = useState(0);
   const doneRef = useRef(false);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -47,6 +49,8 @@ function MotionActor({
 
   useEffect(() => {
     setStep(0);
+    setOffset({ x: 0, y: 0 });
+    setMoveMs(0);
     doneRef.current = false;
   }, [clip, isAction]);
 
@@ -54,7 +58,15 @@ function MotionActor({
     if (!clip) return;
     const lastStep = Math.max(0, clip.steps.length - 1);
     for (const event of clip.events ?? []) {
-      if (Math.min(event.at, lastStep) === step) onEventRef.current?.(event);
+      if (Math.min(event.at, lastStep) !== step) continue;
+      if (event.kind.startsWith("movjmp") || event.kind === "postion") {
+        const nums = (event.value ?? "").split(",").map((part) => Number.parseFloat(part.trim()));
+        if (Number.isFinite(nums[0]) && Number.isFinite(nums[1])) {
+          setOffset({ x: nums[0], y: nums[1] });
+          setMoveMs(Number.isFinite(nums[2]) ? Math.max(80, nums[2] * 16.67) : 320);
+        }
+      }
+      onEventRef.current?.(event);
     }
   }, [clip, step]);
 
@@ -106,7 +118,12 @@ function MotionActor({
       className="battle-sprite"
       width={frame.w}
       height={frame.h}
-      style={{ width: frame.w, height: frame.h }}
+      style={{
+        width: frame.w,
+        height: frame.h,
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        transition: `transform ${moveMs}ms ease-out`,
+      }}
     />
   );
 }
@@ -378,7 +395,7 @@ export default function BattleScreen({
     else if (special) pushLog(`${playerLabel}の${special.name ?? "特殊技"} → ${damage} ダメージ`);
     else pushLog(`${playerLabel}の${action === "ken" ? "剣" : "術"} → ${damage} ダメージ`);
     if (damage > 0) {
-      setEnemyMotions({ 0: nextEnemyHp <= 0 ? 15 : 13 });
+      setEnemyMotions({ 0: nextEnemyHp <= 0 ? 15 : 14 });
     }
 
     if (nextEnemyHp <= 0) {
@@ -402,7 +419,7 @@ export default function BattleScreen({
         setPhase("select");
         return;
       }
-      setPlayerMotion(13);
+      setPlayerMotion(14);
 
       const skill = attacker ? Math.max(...attacker.skills) : enemySkill;
       let incoming = 16 + skill * 3 + rand(9);
