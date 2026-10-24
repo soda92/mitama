@@ -34,6 +34,16 @@ type Party struct {
 	LoseText string   `json:"loseText,omitempty"`
 }
 
+// Special is one :special block in a .chr file.
+type Special struct {
+	Name       string `json:"name,omitempty"`
+	Chance     int    `json:"chance"`
+	Conditions [2]int `json:"conditions"`
+	AttackType int    `json:"attackType"`
+	Multiplier int    `json:"multiplier"`
+	Motion     int    `json:"motion"`
+}
+
 // Character is the subset of a .chr file needed by the web battle screen.
 type Character struct {
 	File          string       `json:"file"`
@@ -44,6 +54,7 @@ type Character struct {
 	Survive       int          `json:"survive"`
 	Object        string       `json:"object"`
 	ActionRates   [][4]int     `json:"actionRates,omitempty"`
+	Specials      []Special    `json:"specials,omitempty"`
 	Sprite        *Sprite      `json:"sprite,omitempty"`
 	Motions       []MotionClip `json:"motions,omitempty"`
 }
@@ -105,9 +116,35 @@ func ParseCharacter(r io.Reader) (Character, error) {
 	var c Character
 	var values []string
 	section := ""
+	var specials []Special
+	var current *Special
+	specialField := 0
+	type specialName struct {
+		id   int
+		name string
+	}
+	var names []specialName
+	nameField := 0
+	nameID := 0
+
+	flushSpecial := func() {
+		if current != nil {
+			specials = append(specials, *current)
+			current = nil
+		}
+		specialField = 0
+	}
+
 	for _, line := range lines {
 		if strings.HasPrefix(line, ":") {
+			flushSpecial()
 			section = strings.ToLower(line)
+			if section == ":special" || section == ":speical" {
+				current = &Special{}
+			}
+			if section == ":spname" {
+				nameField = 0
+			}
 			continue
 		}
 		switch section {
@@ -118,8 +155,40 @@ func ParseCharacter(r io.Reader) (Character, error) {
 			if len(nums) >= 4 {
 				c.ActionRates = append(c.ActionRates, [4]int{nums[0], nums[1], nums[2], nums[3]})
 			}
+		case ":special", ":speical":
+			if current == nil {
+				continue
+			}
+			nums := ints(line)
+			switch specialField {
+			case 0:
+				current.Chance = firstInt(line)
+			case 1:
+				if len(nums) > 0 {
+					current.Conditions[0] = nums[0]
+				}
+				if len(nums) > 1 {
+					current.Conditions[1] = nums[1]
+				}
+			case 2:
+				current.AttackType = firstInt(line)
+			case 3:
+				current.Multiplier = firstInt(line)
+			case 7:
+				current.Motion = firstInt(line)
+			}
+			specialField++
+		case ":spname":
+			if nameField == 0 {
+				nameID = firstInt(line)
+			} else if nameField == 1 {
+				names = append(names, specialName{id: nameID, name: unquote(line)})
+			}
+			nameField++
 		}
 	}
+	flushSpecial()
+
 	if len(values) >= 6 {
 		c.Name = unquote(values[0])
 		skills := ints(values[1])
@@ -134,6 +203,15 @@ func ParseCharacter(r io.Reader) (Character, error) {
 		c.Survive = firstInt(values[4])
 		c.Object = unquote(values[5])
 	}
+	for i := range specials {
+		for _, n := range names {
+			if n.id == i {
+				specials[i].Name = n.name
+				break
+			}
+		}
+	}
+	c.Specials = specials
 	return c, nil
 }
 

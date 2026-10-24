@@ -42,6 +42,15 @@ export interface BattleMotion {
   steps: BattleMotionStep[];
 }
 
+export interface BattleSpecial {
+  name?: string;
+  chance: number;
+  conditions: [number, number];
+  attackType: number;
+  multiplier: number;
+  motion: number;
+}
+
 export interface BattleCharacter {
   file: string;
   name: string;
@@ -51,6 +60,7 @@ export interface BattleCharacter {
   survive: number;
   object: string;
   actionRates?: Array<[number, number, number, number]>;
+  specials?: BattleSpecial[];
   sprite?: CharacterSprite;
   motions?: BattleMotion[];
 }

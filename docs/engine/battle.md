@@ -167,4 +167,5 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - `.o` / `.spt` / `.mtn` battle sprites and animations.
 - Full `.mtn` event semantics (`attackend`, `flash`, `se`, `effectem`,
   `movjmpbase`) and battle BGM jingles.
+- Exact action-rate range meaning and damage formula.
 - Player party level/HP persistence in archive snapshots.

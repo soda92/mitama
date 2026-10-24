@@ -101,3 +101,39 @@ func TestParseObjectSpriteAndMotion(t *testing.T) {
 		t.Fatalf("motion steps = %#v", motion.Steps)
 	}
 }
+
+func TestParseCharacterSpecials(t *testing.T) {
+	src := `"Yahiro"
+1,1,1
+0
+0,0,0
+20
+"cc_yahiro.o"
+:speical
+	25
+	0,0
+	0
+	1
+	0
+	0
+	0
+	20
+:spname
+	0
+	"Nidan"
+	0
+	3
+:end
+`
+	c, err := ParseCharacter(strings.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Specials) != 1 {
+		t.Fatalf("specials = %#v", c.Specials)
+	}
+	sp := c.Specials[0]
+	if sp.Name != "Nidan" || sp.Chance != 25 || sp.Motion != 20 || sp.Multiplier != 1 {
+		t.Fatalf("special = %#v", sp)
+	}
+}

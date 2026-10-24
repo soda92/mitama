@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { BattleCharacter, BattleEncounter } from "../game/battle";
+import type { BattleCharacter, BattleEncounter, BattleSpecial } from "../game/battle";
 import { clearBlackBackground } from "../game/chroma";
 
 interface BattleScreenProps {
@@ -91,6 +91,48 @@ function MotionActor({
   );
 }
 
+interface EnemyAction {
+  type: number;
+  motion: number;
+  multiplier: number;
+  special?: BattleSpecial;
+}
+
+function conditionMatches(move: BattleSpecial, selfAction: number, otherAction: number): boolean {
+  return (
+    (move.conditions[0] === 0 || move.conditions[0] === selfAction) &&
+    (move.conditions[1] === 0 || move.conditions[1] === otherAction)
+  );
+}
+
+function chooseEnemyAction(character: BattleCharacter, playerAction: number): EnemyAction {
+  const rows = (character.actionRates ?? []).filter((row) => row[3] > 0);
+  let type = character.defaultAction;
+  if (rows.length > 0) {
+    const total = rows.reduce((sum, row) => sum + row[3], 0);
+    let roll = Math.random() * total;
+    for (const row of rows) {
+      roll -= row[3];
+      if (roll <= 0) {
+        type = row[0];
+        break;
+      }
+    }
+  }
+  const special = character.specials?.find(
+    (move) =>
+      move.attackType === type &&
+      conditionMatches(move, type, playerAction) &&
+      Math.random() * 100 < move.chance,
+  );
+  return {
+    type,
+    motion: special?.motion ?? (type === 2 ? 9 : type === 1 ? 8 : 7),
+    multiplier: special ? 1 + special.multiplier * 0.5 : 1,
+    special,
+  };
+}
+
 type Phase = "select" | "busy" | "done";
 type Action = "ken" | "zyutu" | "uke";
 
@@ -116,6 +158,8 @@ export default function BattleScreen({
   const [log, setLog] = useState<string[]>(["戦闘開始"]);
   const [playerMotion, setPlayerMotion] = useState<number | undefined>();
   const [enemyMotions, setEnemyMotions] = useState<Record<number, number>>({});
+  const lastPlayerAction = useRef(0);
+  const lastEnemyAction = useRef(0);
   const timer = useRef<number | null>(null);
   const bgm = useRef<HTMLAudioElement | null>(null);
 
@@ -170,15 +214,25 @@ export default function BattleScreen({
     setPhase("busy");
 
     const defending = action === "uke";
-    setPlayerMotion(action === "ken" ? 7 : action === "zyutu" ? 8 : 9);
+    const actionType = action === "ken" ? 0 : action === "zyutu" ? 1 : 2;
+    const special = player.specials?.find(
+      (move) =>
+        move.attackType === actionType &&
+        conditionMatches(move, actionType, lastEnemyAction.current) &&
+        Math.random() * 100 < move.chance,
+    );
+    lastPlayerAction.current = actionType;
+    setPlayerMotion(special?.motion ?? (action === "ken" ? 7 : action === "zyutu" ? 8 : 9));
     let damage = 0;
     if (action === "ken") damage = 30 + player.skills[0] * 8 + rand(9);
     else if (action === "zyutu") damage = 42 + player.skills[1] * 8 + rand(11);
     else damage = 0;
+    if (special) damage = Math.round(damage * (1 + special.multiplier * 0.5));
 
     const nextEnemyHp = Math.max(0, enemyHp - damage);
     setEnemyHp(nextEnemyHp);
     if (defending) pushLog(`${playerLabel}は身構えた`);
+    else if (special) pushLog(`${playerLabel}の${special.name ?? "特殊技"} → ${damage} ダメージ`);
     else pushLog(`${playerLabel}の${action === "ken" ? "剣" : "術"} → ${damage} ダメージ`);
     if (damage > 0) {
       setEnemyMotions({ 0: nextEnemyHp <= 0 ? 15 : 13 });
@@ -193,13 +247,31 @@ export default function BattleScreen({
       const attackerIndex = rand(Math.max(1, encounter.characters.length));
       const attacker = encounter.characters[attackerIndex];
       const enemyName = attacker?.name || enemyNames[0];
-      setEnemyMotions({ [attackerIndex]: 7 });
+      const chosen = attacker
+        ? chooseEnemyAction(attacker, lastPlayerAction.current)
+        : { type: 0, motion: 7, multiplier: 1 };
+      lastEnemyAction.current = chosen.type;
+      setEnemyMotions({ [attackerIndex]: chosen.motion });
+
+      if (chosen.type === 2) {
+        pushLog(`${enemyName}は身構えた`);
+        setTurn((n) => n + 1);
+        setPhase("select");
+        return;
+      }
       setPlayerMotion(13);
-      let incoming = 16 + enemySkill * 3 + rand(9);
+
+      const skill = attacker ? Math.max(...attacker.skills) : enemySkill;
+      let incoming = 16 + skill * 3 + rand(9);
+      incoming = Math.round(incoming * chosen.multiplier);
       if (defending) incoming = Math.max(1, Math.round(incoming * 0.45));
       const nextPlayerHp = Math.max(0, playerHp - incoming);
       setPlayerHp(nextPlayerHp);
-      pushLog(`${enemyName}の攻撃 → ${incoming} ダメージ`);
+      pushLog(
+        chosen.special
+          ? `${enemyName}の${chosen.special.name ?? "特殊技"} → ${incoming} ダメージ`
+          : `${enemyName}の攻撃 → ${incoming} ダメージ`,
+      );
       setTurn((n) => n + 1);
       if (nextPlayerHp <= 0) {
         setPlayerMotion(15);

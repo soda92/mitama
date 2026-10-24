@@ -86,8 +86,10 @@ Last updated: 2026-10-24.
 - [x] Battle BGM and idle/action sprites from `.o` / `.spt` / `.mtn`
       (color-keyed).
 - [x] Battle auto-resolve modes (win/lose/random) remain in Settings.
-- [ ] Battle motion events (`flash`, `se`, `effectem`), specials, action rates
-      and exact damage formulas.
+- [x] Weighted enemy actions from `:actionrate`, special techniques from
+      `:special` / `:spname`, and special attack motions.
+- [ ] Battle motion events (`flash`, `se`, `effectem`), jingles and exact
+      damage formulas.
 - [ ] Interactive map movement and encounters.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.
