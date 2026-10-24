@@ -35,6 +35,10 @@ export default function Gallery({
   onPlayScene,
 }: GalleryProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
   const [data, setData] = useState<GalleryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");

@@ -192,6 +192,18 @@ entries:
 Scene/debug links with `?scene=…&cmd=…` bypass the title screen. `?home=1`
 forces it; `?home=0` disables it.
 
+The current view is also addressable:
+
+```text
+?pack=dvd&view=title
+?pack=dvd&view=gallery&tab=music
+?pack=dvd&scene=yr1_05&cmd=137&view=title
+?pack=dvd&scene=yr1_05&cmd=137&view=gallery&tab=pictures
+```
+
+`from=title` is added when Gallery was opened over the title screen. Refreshing
+keeps the title/Gallery tab and the underlying story position.
+
 ### Gallery
 
 Settings → **Gallery** (or **G**) opens a three-tab viewer:
@@ -203,7 +215,8 @@ Settings → **Gallery** (or **G**) opens a three-tab viewer:
   play/stop and script usage
 
 Seen pictures/scenes/tracks are persisted in `localStorage` under
-`mitama.gallery.v1`. Story BGM is suspended while the gallery is open.
+`mitama.gallery.v1`. Story BGM is suspended while the gallery is open. The
+active gallery tab is part of the URL (`view=gallery&tab=…`).
 
 ### Debugging
 

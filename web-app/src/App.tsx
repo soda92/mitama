@@ -55,13 +55,23 @@ interface ResumePoint {
 
 const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
 
-function initialParams(): { pack: string; scene: string; pc: number } {
+function initialParams(): {
+  pack: string;
+  scene: string;
+  pc: number;
+  view: string;
+  tab: string;
+  from: string;
+} {
   const q = new URLSearchParams(window.location.search);
   const pc = Number.parseInt(q.get("cmd") ?? "0", 10);
   return {
     pack: q.get("pack") ?? "",
     scene: q.get("scene") ?? "",
     pc: Number.isFinite(pc) ? Math.max(0, pc) : 0,
+    view: q.get("view") ?? "",
+    tab: q.get("tab") ?? "",
+    from: q.get("from") ?? "",
   };
 }
 
@@ -92,13 +102,17 @@ export default function App() {
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [galleryTab, setGalleryTab] = useState<"pictures" | "scenes" | "music">("pictures");
+  const [galleryOpen, setGalleryOpen] = useState(params.view === "gallery");
+  const [galleryTab, setGalleryTab] = useState<"pictures" | "scenes" | "music">(
+    params.tab === "scenes" || params.tab === "music" ? params.tab : "pictures",
+  );
+  const [galleryFromTitle, setGalleryFromTitle] = useState(params.from === "title");
   const [gallerySeen, setGallerySeen] = useState<GallerySeen>(readSeen);
   const [homeOpen, setHomeOpen] = useState(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get("home") === "0") return false;
-    if (q.get("home") === "1") return true;
+    if (q.get("home") === "1" || q.get("view") === "title" || q.get("from") === "title") return true;
+    if (q.get("view") === "gallery") return false;
     return !q.has("scene") && !q.has("cmd");
   });
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
@@ -232,12 +246,40 @@ export default function App() {
       if (scene) url.searchParams.set("scene", scene);
       else url.searchParams.delete("scene");
       url.searchParams.set("cmd", String(Math.max(0, pc)));
+      url.searchParams.delete("view");
+      url.searchParams.delete("tab");
+      url.searchParams.delete("from");
       window.history.replaceState(null, "", url.toString());
       setCurrentScene(scene);
       setCurrentPC(pc);
       if (scene) markSeen("scenes", scene.toLowerCase());
     },
     [packId, markSeen],
+  );
+
+  const updateView = useCallback(
+    (view: "title" | "gallery" | null, tab?: "pictures" | "scenes" | "music") => {
+      const url = new URL(window.location.href);
+      if (!packId) url.searchParams.delete("pack");
+      else url.searchParams.set("pack", packId);
+      if (view === "title") {
+        url.searchParams.set("view", "title");
+        url.searchParams.delete("tab");
+        url.searchParams.delete("from");
+      } else if (view === "gallery") {
+        url.searchParams.set("view", "gallery");
+        if (tab) url.searchParams.set("tab", tab);
+        else url.searchParams.delete("tab");
+        if (homeOpen) url.searchParams.set("from", "title");
+        else url.searchParams.delete("from");
+      } else {
+        url.searchParams.delete("view");
+        url.searchParams.delete("tab");
+        url.searchParams.delete("from");
+      }
+      window.history.replaceState(null, "", url.toString());
+    },
+    [packId, homeOpen],
   );
 
   useEffect(() => {
@@ -369,6 +411,10 @@ export default function App() {
   }, [gallerySeen]);
 
   useEffect(() => {
+    if (homeOpen && !galleryOpen) updateView("title");
+  }, [homeOpen, galleryOpen, updateView]);
+
+  useEffect(() => {
     const unlock = () => {
       void playerRef.current?.unlockAudio();
     };
@@ -404,9 +450,10 @@ export default function App() {
 
   // The player has no title screen: start as soon as data and the stage exist.
   useEffect(() => {
-    if (!data || !playerRef.current || started || ended || error || homeOpen) return;
+    if (!data || !playerRef.current || started || ended || error || homeOpen || galleryOpen)
+      return;
     start();
-  }, [data, started, ended, error, start, homeOpen]);
+  }, [data, started, ended, error, start, homeOpen, galleryOpen]);
 
   const togglePause = useCallback(() => {
     const player = playerRef.current;
@@ -485,19 +532,26 @@ export default function App() {
     setNavigatorOpen(true);
   }, []);
 
-  const openGallery = useCallback((tab: "pictures" | "scenes" | "music" = "pictures") => {
-    setGalleryTab(tab);
-    setArchiveOpen(false);
-    setNavigatorOpen(false);
-    setMenuOpen(false);
-    setGalleryOpen(true);
-    playerRef.current?.suspendBgm();
-  }, []);
+  const openGallery = useCallback(
+    (tab: "pictures" | "scenes" | "music" = "pictures") => {
+      setGalleryTab(tab);
+      setGalleryFromTitle(homeOpen);
+      setArchiveOpen(false);
+      setNavigatorOpen(false);
+      setMenuOpen(false);
+      setGalleryOpen(true);
+      playerRef.current?.suspendBgm();
+      updateView("gallery", tab);
+    },
+    [homeOpen, updateView],
+  );
 
   const closeGallery = useCallback(() => {
     setGalleryOpen(false);
+    setGalleryFromTitle(false);
     playerRef.current?.resumeBgm();
-  }, []);
+    updateView(galleryFromTitle || homeOpen ? "title" : null);
+  }, [galleryFromTitle, homeOpen, updateView]);
 
   const goHome = useCallback(() => {
     const player = playerRef.current;
@@ -524,13 +578,17 @@ export default function App() {
     setArchiveOpen(false);
     setNavigatorOpen(false);
     setGalleryOpen(false);
+    setGalleryFromTitle(false);
     setMenuOpen(false);
-  }, [cancelBattle]);
+    updateView("title");
+  }, [cancelBattle, updateView]);
 
   const newGame = useCallback(() => {
     setHomeOpen(false);
+    setGalleryFromTitle(false);
+    updateView(null);
     restart();
-  }, [restart]);
+  }, [restart, updateView]);
 
   const changePack = useCallback(
     (id: string) => {
@@ -636,13 +694,15 @@ export default function App() {
 
   const continueGame = useCallback(() => {
     setHomeOpen(false);
+    setGalleryFromTitle(false);
+    updateView(null);
     if (resumeScene || resume.pc > 0 || resume.stage) {
       setData(null);
       setReloadKey((k) => k + 1);
       return;
     }
     if (latestArchive) loadArchive(latestArchive);
-  }, [resumeScene, resume, latestArchive, loadArchive]);
+  }, [resumeScene, resume, latestArchive, loadArchive, updateView]);
 
   const navigateToScene = useCallback(
     (name: string, pc = 0) => {

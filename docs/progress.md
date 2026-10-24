@@ -77,6 +77,8 @@ Last updated: 2026-10-24.
 - [x] Replay-voice button beside the speaker name tag (current page/line).
 - [x] Gallery: CG viewer, scene review, music player with official BGM
       titles/durations, seen tracking and CG-to-script story jumps.
+- [x] URL-addressable title and Gallery tabs, including refresh-safe
+      `view`/`tab`/`from` state.
 - [x] Refactor: App settings/archive/keyboard/battle modules and Player
       audio/dialogue/stage modules extracted.
 
