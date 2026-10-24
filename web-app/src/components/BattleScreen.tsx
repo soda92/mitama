@@ -13,23 +13,54 @@ interface BattleScreenProps {
   onFinish: (result: "win" | "lose") => void;
 }
 
-function SpriteActor({ character }: { character: BattleCharacter }) {
-  const sprite = character.sprite;
-  const [tick, setTick] = useState(0);
+function MotionActor({
+  character,
+  motion,
+  onDone,
+}: {
+  character: BattleCharacter;
+  motion?: number;
+  onDone?: () => void;
+}) {
+  const clip = useMemo(() => {
+    const motions = character.motions ?? [];
+    return motions.find((m) => m.index === motion) ?? motions.find((m) => m.index === 1);
+  }, [character, motion]);
+  const isAction = motion != null;
+  const [step, setStep] = useState(0);
+  const doneRef = useRef(false);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!sprite || sprite.idle.length < 2) return;
-    const timer = window.setInterval(() => setTick((n) => n + 1), 520);
-    return () => window.clearInterval(timer);
-  }, [sprite]);
+    setStep(0);
+    doneRef.current = false;
+  }, [clip, isAction]);
 
-  const idle = sprite?.idle.length ? sprite.idle : [0];
-  const frame = sprite?.frames[idle[tick % idle.length]] ?? sprite?.frames[0];
+  useEffect(() => {
+    if (!clip || clip.steps.length === 0) return;
+    if (step >= clip.steps.length) {
+      if (!isAction) {
+        setStep(0);
+      } else if (!doneRef.current) {
+        doneRef.current = true;
+        onDoneRef.current?.();
+      }
+      return;
+    }
+    const wait = Math.max(40, clip.steps[step].wait * 16.67);
+    const timer = window.setTimeout(() => setStep((n) => n + 1), wait);
+    return () => window.clearTimeout(timer);
+  }, [clip, step, isAction]);
+
+  const current = clip?.steps[Math.min(step, clip.steps.length - 1)];
+  const frame = current?.frame;
+  const bmp = current?.bmp;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !sprite || !frame) return;
+    if (!canvas || !bmp || !frame) return;
     canvas.width = frame.w;
     canvas.height = frame.h;
     const ctx = canvas.getContext("2d");
@@ -42,13 +73,13 @@ function SpriteActor({ character }: { character: BattleCharacter }) {
       ctx.drawImage(img, -frame.x, -frame.y);
       clearBlackBackground(ctx, frame.w, frame.h);
     };
-    img.src = sprite.bmp;
+    img.src = bmp;
     return () => {
       cancelled = true;
     };
-  }, [sprite, frame]);
+  }, [bmp, frame]);
 
-  if (!sprite || !frame) return null;
+  if (!frame) return null;
   return (
     <canvas
       ref={canvasRef}
@@ -83,6 +114,8 @@ export default function BattleScreen({
   const [result, setResult] = useState<"win" | "lose" | null>(null);
   const [turn, setTurn] = useState(1);
   const [log, setLog] = useState<string[]>(["戦闘開始"]);
+  const [playerMotion, setPlayerMotion] = useState<number | undefined>();
+  const [enemyMotions, setEnemyMotions] = useState<Record<number, number>>({});
   const timer = useRef<number | null>(null);
   const bgm = useRef<HTMLAudioElement | null>(null);
 
@@ -137,6 +170,7 @@ export default function BattleScreen({
     setPhase("busy");
 
     const defending = action === "uke";
+    setPlayerMotion(action === "ken" ? 7 : action === "zyutu" ? 8 : 9);
     let damage = 0;
     if (action === "ken") damage = 30 + player.skills[0] * 8 + rand(9);
     else if (action === "zyutu") damage = 42 + player.skills[1] * 8 + rand(11);
@@ -146,6 +180,9 @@ export default function BattleScreen({
     setEnemyHp(nextEnemyHp);
     if (defending) pushLog(`${playerLabel}は身構えた`);
     else pushLog(`${playerLabel}の${action === "ken" ? "剣" : "術"} → ${damage} ダメージ`);
+    if (damage > 0) {
+      setEnemyMotions({ 0: nextEnemyHp <= 0 ? 15 : 13 });
+    }
 
     if (nextEnemyHp <= 0) {
       timer.current = window.setTimeout(() => finish("win"), 500);
@@ -153,8 +190,11 @@ export default function BattleScreen({
     }
 
     timer.current = window.setTimeout(() => {
-      const attacker = encounter.characters[rand(Math.max(1, encounter.characters.length))];
+      const attackerIndex = rand(Math.max(1, encounter.characters.length));
+      const attacker = encounter.characters[attackerIndex];
       const enemyName = attacker?.name || enemyNames[0];
+      setEnemyMotions({ [attackerIndex]: 7 });
+      setPlayerMotion(13);
       let incoming = 16 + enemySkill * 3 + rand(9);
       if (defending) incoming = Math.max(1, Math.round(incoming * 0.45));
       const nextPlayerHp = Math.max(0, playerHp - incoming);
@@ -162,6 +202,7 @@ export default function BattleScreen({
       pushLog(`${enemyName}の攻撃 → ${incoming} ダメージ`);
       setTurn((n) => n + 1);
       if (nextPlayerHp <= 0) {
+        setPlayerMotion(15);
         finish("lose");
       } else {
         setPhase("select");
@@ -188,7 +229,11 @@ export default function BattleScreen({
       <div className="battle-field">
         <section className="battle-side player">
           <div className="battle-actors">
-            <SpriteActor character={player} />
+            <MotionActor
+              character={player}
+              motion={playerMotion}
+              onDone={() => setPlayerMotion(undefined)}
+            />
           </div>
           <h3>{playerLabel}</h3>
           <p>{party.length ? party.join("・") : "単独"}</p>
@@ -205,7 +250,19 @@ export default function BattleScreen({
         <section className="battle-side enemy">
           <div className="battle-actors">
             {encounter.characters.map((character, index) => (
-              <SpriteActor key={`${character.file}-${index}`} character={character} />
+              <MotionActor
+                key={`${character.file}-${index}`}
+                character={character}
+                motion={enemyMotions[index]}
+                onDone={() =>
+                  setEnemyMotions((prev) => {
+                    if (prev[index] === undefined) return prev;
+                    const next = { ...prev };
+                    delete next[index];
+                    return next;
+                  })
+                }
+              />
             ))}
           </div>
           <h3>{enemyLabel}</h3>

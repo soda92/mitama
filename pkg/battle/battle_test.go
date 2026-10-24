@@ -97,4 +97,7 @@ func TestParseObjectSpriteAndMotion(t *testing.T) {
 	if motion.Sprite != 3 || len(motion.Frames) != 2 || motion.Frames[1] != 1 {
 		t.Fatalf("motion = %#v", motion)
 	}
+	if len(motion.Steps) != 2 || motion.Steps[0].Wait != 16 || motion.Steps[1].Frame != 1 {
+		t.Fatalf("motion steps = %#v", motion.Steps)
+	}
 }

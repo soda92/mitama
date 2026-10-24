@@ -83,10 +83,11 @@ Last updated: 2026-10-24.
 - [x] `.pty` / `.chr` battle definition parser and `/api/battle` endpoints.
 - [x] Playable simplified battle screen: shared party HP, enemy strikers,
       剣/術/受 actions, victory/defeat, flag `20` branching.
-- [x] Battle BGM and idle sprites from `.o` / `.spt` / `.mtn` (color-keyed).
+- [x] Battle BGM and idle/action sprites from `.o` / `.spt` / `.mtn`
+      (color-keyed).
 - [x] Battle auto-resolve modes (win/lose/random) remain in Settings.
-- [ ] Battle attack/damage motion playback, specials, action rates and exact
-      damage formulas.
+- [ ] Battle motion events (`flash`, `se`, `effectem`), specials, action rates
+      and exact damage formulas.
 - [ ] Interactive map movement and encounters.
 - [ ] `sprite.arc` / `.spt` / `.mtn` sprite animation.
 - [ ] Server-side save files compatible with `save%02d.dat`.

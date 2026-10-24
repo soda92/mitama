@@ -30,6 +30,18 @@ export interface CharacterSprite {
   idle: number[];
 }
 
+export interface BattleMotionStep {
+  bmp: string;
+  frame: SpriteFrame;
+  wait: number;
+}
+
+export interface BattleMotion {
+  index: number;
+  file: string;
+  steps: BattleMotionStep[];
+}
+
 export interface BattleCharacter {
   file: string;
   name: string;
@@ -40,6 +52,7 @@ export interface BattleCharacter {
   object: string;
   actionRates?: Array<[number, number, number, number]>;
   sprite?: CharacterSprite;
+  motions?: BattleMotion[];
 }
 
 export interface BattleEncounter {

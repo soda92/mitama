@@ -119,10 +119,17 @@ files are text rectangles:
 112,0,112,128,56,128
 ```
 
-The server resolves this chain and returns a `sprite` object on
-`/api/battle` and `/api/battle/character`: BMP URL, frame rectangles and idle
-frame indices. The battle screen draws the frames on a canvas, chroma-keying
-black to transparency and alternating idle frames.
+The server resolves this chain and returns `sprite` and `motions` on
+`/api/battle` and `/api/battle/character`: BMP URLs, frame rectangles, idle
+frame indices, and resolved frame/wait sequences for every motion slot. The
+battle screen chroma-keys black to transparency and plays:
+
+- motion 1 as the idle loop
+- motion 7 for sword attacks
+- motion 8 for techniques
+- motion 9 for guarding
+- motion 13 for damage
+- motion 15 for defeat
 
 ## Runtime approximation
 
@@ -158,5 +165,6 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - Actual damage formula, turn order and action-rate weighting.
 - Special techniques and `:spname` learn conditions.
 - `.o` / `.spt` / `.mtn` battle sprites and animations.
-- Full `.mtn` motion playback beyond the idle loop and battle BGM jingles.
+- Full `.mtn` event semantics (`attackend`, `flash`, `se`, `effectem`,
+  `movjmpbase`) and battle BGM jingles.
 - Player party level/HP persistence in archive snapshots.

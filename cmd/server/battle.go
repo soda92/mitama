@@ -102,7 +102,7 @@ func (s *server) loadCharacter(packID, dir, name string) (battle.Character, erro
 	return character, nil
 }
 
-// attachSprite resolves the character's idle .mtn -> .spt -> .bmp chain.
+// attachSprite resolves the character's .o -> .mtn -> .spt -> .bmp chain.
 func (s *server) attachSprite(packID, battleDir string, character *battle.Character) {
 	root := filepath.Dir(battleDir)
 	objectDir := filepath.Join(root, "object")
@@ -122,58 +122,96 @@ func (s *server) attachSprite(packID, battleDir string, character *battle.Charac
 		return
 	}
 
+	cache := make(map[int]battle.Sprite)
+	loadSprite := func(index int) (battle.Sprite, bool) {
+		if sprite, ok := cache[index]; ok {
+			return sprite, true
+		}
+		if index < 0 || index >= len(object.SpriteFiles) {
+			return battle.Sprite{}, false
+		}
+		spriteFile := object.SpriteFiles[index]
+		if strings.EqualFold(spriteFile, "empty.spt") {
+			return battle.Sprite{}, false
+		}
+		sptFile, err := findFileInsensitive(objectDir, spriteFile)
+		if err != nil {
+			return battle.Sprite{}, false
+		}
+		sf, err := os.Open(sptFile)
+		if err != nil {
+			return battle.Sprite{}, false
+		}
+		frames, err := battle.ParseSprite(sf)
+		_ = sf.Close()
+		if err != nil || len(frames) == 0 {
+			return battle.Sprite{}, false
+		}
+		bmpFile := strings.TrimSuffix(spriteFile, filepath.Ext(spriteFile)) + ".bmp"
+		bmpPath, err := findFileInsensitive(spriteDir, bmpFile)
+		if err != nil {
+			return battle.Sprite{}, false
+		}
+		rel, err := filepath.Rel(root, bmpPath)
+		if err != nil {
+			return battle.Sprite{}, false
+		}
+		sprite := battle.Sprite{
+			Frames: frames,
+			BMP:    "/media/" + filepath.Base(packID) + "/" + filepath.ToSlash(rel),
+		}
+		cache[index] = sprite
+		return sprite, true
+	}
+
 	idleIndex := 0
 	if len(object.MotionFiles) > 1 {
 		idleIndex = 1
 	}
-	motionFile, err := findFileInsensitive(objectDir, object.MotionFiles[idleIndex])
-	if err != nil {
-		return
-	}
-	mf, err := os.Open(motionFile)
-	if err != nil {
-		return
-	}
-	motion, err := battle.ParseMotion(mf)
-	_ = mf.Close()
-	if err != nil || motion.Sprite < 0 || motion.Sprite >= len(object.SpriteFiles) {
-		return
-	}
-
-	spriteFile := object.SpriteFiles[motion.Sprite]
-	if strings.EqualFold(spriteFile, "empty.spt") {
-		return
-	}
-	sptFile, err := findFileInsensitive(objectDir, spriteFile)
-	if err != nil {
-		return
-	}
-	sf, err := os.Open(sptFile)
-	if err != nil {
-		return
-	}
-	frames, err := battle.ParseSprite(sf)
-	_ = sf.Close()
-	if err != nil || len(frames) == 0 {
-		return
+	if idleFile, err := findFileInsensitive(objectDir, object.MotionFiles[idleIndex]); err == nil {
+		if mf, err := os.Open(idleFile); err == nil {
+			if motion, err := battle.ParseMotion(mf); err == nil {
+				if sprite, ok := loadSprite(motion.Sprite); ok {
+					idle := motion.Frames
+					if len(idle) == 0 {
+						idle = []int{0}
+					}
+					sprite.Idle = idle
+					character.Sprite = &sprite
+				}
+			}
+			_ = mf.Close()
+		}
 	}
 
-	bmpFile := strings.TrimSuffix(spriteFile, filepath.Ext(spriteFile)) + ".bmp"
-	bmpPath, err := findFileInsensitive(spriteDir, bmpFile)
-	if err != nil {
-		return
-	}
-	rel, err := filepath.Rel(root, bmpPath)
-	if err != nil {
-		return
-	}
-	idle := motion.Frames
-	if len(idle) == 0 {
-		idle = []int{0}
-	}
-	character.Sprite = &battle.Sprite{
-		Frames: frames,
-		Idle:   idle,
-		BMP:    "/media/" + filepath.Base(packID) + "/" + filepath.ToSlash(rel),
+	for index, motionFile := range object.MotionFiles {
+		path, err := findFileInsensitive(objectDir, motionFile)
+		if err != nil {
+			continue
+		}
+		mf, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+		motion, err := battle.ParseMotion(mf)
+		_ = mf.Close()
+		if err != nil {
+			continue
+		}
+		clip := battle.MotionClip{Index: index, File: motionFile}
+		for _, step := range motion.Steps {
+			sprite, ok := loadSprite(step.Sprite)
+			if !ok || step.Frame < 0 || step.Frame >= len(sprite.Frames) {
+				continue
+			}
+			clip.Steps = append(clip.Steps, battle.MotionStepFrame{
+				BMP:   sprite.BMP,
+				Frame: sprite.Frames[step.Frame],
+				Wait:  step.Wait,
+			})
+		}
+		if len(clip.Steps) > 0 {
+			character.Motions = append(character.Motions, clip)
+		}
 	}
 }

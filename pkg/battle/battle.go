@@ -36,15 +36,16 @@ type Party struct {
 
 // Character is the subset of a .chr file needed by the web battle screen.
 type Character struct {
-	File          string   `json:"file"`
-	Name          string   `json:"name"`
-	Skills        [3]int   `json:"skills"`
-	DefaultAction int      `json:"defaultAction"`
-	Resist        [3]int   `json:"resist"`
-	Survive       int      `json:"survive"`
-	Object        string   `json:"object"`
-	ActionRates   [][4]int `json:"actionRates,omitempty"`
-	Sprite        *Sprite  `json:"sprite,omitempty"`
+	File          string       `json:"file"`
+	Name          string       `json:"name"`
+	Skills        [3]int       `json:"skills"`
+	DefaultAction int          `json:"defaultAction"`
+	Resist        [3]int       `json:"resist"`
+	Survive       int          `json:"survive"`
+	Object        string       `json:"object"`
+	ActionRates   [][4]int     `json:"actionRates,omitempty"`
+	Sprite        *Sprite      `json:"sprite,omitempty"`
+	Motions       []MotionClip `json:"motions,omitempty"`
 }
 
 // Encounter combines an enemy party with the characters it references.
@@ -229,11 +230,33 @@ type Object struct {
 	MotionFiles []string `json:"motionFiles"`
 }
 
-// Motion is the subset of a .mtn file needed for an idle loop.
+// MotionStep is one displayed frame and its hold time in a .mtn file.
+type MotionStep struct {
+	Sprite int `json:"sprite"`
+	Frame  int `json:"frame"`
+	Wait   int `json:"wait"`
+}
+
+// Motion is a parsed .mtn file.
 type Motion struct {
-	Sprite   int   `json:"sprite"`
-	Frames   []int `json:"frames"`
-	AnimTime int   `json:"animTime"`
+	Sprite   int          `json:"sprite"`
+	Frames   []int        `json:"frames"`
+	AnimTime int          `json:"animTime"`
+	Steps    []MotionStep `json:"steps,omitempty"`
+}
+
+// MotionStepFrame is a fully resolved motion frame for the browser.
+type MotionStepFrame struct {
+	BMP   string      `json:"bmp"`
+	Frame SpriteFrame `json:"frame"`
+	Wait  int         `json:"wait"`
+}
+
+// MotionClip is a resolved animation for one .o motion slot.
+type MotionClip struct {
+	Index int               `json:"index"`
+	File  string            `json:"file"`
+	Steps []MotionStepFrame `json:"steps"`
 }
 
 // ParseObject reads a character .o file.
@@ -283,13 +306,14 @@ func ParseSprite(r io.Reader) ([]SpriteFrame, error) {
 	return frames, nil
 }
 
-// ParseMotion reads the sprite number and frame sequence from a .mtn file.
+// ParseMotion reads the sprite/frame sequence from a .mtn file.
 func ParseMotion(r io.Reader) (Motion, error) {
 	lines, err := readLines(r)
 	if err != nil {
 		return Motion{}, err
 	}
 	var out Motion
+	sprite := 0
 	for _, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
@@ -297,9 +321,16 @@ func ParseMotion(r io.Reader) (Motion, error) {
 		}
 		switch strings.ToLower(fields[0]) {
 		case "spno":
-			out.Sprite = firstInt(fields[1])
+			sprite = firstInt(fields[1])
+			out.Sprite = sprite
 		case "spidx":
-			out.Frames = append(out.Frames, firstInt(fields[1]))
+			frame := firstInt(fields[1])
+			out.Frames = append(out.Frames, frame)
+			out.Steps = append(out.Steps, MotionStep{Sprite: sprite, Frame: frame})
+		case "wait":
+			if len(out.Steps) > 0 {
+				out.Steps[len(out.Steps)-1].Wait = firstInt(fields[1])
+			}
 		case "animtime":
 			out.AnimTime = firstInt(fields[1])
 		}
