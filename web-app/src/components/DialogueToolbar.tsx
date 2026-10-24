@@ -8,6 +8,7 @@ interface DialogueToolbarProps {
   onPause: () => void;
   onArchives: () => void;
   onNavigator: () => void;
+  onTitle: () => void;
   onMute: () => void;
   onFullscreen: () => void;
   onSettings: () => void;
@@ -23,6 +24,7 @@ export default function DialogueToolbar({
   onPause,
   onArchives,
   onNavigator,
+  onTitle,
   onMute,
   onFullscreen,
   onSettings,
@@ -47,6 +49,9 @@ export default function DialogueToolbar({
         title="Navigator (N)"
       >
         Navigate
+      </button>
+      <button className="tool" onClick={onTitle} title="Title">
+        Title
       </button>
       <button className="tool" onClick={onMute} title="Mute (M)">
         {muted ? "🔇" : "🔊"}

@@ -135,6 +135,7 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 - **G** — gallery (pictures, scenes, music)
 - **I** — immersive subtitle mode
+- **Title** — return to the title screen (also in Settings)
 
 The title screen (`title007.bmp`) is shown on a normal launch with entries for
 new/continue, pictures, scene review, music, settings and quit. Scene links
@@ -142,7 +143,7 @@ new/continue, pictures, scene review, music, settings and quit. Scene links
 for a plain pack launch.
 Pack/BGM volume/SE volume/dialog opacity/battle result/status live in the
 **☰ Settings** panel, while
-Archives/Navigate are buttons on the dialogue box. The active side window can
+Archives/Navigate/Title are buttons on the dialogue box. The active side window can
 be closed from its header or by pressing **Escape**. **I** toggles immersive
 mode: the dialogue box and toolbar disappear and dialogue becomes a frameless
 subtitle pill; press **I** again to restore the normal UI. Clicking the game screen

@@ -23,6 +23,7 @@ interface SettingsPanelProps {
   onNavigate: () => void;
   onDebug: () => void;
   onGallery: () => void;
+  onTitle: () => void;
   onReload: () => void;
 }
 
@@ -50,6 +51,7 @@ export default function SettingsPanel({
   onNavigate,
   onDebug,
   onGallery,
+  onTitle,
   onReload,
 }: SettingsPanelProps) {
   return (
@@ -142,6 +144,7 @@ export default function SettingsPanel({
           <button onClick={onNavigate}>Navigate</button>
           <button onClick={onDebug}>Debug</button>
           <button onClick={onGallery}>Gallery</button>
+          <button onClick={onTitle}>Title</button>
           <button onClick={onReload}>Reload scene</button>
         </div>
       </div>

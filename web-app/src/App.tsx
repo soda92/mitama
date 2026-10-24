@@ -499,6 +499,34 @@ export default function App() {
     playerRef.current?.resumeBgm();
   }, []);
 
+  const goHome = useCallback(() => {
+    const player = playerRef.current;
+    if (player) {
+      const snap = player.snapshot();
+      setResumeScene(player.currentScene);
+      setResume({
+        pc: snap.pc,
+        image: snap.image,
+        stage: snap.stage,
+        flags: snap.flags,
+        party: snap.party,
+        mapMode: snap.mapMode,
+      });
+      player.stop();
+    }
+    cancelBattle();
+    setHomeOpen(true);
+    setStarted(false);
+    setEnded(false);
+    setPaused(false);
+    setChoices(null);
+    setUiHidden(false);
+    setArchiveOpen(false);
+    setNavigatorOpen(false);
+    setGalleryOpen(false);
+    setMenuOpen(false);
+  }, [cancelBattle]);
+
   const newGame = useCallback(() => {
     setHomeOpen(false);
     restart();
@@ -608,7 +636,11 @@ export default function App() {
 
   const continueGame = useCallback(() => {
     setHomeOpen(false);
-    if (resumeScene || resume.pc > 0 || resume.stage) return;
+    if (resumeScene || resume.pc > 0 || resume.stage) {
+      setData(null);
+      setReloadKey((k) => k + 1);
+      return;
+    }
     if (latestArchive) loadArchive(latestArchive);
   }, [resumeScene, resume, latestArchive, loadArchive]);
 
@@ -739,6 +771,7 @@ export default function App() {
             onPause={togglePause}
             onArchives={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
             onNavigator={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
+            onTitle={goHome}
             onMute={() => setMuted((m) => !m)}
             onFullscreen={toggleFullscreen}
             onSettings={() => setMenuOpen(true)}
@@ -776,6 +809,7 @@ export default function App() {
                 setDebugOpen(true);
               }}
               onGallery={openGallery}
+              onTitle={goHome}
               onReload={reloadCurrent}
             />
           )}

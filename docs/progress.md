@@ -59,7 +59,8 @@ Last updated: 2026-10-24.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
 - [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
 - [x] Original title screen with new/continue, gallery, settings and quit entries;
-      scene links still auto-start.
+      scene links still auto-start. In-game Title button/Settings entry returns
+      to it and Continue resumes the current position.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
 - [x] Inline voice/SE annotations are hidden and played as page cues.
