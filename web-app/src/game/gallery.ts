@@ -23,6 +23,8 @@ export interface GalleryScene {
 
 export interface GalleryTrack {
   name: string;
+  title?: string;
+  duration?: string;
   file: string;
   uses: string[];
   count: number;

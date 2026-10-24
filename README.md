@@ -199,7 +199,8 @@ Settings → **Gallery** (or **G**) opens a three-tab viewer:
 - **Pictures** — CG thumbnails with full-size viewer, variant stepping and
   story jumps to the scene/command where the CG appears
 - **Scenes** — chapter-grouped scene replay
-- **Music** — BGM preview with play/stop and script usage
+- **Music** — BGM preview with official titles/durations from the executable,
+  play/stop and script usage
 
 Seen pictures/scenes/tracks are persisted in `localStorage` under
 `mitama.gallery.v1`. Story BGM is suspended while the gallery is open.

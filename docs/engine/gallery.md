@@ -31,7 +31,14 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
     { "name": "yr1_02", "title": "…", "chapter": "yr1" }
   ],
   "music": [
-    { "name": "S003", "file": "bgm/S003.xa", "uses": ["yr1_02"], "count": 245 }
+    {
+      "name": "S003",
+      "title": "導かれし魂",
+      "duration": "1:18",
+      "file": "bgm/S003.xa",
+      "uses": ["yr1_02"],
+      "count": 245
+    }
   ]
 }
 ```
@@ -41,8 +48,14 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
 - Scene titles come from the first `STS` command when present.
 - Music usage is gathered by scanning every `MUS` command.
 
-There is no official CG or BGM title metadata in the extracted assets, so the
-UI uses file stems and scene/chapter labels.
+BGM titles and durations are recovered from the executable's sound-test tables
+at `0x4a06dc` (title/duration pointer pairs) and `0x4a07cc` (S-filename
+pointers). Variant files not in the table derive their base title with
+`(別Ver.)`.
+
+Scenes use the first `STS` command when present; otherwise the script name.
+There is no official CG title metadata, so pictures use file stems and their
+story-use context.
 
 ## Seen state
 

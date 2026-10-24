@@ -255,13 +255,19 @@ export default function Gallery({
                     {playing === track.name ? "■" : "▶"}
                   </button>
                   <div>
-                    <b>{track.name}</b>
+                    <b>{track.title || track.name}</b>
                     <span>
-                      {track.count > 0
-                        ? `${track.count} use${track.count === 1 ? "" : "s"}${
-                            track.uses.length ? ` · ${track.uses.join(", ")}` : ""
-                          }`
-                        : "unused"}
+                      {[
+                        track.title ? track.name : "",
+                        track.duration || "",
+                        track.count > 0
+                          ? `${track.count} use${track.count === 1 ? "" : "s"}${
+                              track.uses.length ? ` · ${track.uses.join(", ")}` : ""
+                            }`
+                          : "unused",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </div>
                   {seen.music[track.name] && <i>✓</i>}
