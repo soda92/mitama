@@ -133,6 +133,7 @@ stay beside the stage and remain docked in fullscreen.
 - **F** — fullscreen (letterboxed 4:3)
 - **D** — engine debug panel
 - **N** — page/chapter navigator
+- **G** — gallery (pictures, scenes, music)
 
 There is no title screen or top header; the selected pack starts immediately.
 Pack/BGM volume/SE volume/dialog opacity/battle result/status live in the
@@ -166,6 +167,17 @@ jingles, are available. Victory or defeat sets flag
 `20`, so the script branches normally. **Settings → battle** can instead use
 auto-win, auto-lose or random for story testing. See
 [docs/engine/battle.md](docs/engine/battle.md).
+
+### Gallery
+
+Settings → **Gallery** (or **G**) opens a three-tab viewer:
+
+- **Pictures** — CG thumbnails with full-size viewer and variant stepping
+- **Scenes** — chapter-grouped scene replay
+- **Music** — BGM preview with play/stop and script usage
+
+Seen pictures/scenes/tracks are persisted in `localStorage` under
+`mitama.gallery.v1`. Story BGM is suspended while the gallery is open.
 
 ### Debugging
 

@@ -31,6 +31,8 @@ export interface PlayerEvents {
   position?(scene: string, pc: number): void;
   /** A menu is waiting for a selection, or null when it closes. */
   choice?(options: Option[] | null): void;
+  /** A background/music asset was requested by the script. */
+  asset?(kind: "image" | "music", name: string): void;
   /** Run a battle and return the result. */
   battle?(info: BattleInfo): "win" | "lose" | void | Promise<"win" | "lose" | void>;
 }
@@ -664,6 +666,7 @@ export class Player {
       this.events.log(`missing bgm: ${name}`);
       return;
     }
+    this.events.asset?.("music", name);
     this.audio.playBgm(rel);
   }
 
@@ -694,6 +697,7 @@ export class Player {
             await this.showText(c.speaker ?? "", c.message ?? "", c.cues ?? []);
             break;
           case "BMP":
+            if (args[0]) this.events.asset?.("image", args[0]);
             this.stageRenderer.queueBmp(args);
             break;
           case "UPD": {

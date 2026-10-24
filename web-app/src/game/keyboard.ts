@@ -2,6 +2,7 @@ export interface GameKeyboardContext {
   archiveOpen: boolean;
   navigatorOpen: boolean;
   battleOpen: boolean;
+  galleryOpen: boolean;
   menuOpen: boolean;
   uiHidden: boolean;
   started: boolean;
@@ -11,6 +12,7 @@ export interface GameKeyboardContext {
   togglePause: () => void;
   toggleFullscreen: () => void;
   openNavigator: () => void;
+  openGallery: () => void;
   setArchiveOpen: (open: boolean) => void;
   setNavigatorOpen: (open: boolean) => void;
   setMenuOpen: (open: boolean) => void;
@@ -26,7 +28,7 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     o.setMenuOpen(false);
     return;
   }
-  if (o.battleOpen) return;
+  if (o.battleOpen || o.galleryOpen) return;
 
   const target = ev.target instanceof HTMLElement ? ev.target : null;
   const typing =
@@ -66,6 +68,8 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     o.setDebugOpen(!o.debugOpen);
   } else if (ev.key === "n" || ev.key === "N") {
     o.openNavigator();
+  } else if (ev.key === "g" || ev.key === "G") {
+    o.openGallery();
   }
 }
 

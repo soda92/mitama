@@ -52,3 +52,4 @@ damage model remain.
 Start with [Progress](progress.md).
 
 Battle file details: [engine/battle.md](engine/battle.md).
+Gallery data and seen-state details: [engine/gallery.md](engine/gallery.md).

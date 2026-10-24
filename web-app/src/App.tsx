@@ -14,6 +14,7 @@ import Navigator from "./components/Navigator";
 import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import DialogueToolbar from "./components/DialogueToolbar";
+import Gallery from "./components/Gallery";
 import { useGameKeyboard } from "./hooks/useGameKeyboard";
 import { useBattleSession } from "./hooks/useBattleSession";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
@@ -29,6 +30,13 @@ import {
   writeSettings,
   type BattlePolicy,
 } from "./game/settings";
+import {
+  readSeen,
+  writeSeen,
+  pictureKey,
+  type GalleryKind,
+  type GallerySeen,
+} from "./game/gallery";
 
 interface GameData {
   script: Script;
@@ -83,6 +91,8 @@ export default function App() {
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [gallerySeen, setGallerySeen] = useState<GallerySeen>(readSeen);
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -195,6 +205,14 @@ export default function App() {
     [packId],
   );
 
+  const markSeen = useCallback((kind: GalleryKind, key: string) => {
+    if (!key) return;
+    setGallerySeen((prev) => {
+      if (prev[kind][key]) return prev;
+      return { ...prev, [kind]: { ...prev[kind], [key]: true } };
+    });
+  }, []);
+
   const updateURL = useCallback(
     (scene: string, pc: number) => {
       const url = new URL(window.location.href);
@@ -205,8 +223,9 @@ export default function App() {
       window.history.replaceState(null, "", url.toString());
       setCurrentScene(scene);
       setCurrentPC(pc);
+      if (scene) markSeen("scenes", scene.toLowerCase());
     },
-    [packId],
+    [packId, markSeen],
   );
 
   useEffect(() => {
@@ -231,6 +250,13 @@ export default function App() {
         },
         position: updateURL,
         choice: setChoices,
+        asset: (kind, name) => {
+          if (kind === "image" && name.toLowerCase().startsWith("cg")) {
+            markSeen("pictures", pictureKey(name));
+          } else if (kind === "music") {
+            markSeen("music", name.toUpperCase());
+          }
+        },
         battle: runBattleWithAudio,
       },
       packId,
@@ -246,7 +272,7 @@ export default function App() {
     };
     // Volume is applied separately below; it must not recreate the player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, packId, startScene, loadScript, updateURL, runBattleWithAudio]);
+  }, [data, packId, startScene, loadScript, updateURL, runBattleWithAudio, markSeen]);
 
   // Debug surface for Chrome DevTools MCP / console use.
   useEffect(() => {
@@ -308,6 +334,10 @@ export default function App() {
   useEffect(() => {
     writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, battlePolicy });
   }, [bgmVolume, seVolume, muted, dialogOpacity, battlePolicy]);
+
+  useEffect(() => {
+    writeSeen(gallerySeen);
+  }, [gallerySeen]);
 
   useEffect(() => {
     const unlock = () => {
@@ -426,6 +456,19 @@ export default function App() {
     setNavigatorOpen(true);
   }, []);
 
+  const openGallery = useCallback(() => {
+    setArchiveOpen(false);
+    setNavigatorOpen(false);
+    setMenuOpen(false);
+    setGalleryOpen(true);
+    playerRef.current?.suspendBgm();
+  }, []);
+
+  const closeGallery = useCallback(() => {
+    setGalleryOpen(false);
+    playerRef.current?.resumeBgm();
+  }, []);
+
   const changePack = useCallback(
     (id: string) => {
       cancelBattle();
@@ -533,6 +576,7 @@ export default function App() {
       cancelBattle();
       const scene = name.replace(/\.txt$/i, "");
       setNavigatorOpen(false);
+      setGalleryOpen(false);
       setData(null);
       setStarted(false);
       setEnded(false);
@@ -591,6 +635,7 @@ export default function App() {
     archiveOpen,
     navigatorOpen,
     battleOpen: !!battleSession,
+    galleryOpen,
     menuOpen,
     uiHidden,
     started,
@@ -600,6 +645,7 @@ export default function App() {
     togglePause,
     toggleFullscreen,
     openNavigator,
+    openGallery,
     setArchiveOpen,
     setNavigatorOpen,
     setMenuOpen,
@@ -667,7 +713,23 @@ export default function App() {
                 setMenuOpen(false);
                 setDebugOpen(true);
               }}
+              onGallery={openGallery}
               onReload={reloadCurrent}
+            />
+          )}
+
+          {galleryOpen && (
+            <Gallery
+              packId={packId}
+              seen={gallerySeen}
+              bgmVolume={bgmVolume}
+              muted={muted}
+              onSeen={markSeen}
+              onClose={closeGallery}
+              onPlayScene={(name) => {
+                closeGallery();
+                navigateToScene(name, 0);
+              }}
             />
           )}
 
