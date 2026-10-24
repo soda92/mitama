@@ -111,6 +111,9 @@ Example (from `yr1_00.txt`):
 弘安八年　　霜月騒動」
 ```
 
+For the decoded story-level meaning of individual flags, route gates and
+ending conditions, see [flags.md](flags.md).
+
 ## Asset routing
 
 | Command | Archive |

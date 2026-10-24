@@ -295,4 +295,5 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/formats/arc.md](docs/formats/arc.md) — ARC directory + LZSS
 - [docs/formats/xa.md](docs/formats/xa.md) — KWD1 / `.XA` audio
 - [docs/engine/script.md](docs/engine/script.md) — command language
+- [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
 - [docs/progress.md](docs/progress.md) — what works, what is next
