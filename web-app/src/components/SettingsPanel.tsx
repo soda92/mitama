@@ -10,12 +10,14 @@ interface SettingsPanelProps {
   bgmVolume: number;
   seVolume: number;
   dialogOpacity: number;
+  immersiveMode: boolean;
   battlePolicy: BattlePolicy;
   onClose: () => void;
   onPackChange: (id: string) => void;
   onBgmVolume: (value: number) => void;
   onSeVolume: (value: number) => void;
   onDialogOpacity: (value: number) => void;
+  onImmersiveMode: (value: boolean) => void;
   onBattlePolicy: (value: BattlePolicy) => void;
   onArchives: () => void;
   onNavigate: () => void;
@@ -35,12 +37,14 @@ export default function SettingsPanel({
   bgmVolume,
   seVolume,
   dialogOpacity,
+  immersiveMode,
   battlePolicy,
   onClose,
   onPackChange,
   onBgmVolume,
   onSeVolume,
   onDialogOpacity,
+  onImmersiveMode,
   onBattlePolicy,
   onArchives,
   onNavigate,
@@ -111,6 +115,14 @@ export default function SettingsPanel({
             onChange={(ev) => onDialogOpacity(Number(ev.target.value) / 100)}
           />
           <b className="setting-value">{percent(dialogOpacity)}</b>
+        </label>
+        <label className="settings-row">
+          <span>immersive mode</span>
+          <input
+            type="checkbox"
+            checked={immersiveMode}
+            onChange={(ev) => onImmersiveMode(ev.target.checked)}
+          />
         </label>
         <label className="settings-row">
           <span>battle</span>

@@ -134,6 +134,7 @@ stay beside the stage and remain docked in fullscreen.
 - **D** — engine debug panel
 - **N** — page/chapter navigator
 - **G** — gallery (pictures, scenes, music)
+- **I** — immersive subtitle mode
 
 The title screen (`title007.bmp`) is shown on a normal launch with entries for
 new/continue, pictures, scene review, music, settings and quit. Scene links
@@ -142,7 +143,9 @@ for a plain pack launch.
 Pack/BGM volume/SE volume/dialog opacity/battle result/status live in the
 **☰ Settings** panel, while
 Archives/Navigate are buttons on the dialogue box. The active side window can
-be closed from its header or by pressing **Escape**. Clicking the game screen
+be closed from its header or by pressing **Escape**. **I** toggles immersive
+mode: the dialogue box and toolbar disappear and dialogue becomes a frameless
+subtitle pill; press **I** again to restore the normal UI. Clicking the game screen
 returns focus to the game, so **Enter** and the arrow keys keep advancing
 dialogue while a side window is open. Scene links (`?scene=…&cmd=…`) resume
 directly.
@@ -155,6 +158,7 @@ Settings are persisted in `localStorage` under `mitama.settings.v1` as JSON:
   "seVolume": 0.7,
   "muted": false,
   "dialogOpacity": 1,
+  "immersiveMode": false,
   "battlePolicy": "play"
 }
 ```

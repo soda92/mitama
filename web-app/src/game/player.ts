@@ -118,6 +118,7 @@ export class Player {
   private textLast = 0;
   private dialogueHidden = false;
   private dialogueOpacity = 1;
+  private immersive = false;
 
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
@@ -294,6 +295,12 @@ export class Player {
     const value = Math.max(0, Math.min(1, opacity));
     if (this.dialogueOpacity === value) return;
     this.dialogueOpacity = value;
+    this.draw();
+  }
+
+  setImmersive(immersive: boolean): void {
+    if (this.immersive === immersive) return;
+    this.immersive = immersive;
     this.draw();
   }
 
@@ -638,7 +645,8 @@ export class Player {
       chars: this.textChars,
       complete: this.textComplete,
       opacity: this.dialogueOpacity,
-      showReplay: this.hasReplayVoice,
+      showReplay: !this.immersive && this.hasReplayVoice,
+      immersive: this.immersive,
     });
   }
 

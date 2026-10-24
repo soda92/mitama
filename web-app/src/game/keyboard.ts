@@ -5,6 +5,7 @@ export interface GameKeyboardContext {
   galleryOpen: boolean;
   homeOpen: boolean;
   menuOpen: boolean;
+  immersive: boolean;
   uiHidden: boolean;
   started: boolean;
   muted: boolean;
@@ -14,6 +15,7 @@ export interface GameKeyboardContext {
   toggleFullscreen: () => void;
   openNavigator: () => void;
   openGallery: () => void;
+  setImmersive: (value: boolean) => void;
   setArchiveOpen: (open: boolean) => void;
   setNavigatorOpen: (open: boolean) => void;
   setMenuOpen: (open: boolean) => void;
@@ -65,6 +67,8 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     o.setMuted(!o.muted);
   } else if (ev.key === "f" || ev.key === "F") {
     o.toggleFullscreen();
+  } else if (ev.key === "i" || ev.key === "I") {
+    o.setImmersive(!o.immersive);
   } else if (ev.key === "d" || ev.key === "D") {
     o.setDebugOpen(!o.debugOpen);
   } else if (ev.key === "n" || ev.key === "N") {

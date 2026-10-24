@@ -5,6 +5,7 @@ export interface StoredSettings {
   seVolume: number;
   muted: boolean;
   dialogOpacity: number;
+  immersiveMode: boolean;
   battlePolicy: BattlePolicy;
 }
 
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   seVolume: 0.7,
   muted: false,
   dialogOpacity: 1,
+  immersiveMode: false,
   battlePolicy: "play",
 };
 
@@ -68,6 +70,7 @@ export function readSettings(): StoredSettings {
     seVolume: volumeSetting(saved.seVolume, DEFAULT_SETTINGS.seVolume),
     muted: typeof saved.muted === "boolean" ? saved.muted : DEFAULT_SETTINGS.muted,
     dialogOpacity: opacity,
+    immersiveMode: typeof saved.immersiveMode === "boolean" ? saved.immersiveMode : DEFAULT_SETTINGS.immersiveMode,
     battlePolicy: battle,
   };
 }

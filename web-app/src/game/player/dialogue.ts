@@ -15,6 +15,7 @@ export interface DialogueFrame {
   complete: boolean;
   opacity: number;
   showReplay: boolean;
+  immersive?: boolean;
 }
 
 /**
@@ -27,6 +28,10 @@ export function drawDialogue(
 ): ReplayBounds | null {
   const page = frame.pages[frame.page] ?? "";
   const visible = page.slice(0, Math.floor(frame.chars));
+
+  if (frame.immersive) {
+    return drawImmersive(ctx, frame, visible);
+  }
 
   const x = 18;
   const y = 326;
@@ -113,4 +118,76 @@ export function drawDialogue(
   }
   ctx.restore();
   return replay;
+}
+
+
+/** Frameless subtitle pill used by immersive mode. */
+function drawImmersive(
+  ctx: CanvasRenderingContext2D,
+  frame: DialogueFrame,
+  visible: string,
+): null {
+  const width = frame.width;
+  const height = frame.height;
+  const maxWidth = width * 0.78;
+  const font = '18px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+  ctx.save();
+  ctx.font = font;
+  const lines: string[] = [];
+  for (const para of visible.split("\n")) {
+    let line = "";
+    for (const ch of para) {
+      const candidate = line + ch;
+      if (ctx.measureText(candidate).width > maxWidth && line.length > 0) {
+        lines.push(line);
+        line = ch;
+      } else {
+        line = candidate;
+      }
+    }
+    lines.push(line);
+  }
+  const shown = lines.slice(0, 4);
+  let widest = 0;
+  for (const line of shown) widest = Math.max(widest, ctx.measureText(line).width);
+  const speakerWidth = frame.speaker ? ctx.measureText(`［${frame.speaker}］`).width : 0;
+  const pillWidth = Math.min(width - 40, Math.max(220, Math.max(widest, speakerWidth) + 48));
+  const lineHeight = 25;
+  const pillHeight = 20 + shown.length * lineHeight + (frame.speaker ? 24 : 0);
+  const x = (width - pillWidth) / 2;
+  const y = height - 34 - pillHeight;
+
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.78 * frame.opacity})`;
+  ctx.strokeStyle = `rgba(255, 255, 255, ${0.16 * frame.opacity})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, pillWidth, pillHeight, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  let ty = y + 10;
+  if (frame.speaker) {
+    ctx.fillStyle = "rgba(230, 196, 132, 0.98)";
+    ctx.font = '600 14px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+    ctx.fillText(`［${frame.speaker}］`, width / 2, ty);
+    ty += 24;
+    ctx.font = font;
+  }
+  ctx.fillStyle = "rgba(245, 243, 238, 0.98)";
+  shown.forEach((line, i) => {
+    ctx.fillText(line, width / 2, ty + i * lineHeight);
+  });
+  if (frame.complete && Math.floor(performance.now() / 450) % 2 === 0) {
+    ctx.fillStyle = "rgba(201, 168, 106, 0.9)";
+    ctx.beginPath();
+    ctx.moveTo(x + pillWidth - 24, y + pillHeight - 14);
+    ctx.lineTo(x + pillWidth - 15, y + pillHeight - 14);
+    ctx.lineTo(x + pillWidth - 19.5, y + pillHeight - 8);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  return null;
 }

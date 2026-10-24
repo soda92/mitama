@@ -2124,3 +2124,9 @@ button.title-hit:focus-visible {
   width: 16%;
   height: 6.5%;
 }
+
+/* immersive mode hides the dialogue chrome; subtitle is drawn on-canvas */
+.shell.immersive .dialogue-tools {
+  opacity: 0;
+  pointer-events: none;
+}

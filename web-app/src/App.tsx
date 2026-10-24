@@ -105,6 +105,7 @@ export default function App() {
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
+  const [immersiveMode, setImmersiveMode] = useState(initialSettings.immersiveMode);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -352,12 +353,16 @@ export default function App() {
   }, [dialogOpacity, data]);
 
   useEffect(() => {
+    playerRef.current?.setImmersive(immersiveMode);
+  }, [immersiveMode, data]);
+
+  useEffect(() => {
     playerRef.current?.setMuted(muted);
   }, [muted]);
 
   useEffect(() => {
-    writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, battlePolicy });
-  }, [bgmVolume, seVolume, muted, dialogOpacity, battlePolicy]);
+    writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy });
+  }, [bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy]);
 
   useEffect(() => {
     writeSeen(gallerySeen);
@@ -674,6 +679,8 @@ export default function App() {
     galleryOpen,
     homeOpen,
     menuOpen,
+    immersive: immersiveMode,
+    setImmersive: setImmersiveMode,
     uiHidden,
     started,
     muted,
@@ -697,7 +704,7 @@ export default function App() {
   return (
     <main
       ref={shellRef}
-      className={`shell ${uiHidden ? "ui-hidden" : ""} ${archiveOpen || navigatorOpen ? "side-open" : ""}`}
+      className={`shell ${uiHidden ? "ui-hidden" : ""} ${archiveOpen || navigatorOpen ? "side-open" : ""} ${immersiveMode ? "immersive" : ""}`}
       style={{ "--dialog-opacity": dialogOpacity } as CSSProperties}
     >
       <div className="play-area">
@@ -747,12 +754,14 @@ export default function App() {
               bgmVolume={bgmVolume}
               seVolume={seVolume}
               dialogOpacity={dialogOpacity}
+              immersiveMode={immersiveMode}
               battlePolicy={battlePolicy}
               onClose={() => setMenuOpen(false)}
               onPackChange={changePack}
               onBgmVolume={setBgmVolume}
               onSeVolume={setSeVolume}
               onDialogOpacity={setDialogOpacity}
+              onImmersiveMode={setImmersiveMode}
               onBattlePolicy={setBattlePolicy}
               onArchives={() => {
                 setMenuOpen(false);
