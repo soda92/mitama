@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type MouseEvent,
 } from "react";
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
@@ -13,13 +12,20 @@ import ArchiveManager from "./components/ArchiveManager";
 import Navigator from "./components/Navigator";
 import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
+import DialogueOverlay from "./components/DialogueOverlay";
 import DialogueToolbar from "./components/DialogueToolbar";
 import Gallery from "./components/Gallery";
 import ProtagonistSelect, { type ProtagonistRoute } from "./components/ProtagonistSelect";
 import TitleScreen from "./components/TitleScreen";
 import { useGameKeyboard } from "./hooks/useGameKeyboard";
 import { useBattleSession } from "./hooks/useBattleSession";
-import type { AssetMap, Option, PackInfo, Script } from "./game/types";
+import type {
+  AssetMap,
+  DialogueOverlayState,
+  Option,
+  PackInfo,
+  Script,
+} from "./game/types";
 import {
   readArchives,
   writeArchives,
@@ -100,6 +106,7 @@ export default function App() {
   const [status, setStatus] = useState("loading");
   const [log, setLog] = useState("ready");
   const [choices, setChoices] = useState<Option[] | null>(null);
+  const [dialogue, setDialogue] = useState<DialogueOverlayState | null>(null);
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
@@ -315,6 +322,7 @@ export default function App() {
         },
         position: updateURL,
         choice: setChoices,
+        dialogue: setDialogue,
         asset: (kind, name) => {
           if (kind === "image" && name.toLowerCase().startsWith("cg")) {
             markSeen("pictures", pictureKey(name));
@@ -347,6 +355,7 @@ export default function App() {
     return () => {
       player.stop();
       playerRef.current = null;
+      setDialogue(null);
     };
     // Volume is applied separately below; it must not recreate the player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -486,43 +495,13 @@ export default function App() {
     playerRef.current?.advance();
   }, []);
 
-  const canvasPoint = useCallback((ev: MouseEvent<HTMLDivElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((ev.clientX - rect.left) * 640) / rect.width,
-      y: ((ev.clientY - rect.top) * 480) / rect.height,
-    };
-  }, []);
-
-  const handleStageClick = useCallback(
-    (ev: MouseEvent<HTMLDivElement>) => {
-      if (uiHidden) {
-        setUiHidden(false);
-        return;
-      }
-      const point = canvasPoint(ev);
-      const player = playerRef.current;
-      if (point && player?.hitReplay(point.x, point.y)) {
-        player.replayVoice();
-        return;
-      }
-      advance();
-    },
-    [uiHidden, advance, canvasPoint],
-  );
-
-  const handleStageMove = useCallback(
-    (ev: MouseEvent<HTMLDivElement>) => {
-      const point = canvasPoint(ev);
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.style.cursor =
-        point && playerRef.current?.hitReplay(point.x, point.y) ? "pointer" : "default";
-    },
-    [canvasPoint],
-  );
+  const handleStageClick = useCallback(() => {
+    if (uiHidden) {
+      setUiHidden(false);
+      return;
+    }
+    advance();
+  }, [uiHidden, advance]);
 
   const restart = useCallback(() => {
     cancelBattle();
@@ -863,8 +842,14 @@ export default function App() {
       <div className="play-area">
 
       <section className="stage-wrap">
-        <div className="screen" onClick={handleStageClick} onMouseMove={handleStageMove}>
+        <div className="screen" onClick={handleStageClick}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
+
+          <DialogueOverlay
+            state={dialogue}
+            onAdvance={advance}
+            onReplay={() => playerRef.current?.replayVoice()}
+          />
 
           {homeOpen && (
             <TitleScreen

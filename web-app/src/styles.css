@@ -172,6 +172,7 @@ button.ghost {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  container-type: size;
 }
 
 canvas {
@@ -179,6 +180,151 @@ canvas {
   height: 100%;
   display: block;
   background: #000;
+}
+
+/* Dialogue is DOM, not canvas: it can be selected, copied and read. */
+.dialogue-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.dialogue-panel {
+  position: absolute;
+  left: 2.8125%;
+  top: 67.9167%;
+  width: 94.375%;
+  height: 29.5833%;
+  box-sizing: border-box;
+  border: 1px solid rgba(201, 168, 106, 0.72);
+  border-radius: 1.25cqw;
+  background: rgba(7, 8, 12, var(--dialog-opacity, 1));
+  overflow: hidden;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dialogue-text {
+  position: absolute;
+  top: 28.17%;
+  right: 3.97%;
+  left: 3.97%;
+  margin: 0;
+  color: rgba(236, 232, 220, 0.96);
+  font: 2.8125cqw/1.278 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.dialogue-header {
+  position: absolute;
+  top: 64.7917%;
+  left: 4.6875%;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 0.9375cqw;
+  height: 4.375cqw;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dialogue-speaker {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 10cqw;
+  padding: 0 2.1875cqw;
+  border: 1px solid rgba(201, 168, 106, 0.55);
+  border-radius: 0.78cqw;
+  background: rgba(12, 12, 16, var(--dialog-opacity, 1));
+  color: rgba(230, 196, 132, 0.95);
+  font: 600 2.65625cqw/1 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  user-select: none;
+}
+
+button.dialogue-replay {
+  align-self: center;
+  width: 5cqw;
+  height: 4.0625cqw;
+  padding: 0;
+  border: 1px solid rgba(201, 168, 106, 0.55);
+  border-radius: 0.78cqw;
+  background: rgba(20, 18, 14, var(--dialog-opacity, 1));
+  color: rgba(230, 196, 132, 0.95);
+  font: 600 2.03125cqw/1 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  cursor: pointer;
+}
+
+button.dialogue-replay:hover,
+button.dialogue-replay:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.dialogue-panel > .dialogue-next {
+  position: absolute;
+  right: 4.97%;
+  bottom: 15.5%;
+}
+
+.dialogue-next {
+  display: block;
+  width: 1.5625cqw;
+  height: 1.09375cqw;
+  background: rgba(201, 168, 106, 0.9);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.dialogue-overlay.immersive .dialogue-panel,
+.dialogue-overlay.immersive .dialogue-header {
+  display: none;
+}
+
+.dialogue-pill {
+  position: absolute;
+  bottom: 7.0833%;
+  left: 50%;
+  box-sizing: border-box;
+  max-width: 78%;
+  padding: 1.5625cqw 1.8cqw;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1.25cqw;
+  background: rgba(0, 0, 0, calc(var(--dialog-opacity, 1) * 0.78));
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dialogue-pill-speaker {
+  margin-bottom: 0.3cqw;
+  color: rgba(230, 196, 132, 0.98);
+  font: 600 2.1875cqw/1.3 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  user-select: none;
+}
+
+.dialogue-pill-text {
+  max-width: 74cqw;
+  margin: 0 auto;
+  color: rgba(245, 243, 238, 0.98);
+  font: 2.8125cqw/1.39 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.dialogue-pill .dialogue-next {
+  position: absolute;
+  right: 1.8cqw;
+  bottom: 1.1cqw;
 }
 
 .dialogue-tools {

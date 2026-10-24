@@ -58,7 +58,8 @@ Last updated: 2026-10-24.
 - [x] Scene URLs auto-start and rebuild stage/flags/BGM.
 - [x] Resuming at a TEXT line replays the preceding `SEV` voice.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
-- [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
+- [x] Canvas stage with a DOM dialogue overlay; selectable text and
+      fit-to-viewport layout.
 - [x] Original title screen with new/continue, gallery, settings and quit entries;
       new game shows the original 八尋/朧 主人公選択 screen; scene links still
       auto-start. In-game Title button/Settings entry returns
@@ -70,7 +71,7 @@ Last updated: 2026-10-24.
       Settings (pack, volume, debug).
 - [x] Background stack semantics: `BMP BLACK 消去` reveals the background
       underneath instead of clearing it.
-- [x] Dialogue box is opaque and the whole frame is redrawn per typewriter
+- [x] Dialogue box is opaque and the DOM overlay updates per typewriter
       tick (no stale/accumulated box alpha).
 - [x] Adjustable dialogue opacity and immersive subtitle mode in Settings
       (persisted per browser).

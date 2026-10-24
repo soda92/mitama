@@ -7,7 +7,8 @@ The project has two halves:
 
 - **Go backend** — disc/ISO reader, ARC archive reader, LZSS decoder, asset
   extractor, and HTTP server.
-- **React + Vite frontend** — a 640×480 canvas player that reimplements the
+- **React + Vite frontend** — a 640×480 canvas stage with a DOM dialogue
+  overlay that reimplements the
   engine's script VM, transitions, audio and (eventually) the RPG systems.
 
 Nothing from the original game is included. You must own the game and point the
@@ -23,7 +24,7 @@ extractor at your own data.
 | `KWD1` `.XA` audio codec | ✅ decoded, verified against `xadec.dll` |
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
-| Text / dialogue rendering (typewriter, click, `￥` pages) | ✅ implemented |
+| Text / dialogue rendering (DOM overlay, typewriter, click, `￥` pages) | ✅ implemented |
 | Layered stage (BG + L/R/C stands, black color key) | ✅ implemented |
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
@@ -125,7 +126,8 @@ stay beside the stage and remain docked in fullscreen.
 
 ### Controls
 
-- **Click / Enter / ↓ / →** — advance dialogue
+- **Click / Enter / ↓ / →** — advance dialogue (select text with the mouse
+  without advancing)
 - **声** — replay the current line's voice (beside the speaker tag, or at the
   left edge for narration)
 - **Space** — hide/show the dialogue and HUD
@@ -270,7 +272,7 @@ pkg/battle/         .pty / .chr battle definition parser
 pkg/script/         CP932 command-script parser
 pkg/xa/             KWD1 audio codec (PCM output)
 web-app/            React 19 + Vite + TypeScript player
-  src/game/player/  audio, dialogue and stage renderer modules
+  src/game/player/  audio and stage renderer modules
 docs/               Format notes, engine notes, roadmap
 data/               Extracted assets (gitignored)
 .cache/             Disc images and intermediate files (gitignored)

@@ -1,6 +1,12 @@
-import type { AssetMap, Command, Cue, Option, Script } from "./types";
+import type {
+  AssetMap,
+  Command,
+  Cue,
+  DialogueOverlayState,
+  Option,
+  Script,
+} from "./types";
 import { AudioEngine, type AudioSnapshot } from "./player/audio";
-import { drawDialogue, type ReplayBounds } from "./player/dialogue";
 import {
   STAGE_H as H,
   STAGE_W as W,
@@ -33,6 +39,8 @@ export interface PlayerEvents {
   choice?(options: Option[] | null): void;
   /** A background/music asset was requested by the script. */
   asset?(kind: "image" | "music", name: string): void;
+  /** Current dialogue overlay state, or null when it is hidden. */
+  dialogue?(state: DialogueOverlayState | null): void;
   /** The script requested a return to the title screen. */
   title?(): void;
   /** Run a battle and return the result. */
@@ -113,9 +121,9 @@ export class Player {
   private textActive = false;
   private textResolve: (() => void) | null = null;
   private textFallbackVoice = "";
-  private replayBounds: ReplayBounds | null = null;
   private textRaf = 0;
   private textLast = 0;
+  private dialogueKey = "";
   private dialogueHidden = false;
   private dialogueOpacity = 1;
   private immersive = false;
@@ -467,12 +475,6 @@ export class Player {
     return true;
   }
 
-  /** Test a click in canvas coordinates against the replay button. */
-  hitReplay(x: number, y: number): boolean {
-    const b = this.replayBounds;
-    return !!b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
-  }
-
   /** True while dialogue is on screen and waiting for the player. */
   get hasText(): boolean {
     return this.textActive;
@@ -530,9 +532,9 @@ export class Player {
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
     this.textFallbackVoice = "";
-    this.replayBounds = null;
     this.textActive = false;
     this.textComplete = false;
+    this.emitDialogue(null);
     this.textWaitersResolve();
   }
 
@@ -625,28 +627,40 @@ export class Player {
     this.textPages = [];
     this.textCues = [];
     this.textFallbackVoice = "";
-    this.replayBounds = null;
     this.textPage = 0;
     this.textChars = 0;
     this.draw();
     this.textWaitersResolve();
   }
 
+  private emitDialogue(state: DialogueOverlayState | null): void {
+    const key = state
+      ? [
+          state.speaker,
+          state.text,
+          state.complete ? "1" : "0",
+          state.opacity,
+          state.showReplay ? "1" : "0",
+          state.immersive ? "1" : "0",
+        ].join("\u0000")
+      : "";
+    if (key === this.dialogueKey) return;
+    this.dialogueKey = key;
+    this.events.dialogue?.(state);
+  }
+
   private drawText(): void {
     if (!this.textActive || this.dialogueHidden) {
-      this.replayBounds = null;
+      this.emitDialogue(null);
       return;
     }
-    this.replayBounds = drawDialogue(this.ctx, {
-      width: W,
-      height: H,
+    const page = this.textPages[this.textPage] ?? "";
+    this.emitDialogue({
       speaker: this.textSpeaker,
-      pages: this.textPages,
-      page: this.textPage,
-      chars: this.textChars,
+      text: page.slice(0, Math.floor(this.textChars)),
       complete: this.textComplete,
       opacity: this.dialogueOpacity,
-      showReplay: !this.immersive && this.hasReplayVoice,
+      showReplay: this.hasReplayVoice,
       immersive: this.immersive,
     });
   }

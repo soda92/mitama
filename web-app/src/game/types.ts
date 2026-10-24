@@ -33,6 +33,16 @@ export interface AssetMap {
   text: Record<string, string>;
 }
 
+/** Visible dialogue state rendered by the DOM overlay. */
+export interface DialogueOverlayState {
+  speaker: string;
+  text: string;
+  complete: boolean;
+  opacity: number;
+  showReplay: boolean;
+  immersive: boolean;
+}
+
 export interface PackInfo {
   id: string;
   title: string;
