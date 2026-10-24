@@ -53,3 +53,20 @@ export function clearBlackBackground(
 
   ctx.putImageData(image, 0, 0);
 }
+
+/** Treat all near-black pixels as transparent (used by additive effects). */
+export function clearBlackPixels(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  threshold = 12,
+): void {
+  const image = ctx.getImageData(0, 0, width, height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] <= threshold && data[i + 1] <= threshold && data[i + 2] <= threshold) {
+      data[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+}

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   BattleCharacter,
+  BattleEffect,
   BattleEncounter,
   BattleMotionEvent,
   BattleSpecial,
 } from "../game/battle";
-import { clearBlackBackground } from "../game/chroma";
+import { clearBlackBackground, clearBlackPixels } from "../game/chroma";
 
 interface BattleScreenProps {
   encounter: BattleEncounter;
@@ -51,8 +52,9 @@ function MotionActor({
 
   useEffect(() => {
     if (!clip) return;
+    const lastStep = Math.max(0, clip.steps.length - 1);
     for (const event of clip.events ?? []) {
-      if (event.at === step) onEventRef.current?.(event);
+      if (Math.min(event.at, lastStep) === step) onEventRef.current?.(event);
     }
   }, [clip, step]);
 
@@ -151,6 +153,67 @@ function chooseEnemyAction(character: BattleCharacter, playerAction: number): En
   };
 }
 
+interface EffectInstance extends BattleEffect {
+  id: number;
+  x: number;
+  y: number;
+}
+
+function EffectActor({ effect, onDone }: { effect: EffectInstance; onDone: () => void }) {
+  const [step, setStep] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  const frame = effect.frames[step];
+
+  useEffect(() => {
+    if (step >= effect.frames.length) {
+      onDoneRef.current();
+      return;
+    }
+    const perFrame = Math.max(40, (effect.wait * 16.67) / Math.max(1, effect.frames.length));
+    const timer = window.setTimeout(() => setStep((n) => n + 1), perFrame);
+    return () => window.clearTimeout(timer);
+  }, [effect, step]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !frame) return;
+    canvas.width = frame.w;
+    canvas.height = frame.h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      ctx.clearRect(0, 0, frame.w, frame.h);
+      ctx.drawImage(img, -frame.x, -frame.y);
+      clearBlackPixels(ctx, frame.w, frame.h);
+    };
+    img.src = effect.bmp;
+    return () => {
+      cancelled = true;
+    };
+  }, [effect.bmp, frame]);
+
+  if (!frame) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="battle-effect"
+      width={frame.w}
+      height={frame.h}
+      style={{
+        width: frame.w,
+        height: frame.h,
+        left: `calc(50% + ${effect.x}px)`,
+        top: `calc(50% + ${effect.y}px)`,
+      }}
+    />
+  );
+}
+
 type Phase = "select" | "busy" | "done";
 type Action = "ken" | "zyutu" | "uke";
 
@@ -183,6 +246,9 @@ export default function BattleScreen({
   const timer = useRef<number | null>(null);
   const flashTimer = useRef<number | null>(null);
   const liveSe = useRef(new Set<HTMLAudioElement>());
+  const effectID = useRef(0);
+  const effectCache = useRef(new Map<string, Promise<BattleEffect | null>>());
+  const [effects, setEffects] = useState<EffectInstance[]>([]);
   const [flash, setFlash] = useState<"white" | "red" | "black" | null>(null);
   const bgm = useRef<HTMLAudioElement | null>(null);
 
@@ -225,6 +291,20 @@ export default function BattleScreen({
   );
   const playerLabel = player.name || "八尋";
 
+  const loadEffect = (name: string): Promise<BattleEffect | null> => {
+    const cached = effectCache.current.get(name);
+    if (cached) return cached;
+    const request = fetch(
+      `/api/battle/effect?pack=${encodeURIComponent(packId)}&name=${encodeURIComponent(name)}`,
+    )
+      .then(async (response) =>
+        response.ok ? ((await response.json()) as BattleEffect) : null,
+      )
+      .catch(() => null);
+    effectCache.current.set(name, request);
+    return request;
+  };
+
   const handleMotionEvent = (event: BattleMotionEvent) => {
     if (event.kind === "se" || event.kind === "c_se" || event.kind === "se_attack") {
       const name = (event.value ?? "").split(",").pop()?.trim();
@@ -238,6 +318,19 @@ export default function BattleScreen({
       audio.addEventListener("ended", done, { once: true });
       audio.addEventListener("error", done, { once: true });
       void audio.play().catch(done);
+      return;
+    }
+    if (event.kind === "effectem") {
+      const [name, x, y] = (event.value ?? "").split(",").map((part) => part.trim());
+      if (!name) return;
+      void loadEffect(name).then((effect) => {
+        if (!effect) return;
+        const id = ++effectID.current;
+        setEffects((prev) => [
+          ...prev,
+          { ...effect, id, x: Number.parseInt(x || "0", 10) || 0, y: Number.parseInt(y || "0", 10) || 0 },
+        ]);
+      });
       return;
     }
     if (event.kind === "flash") {
@@ -403,6 +496,16 @@ export default function BattleScreen({
             HP {enemyHp} / {enemyMaxHp}
           </small>
         </section>
+      </div>
+
+      <div className="battle-effects">
+        {effects.map((effect) => (
+          <EffectActor
+            key={effect.id}
+            effect={effect}
+            onDone={() => setEffects((prev) => prev.filter((item) => item.id !== effect.id))}
+          />
+        ))}
       </div>
 
       <div className="battle-console">

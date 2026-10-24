@@ -72,6 +72,12 @@ export interface BattleCharacter {
   motions?: BattleMotion[];
 }
 
+export interface BattleEffect {
+  bmp: string;
+  frames: SpriteFrame[];
+  wait: number;
+}
+
 export interface BattleEncounter {
   party: BattleParty;
   characters: BattleCharacter[];

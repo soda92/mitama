@@ -215,3 +215,92 @@ func (s *server) attachSprite(packID, battleDir string, character *battle.Charac
 		}
 	}
 }
+
+// handleBattleEffect resolves an effectem name to its first sprite animation.
+func (s *server) handleBattleEffect(w http.ResponseWriter, r *http.Request) {
+	packID := r.URL.Query().Get("pack")
+	if packID == "" {
+		packID = "dvd"
+	}
+	name := strings.TrimSpace(r.URL.Query().Get("name"))
+	if name == "" {
+		http.Error(w, "missing effect name", http.StatusBadRequest)
+		return
+	}
+	name = filepath.Base(strings.ReplaceAll(name, "\\", "/"))
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+
+	root := filepath.Join(s.dataDir, packID)
+	objectDir := filepath.Join(root, "object")
+	spriteDir := filepath.Join(root, "sprite")
+	candidates := []string{"ef_" + name + ".o", name + ".o"}
+	var objectFile string
+	for _, candidate := range candidates {
+		if path, err := findFileInsensitive(objectDir, candidate); err == nil {
+			objectFile = path
+			break
+		}
+	}
+	if objectFile == "" {
+		http.Error(w, "effect not found", http.StatusNotFound)
+		return
+	}
+	f, err := os.Open(objectFile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	object, err := battle.ParseObject(f)
+	_ = f.Close()
+	if err != nil || len(object.SpriteFiles) == 0 {
+		http.Error(w, "invalid effect object", http.StatusNotFound)
+		return
+	}
+	sptFile, err := findFileInsensitive(objectDir, object.SpriteFiles[0])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	sf, err := os.Open(sptFile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	frames, err := battle.ParseSprite(sf)
+	_ = sf.Close()
+	if err != nil || len(frames) == 0 {
+		http.Error(w, "invalid effect sprite", http.StatusNotFound)
+		return
+	}
+	wait := 6
+	if len(object.MotionFiles) > 0 {
+		if motionFile, err := findFileInsensitive(objectDir, object.MotionFiles[0]); err == nil {
+			if mf, err := os.Open(motionFile); err == nil {
+				if motion, err := battle.ParseMotion(mf); err == nil {
+					if len(motion.Steps) > 0 && motion.Steps[0].Wait > 0 {
+						wait = motion.Steps[0].Wait
+					} else if motion.AnimTime > 0 {
+						wait = motion.AnimTime
+					}
+				}
+				_ = mf.Close()
+			}
+		}
+	}
+	bmpFile := strings.TrimSuffix(object.SpriteFiles[0], filepath.Ext(object.SpriteFiles[0])) + ".bmp"
+	bmpPath, err := findFileInsensitive(spriteDir, bmpFile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	rel, err := filepath.Rel(root, bmpPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	writeJSON(w, battle.Effect{
+		BMP:    "/media/" + filepath.Base(packID) + "/" + filepath.ToSlash(rel),
+		Frames: frames,
+		Wait:   wait,
+	})
+}

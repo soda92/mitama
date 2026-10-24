@@ -434,3 +434,10 @@ func ParseMotion(r io.Reader) (Motion, error) {
 	}
 	return out, nil
 }
+
+// Effect is the resolved first effect sprite/motion pair.
+type Effect struct {
+	BMP    string        `json:"bmp"`
+	Frames []SpriteFrame `json:"frames"`
+	Wait   int           `json:"wait"`
+}
