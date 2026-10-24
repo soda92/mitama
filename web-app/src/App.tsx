@@ -15,6 +15,7 @@ import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import DialogueToolbar from "./components/DialogueToolbar";
 import Gallery from "./components/Gallery";
+import TitleScreen from "./components/TitleScreen";
 import { useGameKeyboard } from "./hooks/useGameKeyboard";
 import { useBattleSession } from "./hooks/useBattleSession";
 import type { AssetMap, Option, PackInfo, Script } from "./game/types";
@@ -92,7 +93,14 @@ export default function App() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryTab, setGalleryTab] = useState<"pictures" | "scenes" | "music">("pictures");
   const [gallerySeen, setGallerySeen] = useState<GallerySeen>(readSeen);
+  const [homeOpen, setHomeOpen] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("home") === "0") return false;
+    if (q.get("home") === "1") return true;
+    return !q.has("scene") && !q.has("cmd");
+  });
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,6 +137,9 @@ export default function App() {
 
   const pack = useMemo(() => packs.find((p) => p.id === packId), [packs, packId]);
   const startScene = (resumeScene || pack?.startScript || "").replace(/\.txt$/i, "");
+  const latestArchive = useMemo(() => {
+    return Object.values(archives).sort((a, b) => b.savedAt - a.savedAt)[0];
+  }, [archives]);
 
   // Load the pack list and choose a default.
   useEffect(() => {
@@ -257,6 +268,19 @@ export default function App() {
             markSeen("music", name.toUpperCase());
           }
         },
+        title: () => {
+          setHomeOpen(true);
+          setStarted(false);
+          setEnded(false);
+          setPaused(false);
+          setChoices(null);
+          setUiHidden(false);
+          setArchiveOpen(false);
+          setNavigatorOpen(false);
+          setGalleryOpen(false);
+          setResumeScene("");
+          setResume({ pc: 0, image: "" });
+        },
         battle: runBattleWithAudio,
       },
       packId,
@@ -375,9 +399,9 @@ export default function App() {
 
   // The player has no title screen: start as soon as data and the stage exist.
   useEffect(() => {
-    if (!data || !playerRef.current || started || ended || error) return;
+    if (!data || !playerRef.current || started || ended || error || homeOpen) return;
     start();
-  }, [data, started, ended, error, start]);
+  }, [data, started, ended, error, start, homeOpen]);
 
   const togglePause = useCallback(() => {
     const player = playerRef.current;
@@ -456,7 +480,8 @@ export default function App() {
     setNavigatorOpen(true);
   }, []);
 
-  const openGallery = useCallback(() => {
+  const openGallery = useCallback((tab: "pictures" | "scenes" | "music" = "pictures") => {
+    setGalleryTab(tab);
     setArchiveOpen(false);
     setNavigatorOpen(false);
     setMenuOpen(false);
@@ -468,6 +493,11 @@ export default function App() {
     setGalleryOpen(false);
     playerRef.current?.resumeBgm();
   }, []);
+
+  const newGame = useCallback(() => {
+    setHomeOpen(false);
+    restart();
+  }, [restart]);
 
   const changePack = useCallback(
     (id: string) => {
@@ -571,6 +601,12 @@ export default function App() {
     [updateURL, cancelBattle],
   );
 
+  const continueGame = useCallback(() => {
+    setHomeOpen(false);
+    if (resumeScene || resume.pc > 0 || resume.stage) return;
+    if (latestArchive) loadArchive(latestArchive);
+  }, [resumeScene, resume, latestArchive, loadArchive]);
+
   const navigateToScene = useCallback(
     (name: string, pc = 0) => {
       cancelBattle();
@@ -636,6 +672,7 @@ export default function App() {
     navigatorOpen,
     battleOpen: !!battleSession,
     galleryOpen,
+    homeOpen,
     menuOpen,
     uiHidden,
     started,
@@ -668,6 +705,22 @@ export default function App() {
       <section className="stage-wrap">
         <div className="screen" onClick={handleStageClick} onMouseMove={handleStageMove}>
           <canvas ref={canvasRef} width={640} height={480} aria-label="game screen" />
+
+          {homeOpen && (
+            <TitleScreen
+              backgroundUrl={(() => {
+                const rel = assets.game["title007"];
+                return rel ? `/media/${encodeURIComponent(packId)}/${rel}` : undefined;
+              })()}
+              onNew={newGame}
+              onContinue={continueGame}
+              onPictures={() => openGallery("pictures")}
+              onScenes={() => openGallery("scenes")}
+              onMusic={() => openGallery("music")}
+              onSettings={() => setMenuOpen(true)}
+              onQuit={() => window.close()}
+            />
+          )}
 
           <DialogueToolbar
             started={started}
@@ -720,6 +773,7 @@ export default function App() {
 
           {galleryOpen && (
             <Gallery
+              initialTab={galleryTab}
               packId={packId}
               seen={gallerySeen}
               bgmVolume={bgmVolume}

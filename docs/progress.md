@@ -58,7 +58,8 @@ Last updated: 2026-10-24.
 - [x] Resuming at a TEXT line replays the preceding `SEV` voice.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
 - [x] 3× canvas rendering for crisp dialogue text; fit-to-viewport layout.
-- [x] Title screen removed; selected pack auto-starts.
+- [x] Original title screen with new/continue, gallery, settings and quit entries;
+      scene links still auto-start.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
 - [x] Inline voice/SE annotations are hidden and played as page cues.

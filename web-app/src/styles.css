@@ -2040,3 +2040,87 @@ button.gallery-card i,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------- title screen */
+.title-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  background: #05060a;
+}
+
+.title-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+}
+
+button.title-hit {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+button.title-hit:hover,
+button.title-hit:focus-visible {
+  background: rgba(201, 168, 106, 0.12);
+  box-shadow: 0 0 0 1px rgba(201, 168, 106, 0.55), 0 0 18px rgba(201, 168, 106, 0.16);
+  outline: none;
+}
+
+.title-hit.start {
+  left: 30.5%;
+  top: 72.2%;
+  width: 18.5%;
+  height: 8%;
+}
+
+.title-hit.continue {
+  left: 60.2%;
+  top: 72.2%;
+  width: 18.5%;
+  height: 8%;
+}
+
+.title-hit.pictures {
+  left: 21.5%;
+  top: 83.7%;
+  width: 20.5%;
+  height: 7.6%;
+}
+
+.title-hit.scenes {
+  left: 45.8%;
+  top: 83.7%;
+  width: 20.5%;
+  height: 7.6%;
+}
+
+.title-hit.music {
+  left: 70.8%;
+  top: 83.7%;
+  width: 20.5%;
+  height: 7.6%;
+}
+
+.title-hit.settings {
+  left: 26.5%;
+  top: 93.5%;
+  width: 20.5%;
+  height: 6.5%;
+}
+
+.title-hit.quit {
+  left: 64.5%;
+  top: 93.5%;
+  width: 16%;
+  height: 6.5%;
+}

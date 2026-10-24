@@ -33,6 +33,8 @@ export interface PlayerEvents {
   choice?(options: Option[] | null): void;
   /** A background/music asset was requested by the script. */
   asset?(kind: "image" | "music", name: string): void;
+  /** The script requested a return to the title screen. */
+  title?(): void;
   /** Run a battle and return the result. */
   battle?(info: BattleInfo): "win" | "lose" | void | Promise<"win" | "lose" | void>;
 }
@@ -727,6 +729,11 @@ export class Player {
           }
           case "STS":
             this.events.log(`title: ${args.join(" ")}`);
+            break;
+          case "TITLE":
+            this.events.title?.();
+            this.running = false;
+            this.stopped = true;
             break;
           case "FLG": {
             const id = args[0];

@@ -7,6 +7,7 @@ import type {
 } from "../game/gallery";
 
 interface GalleryProps {
+  initialTab?: Tab;
   packId: string;
   seen: GallerySeen;
   bgmVolume: number;
@@ -24,6 +25,7 @@ function chapterLabel(chapter: string): string {
 }
 
 export default function Gallery({
+  initialTab = "pictures",
   packId,
   seen,
   bgmVolume,
@@ -32,7 +34,7 @@ export default function Gallery({
   onClose,
   onPlayScene,
 }: GalleryProps) {
-  const [tab, setTab] = useState<Tab>("pictures");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [data, setData] = useState<GalleryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");

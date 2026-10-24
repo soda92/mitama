@@ -135,7 +135,10 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 - **G** — gallery (pictures, scenes, music)
 
-There is no title screen or top header; the selected pack starts immediately.
+The title screen (`title007.bmp`) is shown on a normal launch with entries for
+new/continue, pictures, scene review, music, settings and quit. Scene links
+(`?scene=…&cmd=…`) still auto-start; add `?home=0` to bypass the title screen
+for a plain pack launch.
 Pack/BGM volume/SE volume/dialog opacity/battle result/status live in the
 **☰ Settings** panel, while
 Archives/Navigate are buttons on the dialogue box. The active side window can
@@ -167,6 +170,22 @@ jingles, are available. Victory or defeat sets flag
 `20`, so the script branches normally. **Settings → battle** can instead use
 auto-win, auto-lose or random for story testing. See
 [docs/engine/battle.md](docs/engine/battle.md).
+
+### Title screen
+
+A normal launch (`/?pack=dvd`) shows the original title image and its seven
+entries:
+
+- **任務開始** — new game from the pack opening
+- **任務再開** — most recent archive, otherwise the pack opening
+- **絵巻鑑賞** — Gallery → Pictures
+- **回想閲覧** — Gallery → Scenes
+- **音楽再生** — Gallery → Music
+- **環境設定** — Settings
+- **終了** — request tab close
+
+Scene/debug links with `?scene=…&cmd=…` bypass the title screen. `?home=1`
+forces it; `?home=0` disables it.
 
 ### Gallery
 

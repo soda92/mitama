@@ -3,6 +3,7 @@ export interface GameKeyboardContext {
   navigatorOpen: boolean;
   battleOpen: boolean;
   galleryOpen: boolean;
+  homeOpen: boolean;
   menuOpen: boolean;
   uiHidden: boolean;
   started: boolean;
@@ -28,7 +29,7 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     o.setMenuOpen(false);
     return;
   }
-  if (o.battleOpen || o.galleryOpen) return;
+  if (o.battleOpen || o.galleryOpen || o.homeOpen) return;
 
   const target = ev.target instanceof HTMLElement ? ev.target : null;
   const typing =
