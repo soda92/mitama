@@ -865,7 +865,9 @@ export default function App() {
       setData(null);
       setStarted(false);
       setEnded(false);
-        setUiHidden(false);
+      setUiHidden(false);
+      setHomeOpen(false);
+      setGalleryFromTitle(false);
       setProtagonistOpen(false);
       setResumeScene(snap.scene);
       setResume({
@@ -902,11 +904,14 @@ export default function App() {
       const scene = name.replace(/\.txt$/i, "");
       setNavigatorOpen(false);
       setGalleryOpen(false);
+      setGalleryFromTitle(false);
+      setHomeOpen(false);
       setProtagonistOpen(false);
       setData(null);
       setStarted(false);
       setEnded(false);
-        setChoices(null);
+      setChoices(null);
+      setUiHidden(false);
       setResumeScene(scene);
       setResume({ pc, image: "" });
       setReloadKey((k) => k + 1);
