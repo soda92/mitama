@@ -1038,6 +1038,7 @@ export default function App() {
             started={started}
             archiveOpen={archiveOpen}
             navigatorOpen={navigatorOpen}
+            menuOpen={menuOpen}
             scriptCount={scriptCount}
             muted={muted}
             language={language}

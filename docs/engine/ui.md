@@ -71,7 +71,15 @@ involved.
 
 ### Saving at a choice
 
-The toolbar stays above the choice overlay. The choice panel also has a
+The toolbar stays above the choice overlay and is grouped for scanning:
+
+```text
+Saves  Story   |   JA / EN  Sound / Muted   |   Full  Menu
+```
+
+`Saves` opens the archive/save panel, `Story` opens Chapters / Map / Branches,
+the language button shows the **current** language, `Sound` becomes `Muted`
+when audio is muted, and `Menu` opens Settings. The choice panel also has a
 **Save at this choice** button, and archive saves made there resume on the
 choice command rather than before/after it.
 

@@ -2,6 +2,7 @@ interface DialogueToolbarProps {
   started: boolean;
   archiveOpen: boolean;
   navigatorOpen: boolean;
+  menuOpen: boolean;
   scriptCount: number;
   muted: boolean;
   language: "ja" | "en";
@@ -17,6 +18,7 @@ export default function DialogueToolbar({
   started,
   archiveOpen,
   navigatorOpen,
+  menuOpen,
   scriptCount,
   muted,
   language,
@@ -33,29 +35,52 @@ export default function DialogueToolbar({
       <button
         className={`tool ${archiveOpen ? "on" : ""}`}
         onClick={onArchives}
-        title="Archives"
+        title="Saves (A)"
+        aria-pressed={archiveOpen}
       >
-        Archives
+        Saves
       </button>
       <button
         className={`tool ${navigatorOpen ? "on" : ""}`}
         onClick={onNavigator}
         disabled={scriptCount === 0}
-        title="Navigator (N)"
+        title="Story: chapters, map and branches (N)"
+        aria-pressed={navigatorOpen}
       >
-        Navigate
+        Story
       </button>
-      <button className="tool" onClick={onLanguage} title="Language (L)">
-        {language === "ja" ? "EN" : "JA"}
+
+      <span className="tool-sep" aria-hidden="true" />
+
+      <button
+        className="tool"
+        onClick={onLanguage}
+        title={`Language: ${language === "ja" ? "Japanese" : "English"} (L)`}
+        aria-label={`Language: ${language === "ja" ? "Japanese" : "English"}`}
+      >
+        {language === "ja" ? "JA" : "EN"}
       </button>
-      <button className="tool" onClick={onMute} title="Mute (M)">
-        {muted ? "Unmute" : "Mute"}
+      <button
+        className={`tool ${muted ? "on" : ""}`}
+        onClick={onMute}
+        title={muted ? "Unmute (M)" : "Mute (M)"}
+        aria-pressed={muted}
+      >
+        {muted ? "Muted" : "Sound"}
       </button>
+
+      <span className="tool-sep" aria-hidden="true" />
+
       <button className="tool" onClick={onFullscreen} title="Fullscreen (F)">
-        ⛶
+        Full
       </button>
-      <button className="tool" onClick={onSettings} title="Settings">
-        ☰
+      <button
+        className={`tool ${menuOpen ? "on" : ""}`}
+        onClick={onSettings}
+        title="Settings"
+        aria-pressed={menuOpen}
+      >
+        Menu
       </button>
     </div>
   );
