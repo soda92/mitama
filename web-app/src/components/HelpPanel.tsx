@@ -5,6 +5,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ["H", "Toggle hover English translation"],
   ["M", "Mute / unmute audio"],
   ["F", "Toggle fullscreen"],
+  ["A", "Open archives / save"],
   ["N", "Open page/chapter navigator"],
   ["G", "Open gallery"],
   ["I", "Toggle immersive subtitles"],

@@ -66,6 +66,14 @@ involved.
 
 ### Typewriter
 
+### Saving at a choice
+
+The toolbar stays above the choice overlay. The choice panel also has a
+**Save at this choice** button, and archive saves made there resume on the
+choice command rather than before/after it.
+
+`A` opens the Archives side window from gameplay.
+
 Settings → **typewriter**:
 
 | Mode | Behavior |
@@ -119,11 +127,25 @@ Settings are stored in `localStorage` under `mitama.settings.v1`.
 | `H` | hover English |
 | `I` | immersive subtitle mode |
 | `F` | fullscreen |
-| `N` | navigator |
+| `A` | archives / save |
+| `N` | navigator (Page / Chapters / Branches) |
 | `G` | gallery |
 | `D` | debug panel |
 | `?` | shortcut help |
 | Escape | close the active panel |
+
+## Branch view
+
+Navigator → **Branches** lists the `SLT`/`MSLT` choices in the current scene.
+Each option shows its target:
+
+- a label leading to a choice in the same scene;
+- a `LOD` scene transition, including route switches;
+- a battle or scene end.
+
+The view is intentionally scene-local. The scripts do not contain a global
+branch graph: route changes are encoded as `LOD` targets plus `PARTY` changes,
+so a global map would have to be generated from all scripts.
 
 ## Immersive mode
 

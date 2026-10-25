@@ -945,6 +945,7 @@ export default function App() {
     toggleHoverTranslation,
     toggleFullscreen,
     openNavigator,
+    openArchives,
     openGallery,
     setArchiveOpen,
     setNavigatorOpen,
@@ -1063,6 +1064,16 @@ export default function App() {
                     {opt.text}
                   </button>
                 ))}
+                <button
+                  className="choice-save"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    saveCurrent();
+                  }}
+                  title="Save at this choice"
+                >
+                  Save at this choice
+                </button>
               </div>
             </div>
           )}

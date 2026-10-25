@@ -17,6 +17,7 @@ export interface GameKeyboardContext {
   toggleHoverTranslation: () => void;
   toggleFullscreen: () => void;
   openNavigator: () => void;
+  openArchives: () => void;
   openGallery: () => void;
   setImmersive: (value: boolean) => void;
   setArchiveOpen: (open: boolean) => void;
@@ -65,6 +66,10 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
         o.toggleFullscreen();
       } else if (o.archiveOpen && (ev.key === "n" || ev.key === "N")) {
         o.openNavigator();
+      } else if (ev.key === "a" || ev.key === "A") {
+        ev.preventDefault();
+        if (o.archiveOpen) o.setArchiveOpen(false);
+        else o.openArchives();
       }
     }
     return;
@@ -94,6 +99,8 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     o.setDebugOpen(!o.debugOpen);
   } else if (ev.key === "n" || ev.key === "N") {
     o.openNavigator();
+  } else if (ev.key === "a" || ev.key === "A") {
+    o.openArchives();
   } else if (ev.key === "g" || ev.key === "G") {
     o.openGallery();
   }

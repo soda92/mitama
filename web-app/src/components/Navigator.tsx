@@ -11,6 +11,27 @@ interface NavigatorProps {
   onSelectScene: (scene: string) => void;
 }
 
+type BranchDestination =
+  | { kind: "scene"; scene: string; notes: string[] }
+  | { kind: "choice"; index: number; notes: string[] }
+  | { kind: "battle"; label: string; notes: string[] }
+  | { kind: "end"; notes: string[] }
+  | { kind: "unknown"; notes: string[] };
+
+interface BranchOptionView {
+  text: string;
+  textEn?: string;
+  label: string;
+  destination?: BranchDestination;
+}
+
+interface BranchPointView {
+  index: number;
+  line: number;
+  prompt?: string;
+  options: BranchOptionView[];
+}
+
 function chapterOf(scene?: string): string {
   if (!scene) return "Other";
   const m = scene.match(/^([a-z]+)(\d+)/i);
@@ -26,6 +47,78 @@ function commandLabel(c: Command): string {
   return `${c.cmd ?? "?"}${c.args?.length ? ` ${c.args.join(" ")}` : ""}`;
 }
 
+function scanDestination(
+  index: number,
+  commands: Command[],
+  labels: Record<string, number>,
+  depth = 0,
+  notes: string[] = [],
+): BranchDestination {
+  if (depth > 8) return { kind: "unknown", notes: [...new Set(notes)] };
+  const limit = Math.min(commands.length, index + 900);
+  for (let i = index; i < limit; i++) {
+    const c = commands[i];
+    if (c.cmd === "LOD" && c.args?.[0]) {
+      return { kind: "scene", scene: c.args[0], notes: [...new Set(notes)] };
+    }
+    if (c.cmd === "SLT" || c.cmd === "MSLT") {
+      return { kind: "choice", index: i, notes: [...new Set(notes)] };
+    }
+    if (c.cmd === "JMP" && c.args?.[0]) {
+      const target = labels[c.args[0]];
+      if (target !== undefined && target !== i) {
+        return scanDestination(target, commands, labels, depth + 1, notes);
+      }
+      return { kind: "unknown", notes: [...new Set(notes)] };
+    }
+    if (c.cmd === "BATTLE") {
+      return {
+        kind: "battle",
+        label: [c.args?.[0], c.args?.[1]].filter(Boolean).join(" "),
+        notes: [...new Set(notes)],
+      };
+    }
+    if (c.cmd === "SEND" || c.cmd === "SHAEND" || c.cmd === "END") {
+      return { kind: "end", notes: [...new Set(notes)] };
+    }
+    if (c.cmd === "PARTY" && c.args?.length) {
+      notes.push(`PARTY ${c.args.join(" ")}`);
+    }
+    if (c.cmd === "FLG" && c.args?.length) {
+      notes.push(`FLG ${c.args.join(" ")}`);
+    }
+  }
+  return { kind: "unknown", notes: [...new Set(notes)] };
+}
+
+function promptBefore(index: number, commands: Command[]): string | undefined {
+  let fallback = "";
+  for (let i = index - 1; i >= 0 && i > index - 14; i--) {
+    const c = commands[i];
+    if (c.cmd !== "TEXT" || !c.message) continue;
+    const text = c.message.split("\n").filter(Boolean).slice(0, 2).join(" / ");
+    if (c.speaker && c.speaker !== "説") return text;
+    if (!fallback) fallback = text;
+  }
+  return fallback || undefined;
+}
+
+function destinationLabel(destination?: BranchDestination): string {
+  if (!destination) return "unknown target";
+  switch (destination.kind) {
+    case "scene":
+      return `→ ${destination.scene}`;
+    case "choice":
+      return `→ choice at pc ${destination.index}`;
+    case "battle":
+      return `→ battle${destination.label ? ` ${destination.label}` : ""}`;
+    case "end":
+      return "→ scene end";
+    default:
+      return "→ target not found";
+  }
+}
+
 export default function Navigator({
   scene,
   pc,
@@ -35,7 +128,7 @@ export default function Navigator({
   onSeek,
   onSelectScene,
 }: NavigatorProps) {
-  const [tab, setTab] = useState<"page" | "chapters">("page");
+  const [tab, setTab] = useState<"page" | "chapters" | "branches">("page");
   const [target, setTarget] = useState(pc);
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -56,6 +149,39 @@ export default function Navigator({
     if (tab !== "chapters") return;
     currentSceneRef.current?.scrollIntoView({ block: "center" });
   }, [tab, scene]);
+
+  const labels = useMemo(() => {
+    const map: Record<string, number> = {};
+    commands.forEach((c, index) => {
+      if (c.label) map[c.label] = index;
+    });
+    return map;
+  }, [commands]);
+
+  const branches = useMemo<BranchPointView[]>(() => {
+    return commands.flatMap((c, index) => {
+      if (c.cmd !== "SLT" && c.cmd !== "MSLT") return [];
+      return [
+        {
+          index,
+          line: c.line,
+          prompt: promptBefore(index, commands),
+          options: (c.options ?? []).map((option) => {
+            const target = labels[option.label];
+            return {
+              text: option.text,
+              textEn: option.textEn,
+              label: option.label,
+              destination:
+                target === undefined
+                  ? { kind: "unknown", notes: [] }
+                  : scanDestination(target, commands, labels),
+            };
+          }),
+        },
+      ];
+    });
+  }, [commands, labels]);
 
   const groups = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -86,6 +212,11 @@ export default function Navigator({
     onSeek(p);
   };
   const step = (delta: number) => jump(target + delta);
+  const openDestination = (destination?: BranchDestination) => {
+    if (!destination) return;
+    if (destination.kind === "scene") onSelectScene(destination.scene);
+    else if (destination.kind === "choice") onSeek(destination.index);
+  };
 
   return (
     <aside className="side-window navigator-window">
@@ -105,6 +236,9 @@ export default function Navigator({
           </button>
           <button className={tab === "chapters" ? "on" : ""} onClick={() => setTab("chapters")}>
             Chapters
+          </button>
+          <button className={tab === "branches" ? "on" : ""} onClick={() => setTab("branches")}>
+            Branches
           </button>
         </nav>
       </header>
@@ -160,7 +294,7 @@ export default function Navigator({
             ))}
           </div>
         </div>
-      ) : (
+      ) : tab === "chapters" ? (
         <div className="navigator-chapters">
           <input
             className="archive-search"
@@ -189,8 +323,59 @@ export default function Navigator({
             ))}
           </div>
         </div>
+      ) : (
+        <div className="navigator-branches">
+          <p className="navigator-note">
+            Choices in <b>{scene}</b>. A <code>LOD</code> target switches to
+            another scene / route; “choice” targets stay in this scene.
+          </p>
+          {branches.length === 0 ? (
+            <p className="archive-empty">No choices in this scene.</p>
+          ) : (
+            <div className="branch-list">
+              {branches.map((point) => (
+                <section
+                  key={point.index}
+                  className={`branch-point ${pc >= point.index && pc <= point.index + 3 ? "cur" : ""}`}
+                >
+                  <header>
+                    <button className="branch-pc" onClick={() => jump(point.index)}>
+                      pc {point.index}
+                    </button>
+                    <span>line {point.line}</span>
+                  </header>
+                  {point.prompt && <p className="branch-prompt">{point.prompt}</p>}
+                  <div className="branch-options">
+                    {point.options.map((option, i) => {
+                      const destination = option.destination;
+                      const clickable =
+                        destination?.kind === "scene" || destination?.kind === "choice";
+                      return (
+                        <button
+                          key={`${option.label}-${i}`}
+                          className="branch-option"
+                          disabled={!clickable}
+                          title={option.textEn}
+                          onClick={() => openDestination(destination)}
+                        >
+                          <span className="branch-choice">
+                            {option.text}
+                            <small>{option.label}</small>
+                          </span>
+                          <span className="branch-target">{destinationLabel(destination)}</span>
+                          {destination && destination.notes.length > 0 && (
+                            <span className="branch-notes">{destination.notes.join(" · ")}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </aside>
   );
-
 }

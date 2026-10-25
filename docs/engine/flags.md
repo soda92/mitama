@@ -1,6 +1,6 @@
 # Story flags and branching
 
-Last updated: 2026-10-24.
+Last updated: 2026-10-25.
 
 This document describes the numeric variables used by the scenario scripts, how
 they change story flow, and which flags are known well enough to document. It is
@@ -151,6 +151,11 @@ These are direct `LOD`/choice branches, not flag conditions:
 | `yr1_11` | “わかった...一緒に行こう” | `LOD YK1_01` (紅羽編) |
 | `os1_19` | “わかった...結界のこともわからないし...” | `LOD OH1_01` (紫芳編) |
 | `os2_14` | “わかった...ついてこい” | `LOD OA2_01` (阿佐弥編) |
+| `yk2_12` | 瑞希を連れて行く → 紅羽を伊勢まで送る | `PARTY OUT 紅羽` / `PARTY IN 瑞希` → `LOD YM2_02` (瑞希編) |
+
+`yk2_12` is a two-stage gate. Refusing to take Mizuki (or taking her and then
+choosing to send her to Taima) continues the Kureha route at `YK2_13`. Only
+“take Mizuki” followed by “send Kureha to Ise” switches to the Mizuki route.
 
 Rejecting these choices continues the main route.
 
