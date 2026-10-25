@@ -697,7 +697,11 @@ export class Player {
         }
       } else {
         if (!this.paused) {
-          const elapsed = now - this.textLast;
+          // The first RAF timestamp can be slightly earlier than the
+          // performance.now() captured by scheduleTyping. A negative elapsed
+          // value would make textChars negative, and slice(0, -N) would flash
+          // the end of the full line before typing starts.
+          const elapsed = Math.max(0, now - this.textLast);
           this.textChars = Math.min(page.length, this.textChars + (elapsed * TEXT_CPS) / 1000);
         }
         this.textLast = now;
@@ -764,9 +768,12 @@ export class Player {
       return;
     }
     const page = this.currentPageText();
+    // slice(0, -1) returns almost the whole string. Guard against a negative
+    // typewriter index from a first RAF timestamp older than textLast.
+    const visibleChars = Math.max(0, Math.min(page.length, Math.floor(this.textChars)));
     this.emitDialogue({
       speaker: this.language === "en" ? this.textSpeakerEN : this.textSpeaker,
-      text: page.slice(0, Math.floor(this.textChars)),
+      text: page.slice(0, visibleChars),
       complete: this.textComplete,
       opacity: this.dialogueOpacity,
       showReplay: this.hasReplayVoice,
