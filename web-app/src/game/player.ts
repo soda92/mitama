@@ -774,6 +774,7 @@ export class Player {
     this.emitDialogue({
       speaker: this.language === "en" ? this.textSpeakerEN : this.textSpeaker,
       text: page.slice(0, visibleChars),
+      translation: this.textPagesEN[this.textPage] || "",
       complete: this.textComplete,
       opacity: this.dialogueOpacity,
       showReplay: this.hasReplayVoice,

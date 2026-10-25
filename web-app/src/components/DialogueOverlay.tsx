@@ -1,8 +1,9 @@
-import { useRef, type CSSProperties, type MouseEvent } from "react";
+import { useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { DialogueOverlayState } from "../game/types";
 
 interface DialogueOverlayProps {
   state: DialogueOverlayState | null;
+  showTranslation: boolean;
   onAdvance: () => void;
   onReplay: () => void;
 }
@@ -18,11 +19,13 @@ function selectionInside(root: HTMLElement | null): boolean {
 
 export default function DialogueOverlay({
   state,
+  showTranslation,
   onAdvance,
   onReplay,
 }: DialogueOverlayProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
+  const [hovering, setHovering] = useState(false);
 
   if (!state) return null;
 
@@ -51,11 +54,22 @@ export default function DialogueOverlay({
   if (state.immersive) {
     return (
       <div ref={rootRef} className="dialogue-overlay immersive" style={style}>
-        <div className="dialogue-pill" onClick={handleClick} onMouseUp={handleMouseUp}>
+        <div
+          className="dialogue-pill"
+          onClick={handleClick}
+          onMouseUp={handleMouseUp}
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+        >
           {state.speaker && (
             <div className="dialogue-pill-speaker">［{state.speaker}］</div>
           )}
           <p className="dialogue-pill-text">{state.text}</p>
+          {showTranslation && state.translation && hovering && (
+            <div className="dialogue-pill-translation" role="tooltip">
+              {state.translation}
+            </div>
+          )}
           {state.complete && <span className="dialogue-next" aria-hidden="true" />}
         </div>
       </div>
@@ -79,10 +93,21 @@ export default function DialogueOverlay({
           )}
         </div>
       )}
-      <div className="dialogue-panel" onClick={handleClick} onMouseUp={handleMouseUp}>
+      <div
+        className="dialogue-panel"
+        onClick={handleClick}
+        onMouseUp={handleMouseUp}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      >
         <p className="dialogue-text">{state.text}</p>
         {state.complete && <span className="dialogue-next" aria-hidden="true" />}
       </div>
+      {showTranslation && state.translation && hovering && (
+        <div className="dialogue-translation" role="tooltip">
+          {state.translation}
+        </div>
+      )}
     </div>
   );
 }

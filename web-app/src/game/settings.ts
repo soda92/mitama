@@ -11,6 +11,7 @@ export interface StoredSettings {
   battlePolicy: BattlePolicy;
   language: Language;
   typewriterMode: TypewriterMode;
+  hoverTranslation: boolean;
 }
 
 export const SETTINGS_KEY = "mitama.settings.v1";
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   battlePolicy: "play",
   language: "ja",
   typewriterMode: "char",
+  hoverTranslation: false,
 };
 
 function volumeSetting(value: unknown, fallback: number): number {
@@ -87,6 +89,10 @@ export function readSettings(): StoredSettings {
     battlePolicy: battle,
     language,
     typewriterMode,
+    hoverTranslation:
+      typeof saved.hoverTranslation === "boolean"
+        ? saved.hoverTranslation
+        : DEFAULT_SETTINGS.hoverTranslation,
   };
 }
 

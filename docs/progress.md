@@ -84,8 +84,10 @@ Last updated: 2026-10-24.
       tick (no stale/accumulated box alpha).
 - [x] Adjustable dialogue opacity and immersive subtitle mode in Settings
       (persisted per browser); Settings opens as a docked side window.
-- [x] Typewriter modes: character, word and instant; new lines explicitly
-      clear the old text before typing starts.
+- [x] Typewriter modes: character, word and instant; fixed the first-frame
+      `slice(0, -1)` flash caused by a negative RAF elapsed time.
+- [x] Hover-English tooltip for Japanese dialogue, with Settings sidebar and
+      `H` shortcut.
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
 - [x] Replay-voice button beside the speaker name tag (current page/line),

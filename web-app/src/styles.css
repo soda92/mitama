@@ -205,6 +205,44 @@ canvas {
   pointer-events: auto;
 }
 
+.dialogue-translation {
+  position: absolute;
+  bottom: 36.5%;
+  left: 2.8125%;
+  width: 68%;
+  box-sizing: border-box;
+  padding: 1.1cqw 1.4cqw;
+  border: 1px solid rgba(201, 168, 106, 0.65);
+  border-radius: 0.8cqw;
+  background: rgba(8, 9, 13, 0.97);
+  color: rgba(238, 230, 210, 0.98);
+  font: 2.55cqw/1.35 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.dialogue-pill-translation {
+  position: absolute;
+  bottom: calc(100% + 0.8cqw);
+  left: 50%;
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1.1cqw 1.4cqw;
+  transform: translate(-50%, 0.4cqw);
+  border: 1px solid rgba(201, 168, 106, 0.65);
+  border-radius: 0.8cqw;
+  background: rgba(8, 9, 13, 0.97);
+  color: rgba(238, 230, 210, 0.98);
+  font: 2.55cqw/1.35 "Hiragino Mincho ProN", "Yu Mincho",
+    "Noto Serif JP", serif;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
 .dialogue-text {
   position: absolute;
   top: 28.17%;

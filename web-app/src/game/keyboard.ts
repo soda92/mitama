@@ -14,6 +14,7 @@ export interface GameKeyboardContext {
   advance: () => void;
   togglePause: () => void;
   toggleLanguage: () => void;
+  toggleHoverTranslation: () => void;
   toggleFullscreen: () => void;
   openNavigator: () => void;
   openGallery: () => void;
@@ -81,6 +82,8 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     if (o.started) o.togglePause();
   } else if (ev.key === "l" || ev.key === "L") {
     o.toggleLanguage();
+  } else if (ev.key === "h" || ev.key === "H") {
+    o.toggleHoverTranslation();
   } else if (ev.key === "m" || ev.key === "M") {
     o.setMuted(!o.muted);
   } else if (ev.key === "f" || ev.key === "F") {

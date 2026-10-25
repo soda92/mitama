@@ -130,6 +130,7 @@ export function protagonistLabel(protagonist?: Protagonist): string {
 export interface DialogueOverlayState {
   speaker: string;
   text: string;
+  translation?: string;
   complete: boolean;
   opacity: number;
   showReplay: boolean;

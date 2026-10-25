@@ -173,6 +173,7 @@ stay beside the stage and remain docked in fullscreen.
 - **G** — gallery (pictures, scenes, music)
 - **I** — immersive subtitle mode
 - **L** — switch Japanese / English
+- **H** — toggle hover-to-see-English
 - **?** — keyboard shortcut help
 
 The in-game controls are on the dialogue box; there is no separate pause button,
@@ -181,8 +182,12 @@ but **P** still pauses. Speaker tags use full names (e.g. `八` → 八尋,
 docked sidebar beside the stage, not as a modal.
 
 Settings includes pack, language (`日本語`/`English`), typewriter mode
-(`character`, `word`, `instant`), BGM/SE volumes, dialogue opacity,
-immersive mode and battle policy. **Title** returns to the title screen.
+(`character`, `word`, `instant`), hover English, BGM/SE volumes, dialogue
+opacity, immersive mode and battle policy. **Title** returns to the title screen.
+
+With **hover English** enabled, hovering the Japanese dialogue box shows the
+current line's English translation in a floating tooltip; it is not a separate
+window and does not pause or advance the game.
 
 The title screen (`title007.bmp`) is shown on a normal launch with entries for
 new/continue, pictures, scene review, music, settings and quit. Scene links

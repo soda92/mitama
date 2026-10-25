@@ -2,6 +2,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ["Click / Enter / ↓ / →", "Advance dialogue"],
   ["Space", "Hide / show dialogue and HUD"],
   ["L", "Switch Japanese / English"],
+  ["H", "Toggle hover English translation"],
   ["M", "Mute / unmute audio"],
   ["F", "Toggle fullscreen"],
   ["N", "Open page/chapter navigator"],

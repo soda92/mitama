@@ -14,6 +14,7 @@ interface SettingsPanelProps {
   battlePolicy: BattlePolicy;
   language: Language;
   typewriterMode: TypewriterMode;
+  hoverTranslation: boolean;
   onClose: () => void;
   onPackChange: (id: string) => void;
   onBgmVolume: (value: number) => void;
@@ -23,6 +24,7 @@ interface SettingsPanelProps {
   onBattlePolicy: (value: BattlePolicy) => void;
   onLanguage: (value: Language) => void;
   onTypewriterMode: (value: TypewriterMode) => void;
+  onHoverTranslation: (value: boolean) => void;
   onArchives: () => void;
   onNavigate: () => void;
   onDebug: () => void;
@@ -46,6 +48,7 @@ export default function SettingsPanel({
   battlePolicy,
   language,
   typewriterMode,
+  hoverTranslation,
   onClose,
   onPackChange,
   onBgmVolume,
@@ -55,6 +58,7 @@ export default function SettingsPanel({
   onBattlePolicy,
   onLanguage,
   onTypewriterMode,
+  onHoverTranslation,
   onArchives,
   onNavigate,
   onDebug,
@@ -114,6 +118,14 @@ export default function SettingsPanel({
             <option value="word">word</option>
             <option value="instant">instant</option>
           </select>
+        </label>
+        <label className="settings-row">
+          <span>hover English</span>
+          <input
+            type="checkbox"
+            checked={hoverTranslation}
+            onChange={(ev) => onHoverTranslation(ev.target.checked)}
+          />
         </label>
         <label className="settings-row">
           <span>BGM volume</span>

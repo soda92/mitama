@@ -154,6 +154,7 @@ export default function App() {
   const [typewriterMode, setTypewriterMode] = useState<TypewriterMode>(
     initialSettings.typewriterMode,
   );
+  const [hoverTranslation, setHoverTranslation] = useState(initialSettings.hoverTranslation);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -456,6 +457,7 @@ export default function App() {
       battlePolicy,
       language,
       typewriterMode,
+      hoverTranslation,
     });
   }, [
     bgmVolume,
@@ -466,6 +468,7 @@ export default function App() {
     battlePolicy,
     language,
     typewriterMode,
+    hoverTranslation,
   ]);
 
   useEffect(() => {
@@ -576,6 +579,10 @@ export default function App() {
 
   const toggleLanguage = useCallback(() => {
     setLanguage((current) => (current === "ja" ? "en" : "ja"));
+  }, []);
+
+  const toggleHoverTranslation = useCallback(() => {
+    setHoverTranslation((value) => !value);
   }, []);
 
   const advance = useCallback(() => {
@@ -926,6 +933,7 @@ export default function App() {
     advance,
     togglePause,
     toggleLanguage,
+    toggleHoverTranslation,
     toggleFullscreen,
     openNavigator,
     openGallery,
@@ -955,6 +963,7 @@ export default function App() {
 
           <DialogueOverlay
             state={dialogue}
+            showTranslation={hoverTranslation && language === "ja"}
             onAdvance={advance}
             onReplay={() => playerRef.current?.replayVoice()}
           />
@@ -1103,6 +1112,8 @@ export default function App() {
             onLanguage={setLanguage}
             typewriterMode={typewriterMode}
             onTypewriterMode={setTypewriterMode}
+            hoverTranslation={hoverTranslation}
+            onHoverTranslation={setHoverTranslation}
             onClose={() => setMenuOpen(false)}
             onPackChange={changePack}
             onBgmVolume={setBgmVolume}

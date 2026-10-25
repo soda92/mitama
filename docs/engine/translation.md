@@ -152,6 +152,11 @@ Three equivalent controls:
 - Settings sidebar → language
 - keyboard: `L`
 
+For Japanese study, enable **hover English** in Settings (or press **H**).
+Hovering the Japanese dialogue box shows the current line/page's English
+translation in a floating tooltip. It is line-level, not word-level; a
+morphological tokenizer and dictionary would be needed for per-word glosses.
+
 The setting is persisted in `mitama.settings.v1`. Switching language redraws
 the current line immediately, including open choice menus; it does not
 re-trigger voices or change script position.
