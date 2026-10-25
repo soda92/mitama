@@ -149,6 +149,23 @@ same route/chapter when possible. If no title exists, they fall back to the
 filename chapter (for example `EYK 2`). The current scene is highlighted, and
 scene ids remain visible for debugging.
 
+## Story map
+
+Navigator → **Map** shows the chapter-level story graph. The server scans all
+scripts, groups scenes by `STS` chapter title, and emits one edge per choice
+option that reaches a different chapter or route. Local choices are collapsed
+into a count and remain available in the scene-local **Branches** tab.
+
+The map exposes the important route switches directly, for example:
+
+```text
+紅羽編 / 壊心  →  瑞希編 / 壊心
+                  PARTY OUT 紅羽 · PARTY IN 瑞希
+```
+
+The map is generated from `/api/storymap` and cached per pack. A transition is
+selected first and only performed after **Jump** is confirmed.
+
 ## Branch view
 
 Navigator → **Branches** lists the `SLT`/`MSLT` choices in the current scene.

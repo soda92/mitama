@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { speakerDisplayName, type Command } from "../game/types";
+import {
+  loadStoryMap,
+  type StoryChapter,
+  type StoryEdge,
+  type StoryMapData,
+} from "../game/storymap";
 
 interface NavigatorProps {
   packId: string;
@@ -186,10 +192,13 @@ export default function Navigator({
   onSeek,
   onSelectScene,
 }: NavigatorProps) {
-  const [tab, setTab] = useState<"page" | "chapters" | "branches">("page");
+  const [tab, setTab] = useState<"page" | "chapters" | "map" | "branches">("page");
   const [target, setTarget] = useState(pc);
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<{ point: BranchPointView; option: BranchOptionView } | null>(null);
+  const [pendingMap, setPendingMap] = useState<StoryEdge | null>(null);
+  const [storyMap, setStoryMap] = useState<StoryMapData | null>(null);
+  const [storyError, setStoryError] = useState<string | null>(null);
   const [sceneMeta, setSceneMeta] = useState<SceneMeta[] | null>(() => sceneMetaCache.get(packId) ?? null);
   const listRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLButtonElement>(null);
@@ -235,6 +244,22 @@ export default function Navigator({
       cancelled = true;
     };
   }, [packId]);
+
+  useEffect(() => {
+    if (tab !== "map" || storyMap) return;
+    let cancelled = false;
+    setStoryError(null);
+    loadStoryMap(packId)
+      .then((data) => {
+        if (!cancelled) setStoryMap(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setStoryError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packId, tab, storyMap]);
 
   const labels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -322,6 +347,53 @@ export default function Navigator({
       });
   }, [scenes, sceneMeta, query]);
 
+  const chapterByID = useMemo(() => {
+    const map = new Map<string, StoryChapter>();
+    for (const chapter of storyMap?.chapters ?? []) map.set(chapter.id, chapter);
+    return map;
+  }, [storyMap]);
+
+  const storyEdges = useMemo(() => {
+    const map = new Map<string, StoryEdge[]>();
+    const seen = new Set<string>();
+    for (const edge of storyMap?.edges ?? []) {
+      if (!edge.to || edge.to === edge.from) continue;
+      const key = `${edge.from}|${edge.to}|${edge.toScene ?? ""}|${edge.text}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const list = map.get(edge.from) ?? [];
+      list.push(edge);
+      map.set(edge.from, list);
+    }
+    return map;
+  }, [storyMap]);
+
+  const localCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const edge of storyMap?.edges ?? []) {
+      if (edge.to !== edge.from) continue;
+      map.set(edge.from, (map.get(edge.from) ?? 0) + 1);
+    }
+    return map;
+  }, [storyMap]);
+
+  const currentChapter = storyMap?.scenes.find((item) => item.name === scene)?.chapter;
+
+  const storyRoutes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const map = new Map<string, StoryChapter[]>();
+    for (const chapter of storyMap?.chapters ?? []) {
+      if (q) {
+        const hay = [chapter.route, chapter.title, ...chapter.scenes].join(" ").toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      const list = map.get(chapter.route) ?? [];
+      list.push(chapter);
+      map.set(chapter.route, list);
+    }
+    return [...map.entries()];
+  }, [storyMap, query]);
+
   const clamp = (v: number) => Math.max(0, Math.min(max, v));
   const jump = (v: number) => {
     const p = clamp(v);
@@ -353,6 +425,9 @@ export default function Navigator({
           </button>
           <button className={tab === "chapters" ? "on" : ""} onClick={() => setTab("chapters")}>
             Chapters
+          </button>
+          <button className={tab === "map" ? "on" : ""} onClick={() => setTab("map")}>
+            Map
           </button>
           <button className={tab === "branches" ? "on" : ""} onClick={() => setTab("branches")}>
             Branches
@@ -447,6 +522,99 @@ export default function Navigator({
               </section>
             ))}
           </div>
+        </div>
+      ) : tab === "map" ? (
+        <div className="story-map">
+          <p className="navigator-note">
+            Chapter transitions across routes. Local choices stay in the
+            <b> Branches </b> tab. Select a target to preview it, then confirm.
+          </p>
+          <input
+            className="archive-search"
+            placeholder="filter chapters / routes…"
+            value={query}
+            onChange={(ev) => setQuery(ev.target.value)}
+          />
+          {storyError && <p className="archive-empty">{storyError}</p>}
+          {!storyMap && !storyError && <p className="archive-empty">loading story map…</p>}
+          {storyMap && storyRoutes.length === 0 && (
+            <p className="archive-empty">No matching chapters.</p>
+          )}
+          {storyRoutes.map(([route, chapters]) => (
+            <section key={route} className="story-route">
+              <h4>{route}</h4>
+              <div className="story-chapter-grid">
+                {chapters.map((chapter) => {
+                  const outgoing = storyEdges.get(chapter.id) ?? [];
+                  const local = localCounts.get(chapter.id) ?? 0;
+                  const current = chapter.id === currentChapter;
+                  return (
+                    <article key={chapter.id} className={`story-chapter ${current ? "cur" : ""}`}>
+                      <header>
+                        <b>{chapter.title}</b>
+                        <span>{chapter.scenes.length} scenes</span>
+                        {local > 0 && <em>{local} local</em>}
+                      </header>
+                      {outgoing.length > 0 && (
+                        <div className="story-edges">
+                          {outgoing.map((edge, index) => {
+                            const target = edge.to ? chapterByID.get(edge.to) : undefined;
+                            const routeChange = !!target && target.route !== chapter.route;
+                            return (
+                              <button
+                                key={`${edge.label}-${edge.pc}-${index}`}
+                                className={`story-edge ${routeChange ? "route-change" : ""}`}
+                                onClick={() => setPendingMap(edge)}
+                                title={edge.textEn}
+                              >
+                                <span className="story-edge-text">{edge.text}</span>
+                                <span className="story-edge-target">
+                                  {target ? `${target.route} / ${target.title}` : edge.toScene || "unknown"}
+                                </span>
+                                {edge.notes && edge.notes.length > 0 && (
+                                  <small>{edge.notes.join(" · ")}</small>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+          {pendingMap && (
+            <div className="branch-confirm">
+              <div>
+                <strong>
+                  Jump to{" "}
+                  {(() => {
+                    const target = chapterByID.get(pendingMap.to ?? "");
+                    return target ? `${target.route} / ${target.title}` : pendingMap.toScene;
+                  })()}?
+                </strong>
+                <span>
+                  {pendingMap.text}
+                  {pendingMap.toScene ? ` → ${pendingMap.toScene}` : ""}
+                </span>
+              </div>
+              <div className="branch-confirm-actions">
+                <button
+                  className="primary"
+                  disabled={!pendingMap.toScene}
+                  onClick={() => {
+                    if (pendingMap.toScene) onSelectScene(pendingMap.toScene);
+                    setPendingMap(null);
+                  }}
+                >
+                  Jump
+                </button>
+                <button onClick={() => setPendingMap(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="navigator-branches">

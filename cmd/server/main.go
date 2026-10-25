@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"mitama/pkg/script"
 )
@@ -25,6 +26,8 @@ type server struct {
 	debug        *debugStore
 	archives     *archiveStore
 	translations *translationStore
+	storyMu      sync.Mutex
+	storyMaps    map[string]*storyMapData
 }
 
 func main() {
@@ -51,6 +54,7 @@ func main() {
 		debug:        newDebugStore(),
 		archives:     archives,
 		translations: newTranslationStore(*data),
+		storyMaps:    map[string]*storyMapData{},
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/packs", s.handlePacks)
@@ -60,6 +64,7 @@ func main() {
 	mux.HandleFunc("/api/battle/character", s.handleBattleCharacter)
 	mux.HandleFunc("/api/battle/effect", s.handleBattleEffect)
 	mux.HandleFunc("/api/gallery", s.handleGallery)
+	mux.HandleFunc("/api/storymap", s.handleStoryMap)
 	mux.HandleFunc("/api/audio", s.handleAudio)
 	mux.HandleFunc("/api/debug", s.handleDebug)
 	mux.HandleFunc("/api/debug/state", s.handleDebugState)

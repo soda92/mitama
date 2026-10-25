@@ -48,6 +48,7 @@ Last updated: 2026-10-25.
 - [x] Save at choice points; toolbar remains usable above the choice overlay.
 - [x] Navigator Branches tab for scene-local choice targets and route changes.
 - [x] Chapter browser grouped by actual `STS` titles; branch jumps require confirmation.
+- [x] Global chapter-level story map at `/api/storymap`, with explicit route changes.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.
