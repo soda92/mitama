@@ -1,0 +1,145 @@
+# UI, input and presentation
+
+Last updated: 2026-10-25.
+
+The game frame is a 4:3 canvas inside a responsive shell. Title, Gallery,
+Archives, Navigator, Settings and the dialogue text are DOM overlays; only the
+stage art and effects are canvas.
+
+## Layout
+
+```text
+.shell
+└── .play-area
+    ├── .stage-wrap (4:3)
+    │   └── .screen
+    │       ├── canvas          stage art
+    │       ├── dialogue DOM    dialogue box / subtitle pill
+    │       ├── title / select  DOM screens
+    │       └── help / notices
+    └── side windows             Archives / Navigator / Settings
+```
+
+Side windows **dock beside** the stage. Opening one shrinks the stage instead
+of covering it, including in fullscreen.
+
+## Title screen
+
+The original `title007.bmp` is used with transparent hit areas for:
+
+- 任務開始
+- 任務再開
+- 絵巻鑑賞
+- 回想閲覧
+- 音楽再生
+- 環境設定
+- 終了
+
+任務開始 opens the original 主人公選択 screen (`GUIS001.bmp`):
+
+- 八尋 → `yr1_00`
+- 朧 → `os1_00`
+
+Escape/戻る returns to the title.
+
+URL state:
+
+```text
+?pack=dvd&view=title
+?pack=dvd&view=protagonist
+?pack=dvd&view=gallery&tab=music
+```
+
+`?scene=…&cmd=…` bypasses the title. `home=0` bypasses it; `home=1` forces it.
+
+## Dialogue
+
+Dialogue is DOM, which makes it selectable and copyable. The canvas is not
+involved.
+
+- Speaker abbreviations are expanded in the name tag.
+- The microphone button replays the current page's voice.
+- Dragging to select text does not advance the story.
+- Narration (`説`) has no name tag.
+- Dialogue opacity is controlled from Settings and applies to the box,
+  toolbar and hover-English tooltip.
+
+### Typewriter
+
+Settings → **typewriter**:
+
+| Mode | Behavior |
+| --- | --- |
+| `character` | reveal one character at a time |
+| `word` | reveal one word/token at a time |
+| `instant` | show the whole page immediately |
+
+New text explicitly cancels the previous animation and is emitted with zero
+visible characters before typing starts.
+
+The first animation frame clamps negative elapsed time. Without that guard a
+negative `textChars` value makes `slice(0, -1)` return almost the entire line
+for one frame: the “full text flash.”
+
+### Hover English
+
+Enable **hover English** in Settings or press `H`. Hovering the Japanese box
+shows the current page's English translation in a floating tooltip. It is
+line/page-level, not word-level.
+
+The tooltip follows the dialogue opacity and does not pause or advance the
+script.
+
+## Settings sidebar
+
+Settings is a docked side window, not a centered modal. It contains:
+
+- pack
+- Japanese / English language
+- typewriter mode (`character`, `word`, `instant`)
+- hover English
+- BGM volume
+- SE volume
+- dialogue opacity
+- immersive subtitle mode
+- battle policy
+- Archives / Navigate / Debug / Gallery / Title / Reload actions
+
+Settings are stored in `localStorage` under `mitama.settings.v1`.
+
+## Shortcuts
+
+| Key | Action |
+| --- | --- |
+| Click / Enter / ↓ / → | advance |
+| Space | hide/show dialogue and HUD |
+| `P` | pause |
+| `M` | mute |
+| `L` | Japanese / English |
+| `H` | hover English |
+| `I` | immersive subtitle mode |
+| `F` | fullscreen |
+| `N` | navigator |
+| `G` | gallery |
+| `D` | debug panel |
+| `?` | shortcut help |
+| Escape | close the active panel |
+
+## Immersive mode
+
+Immersive mode hides the dialogue box and toolbar and draws the dialogue as a
+centered subtitle pill. Hover English uses a second pill above it. The rest of
+the input behavior is unchanged.
+
+## HD assets
+
+Stage composition happens at **3× logical resolution**
+(`640×480 × 3 = 1920×1440`). The renderer prefers:
+
+```text
+hd4 (4×) → hd (2×) → original BMP
+```
+
+HD images are scaled back to logical size before compositing; this avoids
+using a 4× asset as a 4×-sized sprite. See
+[upscaling.md](upscaling.md).

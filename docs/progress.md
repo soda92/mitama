@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-10-24.
+Last updated: 2026-10-25.
 
 ## Done
 
@@ -44,6 +44,7 @@ Last updated: 2026-10-24.
       `L`/toolbar/Settings language switching with Japanese fallback.
 - [x] Line-level repair pass for partially translated Google output; only
       moans/onomatopoeia remain untranslated.
+- [x] `scripts/repair_translations.py` to rebuild partially translated pages.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.

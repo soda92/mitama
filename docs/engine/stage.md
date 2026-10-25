@@ -14,8 +14,9 @@ background stack. `BMP BLACK 消去` removes the matching layer and reveals the
 background underneath; it does **not** clear the stage. This is used for black
 flashes and white fades.
 
-Images are **not scaled**. A 336×480 character stand is drawn at its natural
-size, bottom-aligned:
+The stage is composed at **3× logical resolution** (1920×1440) so HD stand
+assets are not discarded before the final canvas. A 336×480 character stand
+occupies its logical size, bottom-aligned:
 
 | Slot | Position |
 | --- | --- |
@@ -51,11 +52,15 @@ the stands for the new scene.
 
 ## Transparency
 
-Character stand BMPs are 24-bit images with a **pure-black key background**.
-The player builds a per-sprite canvas and sets `alpha = 0` for pixels whose
-RGB is exactly `(0,0,0)`. Near-black edge pixels are kept to preserve outlines.
-This is why the background is visible around the characters instead of the
-sprite's black rectangle.
+Character stand BMPs are 24-bit images with a **black key background**.
+The player builds a per-sprite canvas at render resolution and clears
+border-connected near-black pixels (RGB channels ≤ 12). Interior near-black
+pixels are preserved for outlines. This is why the background is visible
+around the characters instead of the sprite's black rectangle.
+
+`hd` and `hd4` PNG replacements use the same base names. They are composited
+at 3× logical resolution first, then scaled back through `scale.json`; the
+renderer prefers 4×, then 2×, then the original BMP.
 
 ## Save snapshots
 

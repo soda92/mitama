@@ -43,12 +43,15 @@ never modified. Archive saves are stored separately in
 
 ## Current milestone
 
-The DVD opening and first chapter are playable with backgrounds, dialogue,
-choices, BGM, sound effects and voice. Scene links (`?scene=...&cmd=...`),
-archives, the page/chapter navigator and docked side panels work. Flags, party
-and map-mode state are tracked. `.pty`/`.chr` battles are parsed and playable in
-a simplified screen. Real map movement, battle motions, specials and the full
-damage model remain.
+The DVD scripts, title screen, protagonist select, dialogue, choices, archives,
+navigator, gallery and simplified battles are playable. Dialogue is a DOM
+overlay with selectable text, typewriter modes and optional hover-English
+translation. Archives persist in SQLite with a browser cache. Character stands
+have optional 2×/4× AI-upscaled overlays.
+
+Flags, party and map-mode state are tracked, but free map movement and map
+encounters remain incomplete. Battle damage/action-rate semantics are still
+approximations.
 
 Start with [Progress](progress.md).
 
@@ -57,3 +60,4 @@ Gallery data and seen-state details: [engine/gallery.md](engine/gallery.md).
 Story flags, route gates and ending conditions: [engine/flags.md](engine/flags.md).
 English translation sidecar and bilingual UI: [engine/translation.md](engine/translation.md).
 AI sprite/background upscaling: [engine/upscaling.md](engine/upscaling.md).
+UI/input/settings: [engine/ui.md](engine/ui.md).

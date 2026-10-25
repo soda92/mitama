@@ -155,8 +155,9 @@ python3 scripts/repair_translations.py --pack dvd
 ```
 
 It writes progress after every batch and leaves lines that Google still refuses
-to translate, mainly moans/onomatopoeia. Those need a manual glossary or
-transliteration pass.
+to translate, mainly moans/onomatopoeia. The current full-data run repaired
+833 partially translated entries and leaves 17 entries containing such sounds.
+Those need a manual glossary or transliteration pass.
 
 ## Using it in the game
 
