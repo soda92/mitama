@@ -15,6 +15,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import DialogueOverlay from "./components/DialogueOverlay";
 import DialogueToolbar from "./components/DialogueToolbar";
 import Gallery from "./components/Gallery";
+import HelpPanel from "./components/HelpPanel";
 import ProtagonistSelect, { type ProtagonistRoute } from "./components/ProtagonistSelect";
 import TitleScreen from "./components/TitleScreen";
 import { useGameKeyboard } from "./hooks/useGameKeyboard";
@@ -98,7 +99,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [ended, setEnded] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(initialSettings.muted);
   const [bgmVolume, setBgmVolume] = useState(initialSettings.bgmVolume);
   const [seVolume, setSeVolume] = useState(initialSettings.seVolume);
@@ -133,6 +133,7 @@ export default function App() {
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
   const [immersiveMode, setImmersiveMode] = useState(initialSettings.immersiveMode);
   const [currentScene, setCurrentScene] = useState(params.scene);
@@ -208,7 +209,6 @@ export default function App() {
     setError(null);
     setStarted(false);
     setEnded(false);
-    setPaused(false);
     setStatus("loading script");
     (async () => {
       try {
@@ -313,8 +313,7 @@ export default function App() {
         ended: () => {
           setStarted(false);
           setEnded(true);
-          setPaused(false);
-          setChoices(null);
+                setChoices(null);
         },
         error: (message) => {
           setError(message);
@@ -334,8 +333,7 @@ export default function App() {
           setHomeOpen(true);
           setStarted(false);
           setEnded(false);
-          setPaused(false);
-          setChoices(null);
+                setChoices(null);
           setUiHidden(false);
           setArchiveOpen(false);
           setNavigatorOpen(false);
@@ -454,7 +452,6 @@ export default function App() {
     void player.primeAudio();
     setEnded(false);
     setStarted(true);
-    setPaused(false);
     setUiHidden(false);
     setChoices(null);
     player.start(
@@ -485,9 +482,7 @@ export default function App() {
   }, [data, started, ended, error, start, homeOpen, galleryOpen, protagonistOpen]);
 
   const togglePause = useCallback(() => {
-    const player = playerRef.current;
-    if (!player) return;
-    setPaused(player.togglePaused());
+    playerRef.current?.togglePaused();
   }, []);
 
   const advance = useCallback(() => {
@@ -508,7 +503,6 @@ export default function App() {
     setData(null);
     setStarted(false);
     setEnded(false);
-    setPaused(false);
     setUiHidden(false);
     setResumeScene("");
     setResume({ pc: 0, image: "" });
@@ -571,7 +565,6 @@ export default function App() {
     setHomeOpen(true);
     setStarted(false);
     setEnded(false);
-    setPaused(false);
     setChoices(null);
     setUiHidden(false);
     setArchiveOpen(false);
@@ -611,8 +604,7 @@ export default function App() {
       setData(null);
       setStarted(false);
       setEnded(false);
-      setPaused(false);
-      setChoices(null);
+        setChoices(null);
       setUiHidden(false);
       setResumeScene(scene);
       setResume({ pc: 0, image: "" });
@@ -711,8 +703,7 @@ export default function App() {
       setData(null);
       setStarted(false);
       setEnded(false);
-      setPaused(false);
-      setUiHidden(false);
+        setUiHidden(false);
       setProtagonistOpen(false);
       setResumeScene(snap.scene);
       setResume({
@@ -753,8 +744,7 @@ export default function App() {
       setData(null);
       setStarted(false);
       setEnded(false);
-      setPaused(false);
-      setChoices(null);
+        setChoices(null);
       setResumeScene(scene);
       setResume({ pc, image: "" });
       setReloadKey((k) => k + 1);
@@ -772,8 +762,7 @@ export default function App() {
       setData(null);
       setStarted(false);
       setEnded(false);
-      setPaused(false);
-      setChoices(null);
+        setChoices(null);
       setResumeScene(scene);
       setResume({ pc, image: "" });
       setReloadKey((k) => k + 1);
@@ -788,7 +777,6 @@ export default function App() {
     cancelBattle();
     setStarted(false);
     setEnded(false);
-    setPaused(false);
     setChoices(null);
     const snap = player.snapshot();
     setData(null);
@@ -811,6 +799,7 @@ export default function App() {
     galleryOpen,
     homeOpen,
     menuOpen,
+    helpOpen,
     immersive: immersiveMode,
     setImmersive: setImmersiveMode,
     uiHidden,
@@ -825,6 +814,7 @@ export default function App() {
     setArchiveOpen,
     setNavigatorOpen,
     setMenuOpen,
+    setHelpOpen,
     setUiHidden,
     setMuted,
     setDebugOpen,
@@ -880,12 +870,10 @@ export default function App() {
 
           <DialogueToolbar
             started={started}
-            paused={paused}
             archiveOpen={archiveOpen}
             navigatorOpen={navigatorOpen}
             scriptCount={scriptCount}
             muted={muted}
-            onPause={togglePause}
             onArchives={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
             onNavigator={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
             onTitle={goHome}
@@ -1011,6 +999,8 @@ export default function App() {
               <span /> loading…
             </div>
           )}
+
+          {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
         </div>
       </section>
 

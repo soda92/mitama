@@ -1,11 +1,9 @@
 interface DialogueToolbarProps {
   started: boolean;
-  paused: boolean;
   archiveOpen: boolean;
   navigatorOpen: boolean;
   scriptCount: number;
   muted: boolean;
-  onPause: () => void;
   onArchives: () => void;
   onNavigator: () => void;
   onTitle: () => void;
@@ -16,12 +14,10 @@ interface DialogueToolbarProps {
 
 export default function DialogueToolbar({
   started,
-  paused,
   archiveOpen,
   navigatorOpen,
   scriptCount,
   muted,
-  onPause,
   onArchives,
   onNavigator,
   onTitle,
@@ -32,9 +28,6 @@ export default function DialogueToolbar({
   if (!started) return null;
   return (
     <div className="dialogue-tools" onClick={(ev) => ev.stopPropagation()}>
-      <button className="tool" onClick={onPause} title="Pause (P)">
-        {paused ? "▶" : "❚❚"}
-      </button>
       <button
         className={`tool ${archiveOpen ? "on" : ""}`}
         onClick={onArchives}
@@ -54,7 +47,7 @@ export default function DialogueToolbar({
         Title
       </button>
       <button className="tool" onClick={onMute} title="Mute (M)">
-        {muted ? "🔇" : "🔊"}
+        {muted ? "Unmute" : "Mute"}
       </button>
       <button className="tool" onClick={onFullscreen} title="Fullscreen (F)">
         ⛶

@@ -66,6 +66,8 @@ Last updated: 2026-10-24.
       auto-start. In-game Title button/Settings entry returns
       to it and Continue resumes the current position.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
+- [x] `?` opens a keyboard-shortcut help overlay; the toolbar has no pause
+      button and uses a text mute control.
 - [x] Fullscreen keeps a letterboxed 4:3 stage.
 - [x] Inline voice/SE annotations are hidden and played as page cues.
 - [x] Header/footer removed; controls live on the dialogue box and in ☰
@@ -78,7 +80,8 @@ Last updated: 2026-10-24.
       (persisted per browser).
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
-- [x] Replay-voice button beside the speaker name tag (current page/line).
+- [x] Replay-voice button beside the speaker name tag (current page/line),
+      using a microphone icon; speaker abbreviations expanded to full names.
 - [x] Gallery: CG viewer, scene review, music player with official BGM
       titles/durations, seen tracking and CG-to-script story jumps.
 - [x] URL-addressable title, protagonist select, and Gallery tabs, including

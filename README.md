@@ -128,7 +128,7 @@ stay beside the stage and remain docked in fullscreen.
 
 - **Click / Enter / ↓ / →** — advance dialogue (select text with the mouse
   without advancing)
-- **声** — replay the current line's voice (beside the speaker tag, or at the
+- **🎙️** — replay the current line's voice (beside the speaker tag, or at the
   left edge for narration)
 - **Space** — hide/show the dialogue and HUD
 - **P** — pause
@@ -138,6 +138,11 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 - **G** — gallery (pictures, scenes, music)
 - **I** — immersive subtitle mode
+- **?** — keyboard shortcut help
+
+The in-game controls are on the dialogue box; there is no separate pause button,
+but **P** still pauses. Speaker tags use full names (e.g. `八` → 八尋,
+`阿` → 阿門). Hide/show controls with **Space**.
 - **Title** — return to the title screen (also in Settings)
 
 The title screen (`title007.bmp`) is shown on a normal launch with entries for

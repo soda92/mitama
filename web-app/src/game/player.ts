@@ -1,4 +1,4 @@
-import { protagonistOfScene } from "./types";
+import { protagonistOfScene, speakerDisplayName } from "./types";
 import type {
   AssetMap,
   Command,
@@ -553,8 +553,8 @@ export class Player {
       .split(/[￥¥]/)
       .map((page) => page.replace(/\r/g, "").trim())
       .filter((page) => page.length > 0);
-    // The script uses "説" to mark narration; it is not a speaker label.
-    this.textSpeaker = speaker.trim() === "説" ? "" : speaker;
+    // Expand one-character speaker tags ("八", "阿", ...) for the name tag.
+    this.textSpeaker = speakerDisplayName(speaker);
     this.textCues = cues;
     this.textPages = pages.length > 0 ? pages : [""];
     this.textPage = 0;

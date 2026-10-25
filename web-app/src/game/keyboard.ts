@@ -5,6 +5,7 @@ export interface GameKeyboardContext {
   galleryOpen: boolean;
   homeOpen: boolean;
   menuOpen: boolean;
+  helpOpen: boolean;
   immersive: boolean;
   uiHidden: boolean;
   started: boolean;
@@ -19,23 +20,37 @@ export interface GameKeyboardContext {
   setArchiveOpen: (open: boolean) => void;
   setNavigatorOpen: (open: boolean) => void;
   setMenuOpen: (open: boolean) => void;
+  setHelpOpen: (open: boolean) => void;
   setUiHidden: (hidden: boolean) => void;
   setMuted: (muted: boolean) => void;
   setDebugOpen: (open: boolean) => void;
 }
 
 export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
+  const target = ev.target instanceof HTMLElement ? ev.target : null;
+  const typing =
+    !!target && (target.matches("input, textarea, select") || target.isContentEditable);
+
+  // "?" (Shift-/ on most layouts) toggles the shortcut help from any screen.
+  if (!typing && (ev.key === "?" || (ev.code === "Slash" && ev.shiftKey))) {
+    ev.preventDefault();
+    o.setHelpOpen(!o.helpOpen);
+    return;
+  }
+
   if (ev.key === "Escape") {
+    if (o.helpOpen) {
+      o.setHelpOpen(false);
+      return;
+    }
     o.setArchiveOpen(false);
     o.setNavigatorOpen(false);
     o.setMenuOpen(false);
     return;
   }
-  if (o.battleOpen || o.galleryOpen || o.homeOpen) return;
 
-  const target = ev.target instanceof HTMLElement ? ev.target : null;
-  const typing =
-    !!target && (target.matches("input, textarea, select") || target.isContentEditable);
+  if (o.helpOpen) return;
+  if (o.battleOpen || o.galleryOpen || o.homeOpen) return;
 
   if (o.archiveOpen || o.navigatorOpen) {
     const inSideWindow = !!target?.closest(".side-window");

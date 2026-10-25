@@ -33,6 +33,43 @@ export interface AssetMap {
   text: Record<string, string>;
 }
 
+const SPEAKER_NAMES: Record<string, string> = {
+  八: "八尋",
+  阿: "阿門",
+  更: "更紗",
+  諏: "諏慧姫",
+  紅: "紅羽",
+  瑞: "瑞希",
+  我: "我吽",
+  紫: "紫芳",
+  弥: "阿佐弥",
+  文: "文観",
+  七: "七巳",
+  耳: "耳目",
+  長: "長虫",
+  五: "五鬼",
+  素: "素戔鳴",
+  館: "お館",
+  番: "関番",
+  随: "随身",
+  闍: "阿闍梨",
+  三: "猿",
+  子: "子供",
+};
+
+/**
+ * Script speakers use one-character abbreviations. Keep the raw script token
+ * in the API, but show a readable name in the dialogue tag.
+ */
+export function speakerDisplayName(speaker?: string): string {
+  const raw = (speaker ?? "").trim().replace(/^→+/, "");
+  if (!raw || raw === "説") return "";
+  return raw
+    .split("・")
+    .map((part) => SPEAKER_NAMES[part.trim()] ?? part.trim())
+    .join("・");
+}
+
 export type Protagonist = "yahiro" | "oboro";
 
 /** Route prefix: eY* / Y* = 八尋, eO* / O* = 朧. */

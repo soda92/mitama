@@ -74,7 +74,7 @@ export default function DialogueOverlay({
               onClick={handleReplay}
               aria-label="声を再生"
             >
-              声
+              🎙️
             </button>
           )}
         </div>
