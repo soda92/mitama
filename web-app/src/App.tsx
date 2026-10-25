@@ -1044,7 +1044,6 @@ export default function App() {
             onLanguage={toggleLanguage}
             onArchives={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
             onNavigator={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
-            onTitle={goHome}
             onMute={() => setMuted((m) => !m)}
             onFullscreen={toggleFullscreen}
             onSettings={openSettings}

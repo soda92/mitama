@@ -114,7 +114,8 @@ Settings is a tab in the docked side window, not a centered modal. It contains:
 - dialogue opacity
 - immersive subtitle mode
 - battle policy
-- Archives / Navigate / Debug / Gallery / Title / Reload actions
+- Archives / Navigate / Debug / Gallery / Reload actions
+- **Title** — return to the title screen
 
 Settings are stored in `localStorage` under `mitama.settings.v1`.
 

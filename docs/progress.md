@@ -77,7 +77,7 @@ Last updated: 2026-10-25.
       fit-to-viewport layout.
 - [x] Original title screen with new/continue, gallery, settings and quit entries;
       new game shows the original 八尋/朧 主人公選択 screen; scene links still
-      auto-start. In-game Title button/Settings entry returns
+      auto-start. The Settings → Title entry returns
       to it and Continue resumes the current position.
 - [x] Space hides dialogue and HUD; click/Enter restores/advances.
 - [x] `?` opens a keyboard-shortcut help overlay; the toolbar has no pause
