@@ -1080,6 +1080,10 @@ export default function App() {
                 closeGallery();
                 navigateToScene(name, pc);
               }}
+              onViewStory={(name, pc = 0) => {
+                closeGallery();
+                navigateToScene(name, pc);
+              }}
             />
           )}
 

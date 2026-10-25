@@ -65,6 +65,10 @@ eyr4_03 -> yr4_03, anchor 249, return 380
 event. `eyr3_10` remains gallery-only for now because `yr3_10` already contains
 a complex explicit branch with choices, party changes and LODs.
 
+The Gallery Scenes tab exposes the review status of every event scene
+(`interlude`, `manual`, `candidate`, `gallery`) and a `Story` link to its base
+scene when one exists.
+
 ## Remaining work
 
 The matching pass produced candidate mappings for the other event scenes, but

@@ -24,6 +24,7 @@ export interface GalleryScene {
   heroine?: string;
   cover?: string;
   coverThumb?: string;
+  base?: string;
 }
 
 export interface GalleryTrack {

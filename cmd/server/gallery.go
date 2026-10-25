@@ -37,6 +37,7 @@ type galleryScene struct {
 	Heroine     string `json:"heroine,omitempty"`
 	Cover       string `json:"cover,omitempty"`
 	CoverThumb  string `json:"coverThumb,omitempty"`
+	Base        string `json:"base,omitempty"`
 }
 
 type galleryTrack struct {
@@ -324,6 +325,10 @@ func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 			scene.Heroine = eventHeroine(strings.ToLower(name), firstHeroineSpeaker, firstCG)
 			scene.Cover = cover
 			scene.CoverThumb = coverThumb
+			base := name[1:]
+			if _, err := os.Stat(filepath.Join(textDir, base+".txt")); err == nil {
+				scene.Base = base
+			}
 		}
 		out.Scenes = append(out.Scenes, scene)
 		for i, c := range sc.Commands {

@@ -2467,7 +2467,7 @@ button.gallery-card i,
   gap: 8px;
 }
 
-button.gallery-event-card {
+.gallery-event-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2479,12 +2479,68 @@ button.gallery-event-card {
   text-align: left;
 }
 
-button.gallery-event-card:hover {
+.gallery-event-card:hover {
   border-color: #5b4828;
 }
 
-button.gallery-event-card.seen {
+.gallery-event-card.seen {
   border-color: #4b5a3a;
+}
+
+button.gallery-event-play {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.gallery-event-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(5, 6, 9, 0.82);
+  color: #c5b28b;
+  font: 8px/1 ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gallery-event-badge.interlude {
+  color: #c8e3b0;
+}
+
+.gallery-event-badge.manual {
+  color: #e0b98b;
+}
+
+.gallery-event-badge.gallery {
+  color: #c99a9a;
+}
+
+.gallery-event-badge.candidate {
+  color: #aeb7c9;
+}
+
+button.gallery-event-story {
+  align-self: flex-end;
+  padding: 3px 6px;
+  border: 1px solid #30323c;
+  border-radius: 3px;
+  background: #171922;
+  color: #aeb7c9;
+  font: 9px/1 ui-monospace, monospace;
+}
+
+button.gallery-event-story:hover {
+  border-color: #5b4828;
+  color: #ead7a9;
 }
 
 .gallery-event-cover {
@@ -2542,7 +2598,7 @@ button.gallery-event-card.seen {
   color: #666a74;
 }
 
-button.gallery-event-card i {
+.gallery-event-card i {
   position: absolute;
   top: 9px;
   right: 9px;

@@ -6,6 +6,7 @@ import type {
   GalleryTrack,
 } from "../game/gallery";
 import { speakerDisplayName } from "../game/types";
+import { eventStatus } from "../game/events";
 
 interface GalleryProps {
   initialTab?: Tab;
@@ -16,6 +17,7 @@ interface GalleryProps {
   onSeen: (kind: keyof GallerySeen, key: string) => void;
   onClose: () => void;
   onPlayScene: (name: string, pc?: number) => void;
+  onViewStory: (name: string, pc?: number) => void;
 }
 
 type Tab = "pictures" | "scenes" | "music";
@@ -29,6 +31,7 @@ export default function Gallery({
   onSeen,
   onClose,
   onPlayScene,
+  onViewStory,
 }: GalleryProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
 
@@ -231,40 +234,57 @@ export default function Gallery({
               <section key={group} className="gallery-scene-group">
                 <h4>{group}</h4>
                 <div className="gallery-event-grid">
-                  {scenes.map((scene) => (
-                    <button
-                      key={scene.name}
-                      className={`gallery-event-card ${seen.scenes[scene.name] ? "seen" : ""}`}
-                      onClick={() => {
-                        onSeen("scenes", scene.name);
-                        onPlayScene(scene.name);
-                      }}
-                      title={scene.name}
-                    >
-                      <span className="gallery-event-cover">
-                        {scene.coverThumb || scene.cover ? (
-                          <img
-                            src={scene.coverThumb || scene.cover}
-                            alt=""
-                            loading="lazy"
-                            onError={(ev) => {
-                              if (scene.cover && ev.currentTarget.src !== scene.cover) {
-                                ev.currentTarget.src = scene.cover;
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span className="gallery-event-placeholder">EVENT</span>
+                  {scenes.map((scene) => {
+                    const status = eventStatus(scene.name);
+                    return (
+                      <div
+                        key={scene.name}
+                        className={`gallery-event-card ${status} ${seen.scenes[scene.name] ? "seen" : ""}`}
+                      >
+                        <button
+                          className="gallery-event-play"
+                          onClick={() => {
+                            onSeen("scenes", scene.name);
+                            onPlayScene(scene.name);
+                          }}
+                          title={`Play ${scene.name}`}
+                        >
+                          <span className="gallery-event-cover">
+                            {scene.coverThumb || scene.cover ? (
+                              <img
+                                src={scene.coverThumb || scene.cover}
+                                alt=""
+                                loading="lazy"
+                                onError={(ev) => {
+                                  if (scene.cover && ev.currentTarget.src !== scene.cover) {
+                                    ev.currentTarget.src = scene.cover;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="gallery-event-placeholder">EVENT</span>
+                            )}
+                          </span>
+                          <span className="gallery-event-info">
+                            <b>{scene.heroine || "女性"}</b>
+                            <span>{scene.title !== scene.name ? scene.title : scene.name}</span>
+                            {scene.title !== scene.name && <small>{scene.name}</small>}
+                          </span>
+                        </button>
+                        <span className={`gallery-event-badge ${status}`}>{status}</span>
+                        {scene.base && (
+                          <button
+                            className="gallery-event-story"
+                            onClick={() => onViewStory(scene.base!)}
+                            title={`View story around ${scene.base}`}
+                          >
+                            Story
+                          </button>
                         )}
-                      </span>
-                      <span className="gallery-event-info">
-                        <b>{scene.heroine || "女性"}</b>
-                        <span>{scene.title !== scene.name ? scene.title : scene.name}</span>
-                        {scene.title !== scene.name && <small>{scene.name}</small>}
-                      </span>
-                      {seen.scenes[scene.name] && <i>✓</i>}
-                    </button>
-                  ))}
+                        {seen.scenes[scene.name] && <i>✓</i>}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             ))}

@@ -55,9 +55,16 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
 - Variants such as `_1` / `_2` are grouped under one picture.
 - Scene titles come from the first `STS` command when present.
 - Event scenes (`e*.txt`) also get a cover from their first `CG…` image,
-  a protagonist route (`yahiro` / `oboro`), and a heroine label.
+  a protagonist route (`yahiro` / `oboro`), a heroine label and a `base`
+  scene when an exact counterpart exists.
 - The Scenes tab shows only event scenes, grouped by 八尋編 / 朧編; story
   chapters are in Navigator → Chapters.
+- Event cards have a status badge:
+  - `interlude` — enabled in the story
+  - `manual` — candidate needing anchor review
+  - `candidate` — matched but not enabled
+  - `gallery` — no exact base scene
+- A `Story` button opens the base scene from the beginning when `base` exists.
 - Music usage is gathered by scanning every `MUS` command.
 
 BGM titles and durations are recovered from the executable's sound-test tables
