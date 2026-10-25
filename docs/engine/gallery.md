@@ -57,14 +57,12 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
 - Event scenes (`e*.txt`) also get a cover from their first `CG…` image,
   a protagonist route (`yahiro` / `oboro`), a heroine label and a `base`
   scene when an exact counterpart exists.
-- The Scenes tab shows only event scenes, grouped by 八尋編 / 朧編; story
-  chapters are in Navigator → Chapters.
-- Event cards have a status badge:
-  - `interlude` — enabled in the story
-  - `manual` — candidate needing anchor review
-  - `candidate` — matched but not enabled
-  - `gallery` — no exact base scene
-- A `Story` button opens the base scene from the beginning when `base` exists.
+- The Scenes tab shows only event/recollection scenes, grouped by
+  八尋編 / 朧編; story chapters are in Navigator → Chapters.
+- Event cards use a single `EVENT` badge.
+- A `Story` button opens the related base scene from the beginning when
+  `base` exists. It is a context link; the event is not inserted into the
+  story route.
 - Music usage is gathered by scanning every `MUS` command.
 
 BGM titles and durations are recovered from the executable's sound-test tables

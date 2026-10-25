@@ -1,9 +1,3 @@
-export interface BgmState {
-  track: string;
-  currentTime: number;
-  wanted: boolean;
-}
-
 export interface AudioSnapshot {
   bgm: {
     src: string;
@@ -140,30 +134,6 @@ export class AudioEngine {
     this.activeVoice = null;
     this.liveSe.delete(a);
     a.pause();
-  }
-
-  snapshotBgm(): BgmState {
-    return {
-      track: this.bgm?.dataset.track ?? "",
-      currentTime: this.bgm && Number.isFinite(this.bgm.currentTime) ? this.bgm.currentTime : 0,
-      wanted: this.bgmWanted,
-    };
-  }
-
-  restoreBgm(state: BgmState): void {
-    this.bgmWanted = state.wanted && !!state.track;
-    if (!this.bgmWanted) {
-      this.stopBgm();
-      return;
-    }
-    const a = this.ensureBgm();
-    if (a.dataset.track !== state.track) {
-      a.src = this.url(state.track);
-      a.dataset.track = state.track;
-    }
-    a.currentTime = Math.max(0, state.currentTime);
-    a.volume = this.bgmGain();
-    if (!this.paused && !this.suspended) void a.play().catch(() => undefined);
   }
 
   setPaused(paused: boolean): void {

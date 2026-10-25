@@ -12,7 +12,7 @@
 # Engine
 
 - [Reverse engineering notes](engine/reverse-engineering.md)
-- [Story event interludes](engine/events.md)
+- [Event recollection scenes](engine/events.md)
 - [Script language](engine/script.md)
 - [Stage composition](engine/stage.md)
 - [UI, input and presentation](engine/ui.md)

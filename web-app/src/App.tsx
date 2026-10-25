@@ -48,7 +48,6 @@ import {
   readSettings,
   writeSettings,
   type BattlePolicy,
-  type EventMode,
   type Language,
   type TypewriterMode,
 } from "./game/settings";
@@ -166,8 +165,6 @@ export default function App() {
     initialSettings.typewriterMode,
   );
   const [hoverTranslation, setHoverTranslation] = useState(initialSettings.hoverTranslation);
-  const [eventMode, setEventMode] = useState<EventMode>(initialSettings.eventMode);
-  const [eventActive, setEventActive] = useState(false);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -361,7 +358,6 @@ export default function App() {
             markSeen("music", name.toUpperCase());
           }
         },
-        event: (name) => setEventActive(!!name),
         title: () => {
           setHomeOpen(true);
           setStarted(false);
@@ -381,7 +377,6 @@ export default function App() {
       loadScript,
     );
     playerRef.current = player;
-    player.setEventMode(eventMode);
     player.setBgmVolume(bgmVolume);
     player.setSeVolume(seVolume);
     return () => {
@@ -459,10 +454,6 @@ export default function App() {
   }, [typewriterMode, data]);
 
   useEffect(() => {
-    playerRef.current?.setEventMode(eventMode);
-  }, [eventMode, data]);
-
-  useEffect(() => {
     playerRef.current?.setMuted(muted);
   }, [muted]);
 
@@ -477,7 +468,6 @@ export default function App() {
       language,
       typewriterMode,
       hoverTranslation,
-      eventMode,
     });
   }, [
     bgmVolume,
@@ -489,7 +479,6 @@ export default function App() {
     language,
     typewriterMode,
     hoverTranslation,
-    eventMode,
   ]);
 
   useEffect(() => {
@@ -567,7 +556,6 @@ export default function App() {
     setStarted(true);
     setUiHidden(false);
     setChoices(null);
-    player.setEventMode(eventMode);
     player.start(
       resume.pc,
       resume.image,
@@ -577,7 +565,7 @@ export default function App() {
       resume.mapMode,
     );
     setResume({ pc: 0, image: "" });
-  }, [resume, eventMode]);
+  }, [resume]);
 
   // The player has no title screen: start as soon as data and the stage exist.
   useEffect(() => {
@@ -815,7 +803,7 @@ export default function App() {
 
   const saveCurrent = useCallback(() => {
     const player = playerRef.current;
-    if (!player || player.isEventActive) return;
+    if (!player) return;
     const snap = player.snapshot();
     snap.thumbnail = makeThumbnail(canvasRef.current);
     const id = nextArchiveID(archivesRef.current);
@@ -1114,18 +1102,16 @@ export default function App() {
                     {opt.text}
                   </button>
                 ))}
-                {!eventActive && (
-                  <button
-                    className="choice-save"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      saveCurrent();
-                    }}
-                    title="Save at this choice"
-                  >
-                    Save at this choice
-                  </button>
-                )}
+                <button
+                  className="choice-save"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    saveCurrent();
+                  }}
+                  title="Save at this choice"
+                >
+                  Save at this choice
+                </button>
               </div>
             </div>
           )}
@@ -1175,7 +1161,7 @@ export default function App() {
               {activeSide === "archives" && (
                 <ArchiveManager
                   slots={archives}
-                  canSave={started && !!playerRef.current && !eventActive}
+                  canSave={started && !!playerRef.current}
                   currentScene={currentScene}
                   currentPC={currentPC}
                   sync={archiveSync}
@@ -1217,8 +1203,6 @@ export default function App() {
                   onLanguage={setLanguage}
                   typewriterMode={typewriterMode}
                   onTypewriterMode={setTypewriterMode}
-                  eventMode={eventMode}
-                  onEventMode={setEventMode}
                   hoverTranslation={hoverTranslation}
                   onHoverTranslation={setHoverTranslation}
                   onClose={closeSide}

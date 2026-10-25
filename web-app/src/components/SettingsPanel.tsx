@@ -1,4 +1,4 @@
-import type { BattlePolicy, EventMode, Language, TypewriterMode } from "../game/settings";
+import type { BattlePolicy, Language, TypewriterMode } from "../game/settings";
 import type { PackInfo } from "../game/types";
 
 interface SettingsPanelProps {
@@ -14,7 +14,6 @@ interface SettingsPanelProps {
   battlePolicy: BattlePolicy;
   language: Language;
   typewriterMode: TypewriterMode;
-  eventMode: EventMode;
   hoverTranslation: boolean;
   onClose: () => void;
   onPackChange: (id: string) => void;
@@ -25,7 +24,6 @@ interface SettingsPanelProps {
   onBattlePolicy: (value: BattlePolicy) => void;
   onLanguage: (value: Language) => void;
   onTypewriterMode: (value: TypewriterMode) => void;
-  onEventMode: (value: EventMode) => void;
   onHoverTranslation: (value: boolean) => void;
   onArchives: () => void;
   onNavigate: () => void;
@@ -50,7 +48,6 @@ export default function SettingsPanel({
   battlePolicy,
   language,
   typewriterMode,
-  eventMode,
   hoverTranslation,
   onClose,
   onPackChange,
@@ -61,7 +58,6 @@ export default function SettingsPanel({
   onBattlePolicy,
   onLanguage,
   onTypewriterMode,
-  onEventMode,
   onHoverTranslation,
   onArchives,
   onNavigate,
@@ -121,17 +117,6 @@ export default function SettingsPanel({
             <option value="char">character</option>
             <option value="word">word</option>
             <option value="instant">instant</option>
-          </select>
-        </label>
-        <label className="settings-row">
-          <span>event scenes</span>
-          <select
-            className="pack"
-            value={eventMode}
-            onChange={(ev) => onEventMode(ev.target.value as EventMode)}
-          >
-            <option value="off">off</option>
-            <option value="interlude">story interludes</option>
           </select>
         </label>
         <label className="settings-row">

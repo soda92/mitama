@@ -118,7 +118,6 @@ Settings is a tab in the docked side window, not a centered modal. It contains:
 - pack
 - Japanese / English language
 - typewriter mode (`character`, `word`, `instant`)
-- event scenes (`off`, `story interludes`)
 - hover English
 - BGM volume
 - SE volume

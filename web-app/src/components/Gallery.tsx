@@ -6,7 +6,6 @@ import type {
   GalleryTrack,
 } from "../game/gallery";
 import { speakerDisplayName } from "../game/types";
-import { eventStatus } from "../game/events";
 
 interface GalleryProps {
   initialTab?: Tab;
@@ -235,11 +234,10 @@ export default function Gallery({
                 <h4>{group}</h4>
                 <div className="gallery-event-grid">
                   {scenes.map((scene) => {
-                    const status = eventStatus(scene.name);
                     return (
                       <div
                         key={scene.name}
-                        className={`gallery-event-card ${status} ${seen.scenes[scene.name] ? "seen" : ""}`}
+                        className={`gallery-event-card ${seen.scenes[scene.name] ? "seen" : ""}`}
                       >
                         <button
                           className="gallery-event-play"
@@ -271,7 +269,7 @@ export default function Gallery({
                             {scene.title !== scene.name && <small>{scene.name}</small>}
                           </span>
                         </button>
-                        <span className={`gallery-event-badge ${status}`}>{status}</span>
+                        <span className="gallery-event-badge">EVENT</span>
                         {scene.base && (
                           <button
                             className="gallery-event-story"

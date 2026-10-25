@@ -2512,22 +2512,6 @@ button.gallery-event-play {
   text-transform: uppercase;
 }
 
-.gallery-event-badge.interlude {
-  color: #c8e3b0;
-}
-
-.gallery-event-badge.manual {
-  color: #e0b98b;
-}
-
-.gallery-event-badge.gallery {
-  color: #c99a9a;
-}
-
-.gallery-event-badge.candidate {
-  color: #aeb7c9;
-}
-
 button.gallery-event-story {
   align-self: flex-end;
   padding: 3px 6px;

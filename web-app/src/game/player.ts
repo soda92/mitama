@@ -8,8 +8,7 @@ import type {
   Protagonist,
   Script,
 } from "./types";
-import { AudioEngine, type AudioSnapshot, type BgmState } from "./player/audio";
-import { findEventAt, type EventInterlude } from "./events";
+import { AudioEngine, type AudioSnapshot } from "./player/audio";
 import {
   STAGE_H as H,
   STAGE_W as W,
@@ -70,8 +69,6 @@ export interface PlayerEvents {
   dialogue?(state: DialogueOverlayState | null): void;
   /** The script requested a return to the title screen. */
   title?(): void;
-  /** An event interlude started (name) or returned to the base scene (null). */
-  event?(name: string | null): void;
   /** Run a battle and return the result. */
   battle?(info: BattleInfo): "win" | "lose" | void | Promise<"win" | "lose" | void>;
 }
@@ -97,17 +94,6 @@ export interface Snapshot {
 
 export type AudioDebug = AudioSnapshot;
 
-interface EventReturn {
-  scene: string;
-  commands: Command[];
-  labels: Record<string, number>;
-  pc: number;
-  flags: Map<number, number>;
-  party: Set<string>;
-  stage: StageSnapshot;
-  bgm: BgmState;
-}
-
 export interface DebugState {
   pack: string;
   scene: string;
@@ -126,7 +112,6 @@ export interface DebugState {
     complete: boolean;
   };
   choice: Option[] | null;
-  eventActive: boolean;
   dialogueHidden: boolean;
   dialogueOpacity: number;
   flags: Record<string, number>;
@@ -173,10 +158,6 @@ export class Player {
   private immersive = false;
   private language: "ja" | "en" = "ja";
   private typewriterMode: "char" | "word" | "instant" = "char";
-  private eventMode: "off" | "interlude" = "off";
-  private eventReturn: EventReturn | null = null;
-  private readonly playedEvents = new Set<string>();
-
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
   private pendingChoiceSource: Option[] | null = null;
@@ -325,7 +306,6 @@ export class Player {
         complete: this.textComplete,
       },
       choice: this.pendingChoice,
-      eventActive: this.isEventActive,
       dialogueHidden: this.dialogueHidden,
       dialogueOpacity: this.dialogueOpacity,
       flags: Object.fromEntries(this.flags),
@@ -383,71 +363,6 @@ export class Player {
     this.draw();
   }
 
-  setEventMode(mode: "off" | "interlude"): void {
-    this.eventMode = mode;
-  }
-
-  get isEventActive(): boolean {
-    return this.eventReturn !== null;
-  }
-
-  private async enterEvent(entry: EventInterlude): Promise<boolean> {
-    if (!this.loadScript) return false;
-    this.playedEvents.add(entry.event);
-    const returnState: EventReturn = {
-      scene: this.scene,
-      commands: this.commands,
-      labels: this.labels,
-      pc: entry.returnPC,
-      flags: new Map(this.flags),
-      party: new Set(this.party),
-      stage: this.stageSnapshot(),
-      bgm: this.audio.snapshotBgm(),
-    };
-    this.eventReturn = returnState;
-    this.audio.stopVoice();
-    this.resetText();
-    try {
-      const next = await this.loadScript(entry.event);
-      this.commands = next.commands;
-      this.labels = next.labels;
-      this.scene = entry.event.toLowerCase();
-      this.pc = 0;
-      this.events.log(`event ${entry.event}`);
-      this.events.status(`event: ${entry.event}`);
-      this.events.event?.(entry.event);
-      this.events.position?.(this.scene, 0);
-      this.stageRenderer.prefetch(this.commands, this.pc);
-      return true;
-    } catch (err) {
-      this.eventReturn = null;
-      this.events.log(`failed to load event ${entry.event}: ${String(err)}`);
-      return false;
-    }
-  }
-
-  private async leaveEvent(): Promise<void> {
-    const state = this.eventReturn;
-    if (!state) {
-      this.stopped = true;
-      return;
-    }
-    this.eventReturn = null;
-    this.audio.stopVoice();
-    this.commands = state.commands;
-    this.labels = state.labels;
-    this.scene = state.scene;
-    this.pc = state.pc;
-    this.flags = state.flags;
-    this.party = state.party;
-    await this.stageRenderer.restoreSnapshot(state.stage);
-    this.audio.restoreBgm(state.bgm);
-    this.events.event?.(null);
-    this.events.status("playing");
-    this.events.position?.(this.scene, this.pc);
-    this.draw();
-  }
-
   setLanguage(language: "ja" | "en"): void {
     if (this.language === language) return;
     this.language = language;
@@ -488,9 +403,6 @@ export class Player {
     mapMode?: boolean,
   ): void {
     this.pc = this.rewindForVoice(Math.max(0, pc));
-    this.eventReturn = null;
-    this.playedEvents.clear();
-    this.events.event?.(null);
     this.stageRenderer.reset();
     this.running = true;
     this.paused = false;
@@ -600,8 +512,6 @@ export class Player {
     this.choiceResolve = null;
     this.pendingChoice = null;
     this.pendingChoiceSource = null;
-    this.eventReturn = null;
-    this.events.event?.(null);
     this.events.choice?.(null);
     if (choiceResolve) choiceResolve("");
     this.audio.stop();
@@ -927,19 +837,7 @@ export class Player {
   private async run(): Promise<void> {
     try {
       while (!this.stopped) {
-        if (this.pc >= this.commands.length) {
-          if (this.eventReturn) {
-            await this.leaveEvent();
-            continue;
-          }
-          break;
-        }
-        if (this.eventMode === "interlude" && !this.eventReturn) {
-          const event = findEventAt(this.scene, this.pc);
-          if (event && !this.playedEvents.has(event.event)) {
-            if (await this.enterEvent(event)) continue;
-          }
-        }
+        if (this.pc >= this.commands.length) break;
         const c = this.commands[this.pc++];
         if (c.label) {
           this.events.log(`label ${c.label}`);
@@ -985,10 +883,6 @@ export class Player {
             this.events.log(`title: ${args.join(" ")}`);
             break;
           case "TITLE":
-            if (this.eventReturn) {
-              await this.leaveEvent();
-              break;
-            }
             this.events.title?.();
             this.running = false;
             this.stopped = true;
@@ -1132,10 +1026,6 @@ export class Player {
           }
           case "SEND":
           case "SHAEND":
-            if (this.eventReturn) {
-              await this.leaveEvent();
-              break;
-            }
             // The engine treats this as the end of the current scene. Until
             // map/scene management exists, stop instead of falling through
             // into the script's branch labels.
@@ -1151,10 +1041,6 @@ export class Player {
             break;
           }
           case "END":
-            if (this.eventReturn) {
-              await this.leaveEvent();
-              break;
-            }
             this.stopped = true;
             break;
           default:
@@ -1176,8 +1062,6 @@ export class Player {
     this.choiceResolve = null;
     this.pendingChoice = null;
     this.pendingChoiceSource = null;
-    this.eventReturn = null;
-    this.events.event?.(null);
     this.events.choice?.(null);
     this.events.loading(false);
     this.events.status("ended");
