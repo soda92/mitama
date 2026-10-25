@@ -20,11 +20,6 @@ interface GalleryProps {
 
 type Tab = "pictures" | "scenes" | "music";
 
-function chapterLabel(chapter: string): string {
-  const match = chapter.match(/^([a-z]+)(\d+)$/i);
-  return match ? `${match[1].toUpperCase()} ${match[2]}` : chapter.toUpperCase();
-}
-
 export default function Gallery({
   initialTab = "pictures",
   packId,
@@ -135,17 +130,21 @@ export default function Gallery({
     return (data?.pictures ?? []).filter((p) => !q || p.key.includes(q) || p.name.toLowerCase().includes(q));
   }, [data, query]);
 
-  const sceneGroups = useMemo(() => {
+  const eventGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const map = new Map<string, GalleryData["scenes"]>();
     for (const scene of data?.scenes ?? []) {
-      if (q && !scene.name.toLowerCase().includes(q) && !scene.title.toLowerCase().includes(q)) continue;
-      const chapter = chapterLabel(scene.chapter);
-      const list = map.get(chapter) ?? [];
+      if (!scene.event) continue;
+      const hay = [scene.name, scene.title, scene.heroine].filter(Boolean).join(" ").toLowerCase();
+      if (q && !hay.includes(q)) continue;
+      const group = scene.protagonist === "oboro" ? "朧編" : "八尋編";
+      const list = map.get(group) ?? [];
       list.push(scene);
-      map.set(chapter, list);
+      map.set(group, list);
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return [...map.entries()]
+      .sort(([a], [b]) => (a === "八尋編" ? -1 : b === "八尋編" ? 1 : a.localeCompare(b)))
+      .map(([group, scenes]) => [group, [...scenes].sort((a, b) => a.name.localeCompare(b.name))] as const);
   }, [data, query]);
 
   const filteredMusic = useMemo(() => {
@@ -222,21 +221,47 @@ export default function Gallery({
 
         {data && tab === "scenes" && (
           <div className="gallery-scroll">
-            {sceneGroups.map(([chapter, scenes]) => (
-              <section key={chapter} className="gallery-scene-group">
-                <h4>{chapter}</h4>
-                <div className="gallery-scene-grid">
+            <p className="gallery-event-note">
+              Event recollection scenes. Story chapters are in Navigator → Chapters.
+            </p>
+            {eventGroups.length === 0 && (
+              <p className="gallery-empty">No matching event scenes.</p>
+            )}
+            {eventGroups.map(([group, scenes]) => (
+              <section key={group} className="gallery-scene-group">
+                <h4>{group}</h4>
+                <div className="gallery-event-grid">
                   {scenes.map((scene) => (
                     <button
                       key={scene.name}
-                      className={seen.scenes[scene.name] ? "seen" : ""}
+                      className={`gallery-event-card ${seen.scenes[scene.name] ? "seen" : ""}`}
                       onClick={() => {
                         onSeen("scenes", scene.name);
                         onPlayScene(scene.name);
                       }}
+                      title={scene.name}
                     >
-                      <b>{scene.title}</b>
-                      {scene.title !== scene.name && <span>{scene.name}</span>}
+                      <span className="gallery-event-cover">
+                        {scene.coverThumb || scene.cover ? (
+                          <img
+                            src={scene.coverThumb || scene.cover}
+                            alt=""
+                            loading="lazy"
+                            onError={(ev) => {
+                              if (scene.cover && ev.currentTarget.src !== scene.cover) {
+                                ev.currentTarget.src = scene.cover;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span className="gallery-event-placeholder">EVENT</span>
+                        )}
+                      </span>
+                      <span className="gallery-event-info">
+                        <b>{scene.heroine || "女性"}</b>
+                        <span>{scene.title !== scene.name ? scene.title : scene.name}</span>
+                        {scene.title !== scene.name && <small>{scene.name}</small>}
+                      </span>
                       {seen.scenes[scene.name] && <i>✓</i>}
                     </button>
                   ))}

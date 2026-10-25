@@ -19,6 +19,11 @@ export interface GalleryScene {
   name: string;
   title: string;
   chapter: string;
+  event?: boolean;
+  protagonist?: "yahiro" | "oboro";
+  heroine?: string;
+  cover?: string;
+  coverThumb?: string;
 }
 
 export interface GalleryTrack {

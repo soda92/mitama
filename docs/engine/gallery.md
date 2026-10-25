@@ -27,7 +27,16 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
     }
   ],
   "scenes": [
-    { "name": "yr1_02", "title": "…", "chapter": "yr1" }
+    {
+      "name": "eyk2_03",
+      "title": "eyk2_03",
+      "chapter": "eyk2",
+      "event": true,
+      "protagonist": "yahiro",
+      "heroine": "紫芳",
+      "cover": "/media/dvd/mitama/CGH_a01.bmp",
+      "coverThumb": "/media/dvd/mitama/CGH_a01s.bmp"
+    }
   ],
   "music": [
     {
@@ -45,6 +54,10 @@ The gallery is a single full-screen screen with three tabs: **Pictures**,
 - Pictures are grouped from `CG*.bmp`; names ending in `s` are thumbnails.
 - Variants such as `_1` / `_2` are grouped under one picture.
 - Scene titles come from the first `STS` command when present.
+- Event scenes (`e*.txt`) also get a cover from their first `CG…` image,
+  a protagonist route (`yahiro` / `oboro`), and a heroine label.
+- The Scenes tab shows only event scenes, grouped by 八尋編 / 朧編; story
+  chapters are in Navigator → Chapters.
 - Music usage is gathered by scanning every `MUS` command.
 
 BGM titles and durations are recovered from the executable's sound-test tables
@@ -54,7 +67,8 @@ pointers). Variant files not in the table derive their base title with
 
 Scenes use the first `STS` command when present; otherwise the script name.
 There is no official CG title metadata, so pictures use file stems and their
-story-use context.
+story-use context. Event scenes are the standalone `e*.txt` CG recollection
+scripts; they are intentionally not presented as route chapters.
 
 ## Seen state
 

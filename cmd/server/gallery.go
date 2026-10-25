@@ -29,9 +29,14 @@ type galleryPicture struct {
 }
 
 type galleryScene struct {
-	Name    string `json:"name"`
-	Title   string `json:"title"`
-	Chapter string `json:"chapter"`
+	Name        string `json:"name"`
+	Title       string `json:"title"`
+	Chapter     string `json:"chapter"`
+	Event       bool   `json:"event,omitempty"`
+	Protagonist string `json:"protagonist,omitempty"`
+	Heroine     string `json:"heroine,omitempty"`
+	Cover       string `json:"cover,omitempty"`
+	CoverThumb  string `json:"coverThumb,omitempty"`
 }
 
 type galleryTrack struct {
@@ -90,6 +95,98 @@ func applyBgmMeta(track *galleryTrack) {
 			track.Title = meta.title + " (別Ver.)"
 			track.Duration = ""
 		}
+	}
+}
+
+func isEventSceneName(name string) bool {
+	name = strings.ToLower(name)
+	if len(name) < 3 || name[0] != 'e' {
+		return false
+	}
+	return name[1] >= 'a' && name[1] <= 'z'
+}
+
+func eventProtagonist(name string) string {
+	name = strings.ToLower(name)
+	if len(name) > 1 && name[0] == 'e' {
+		name = name[1:]
+	}
+	if strings.HasPrefix(name, "y") {
+		return "yahiro"
+	}
+	if strings.HasPrefix(name, "o") {
+		return "oboro"
+	}
+	return ""
+}
+
+func heroineFromSpeaker(speaker string) string {
+	switch strings.TrimSpace(speaker) {
+	case "蘭":
+		return "蘭"
+	case "紅":
+		return "紅羽"
+	case "瑞":
+		return "瑞希"
+	case "弥":
+		return "阿佐弥"
+	case "更":
+		return "更紗"
+	case "紫":
+		return "紫芳"
+	case "諏", "姫":
+		return "諏慧姫"
+	case "女", "娘":
+		return "女性"
+	default:
+		return ""
+	}
+}
+
+func heroineFromCG(cg string) string {
+	cg = strings.ToUpper(cg)
+	switch {
+	case strings.HasPrefix(cg, "CGR"):
+		return "蘭"
+	case strings.HasPrefix(cg, "CGK"):
+		return "紅羽"
+	case strings.HasPrefix(cg, "CGM"):
+		return "瑞希"
+	case strings.HasPrefix(cg, "CGA"):
+		return "阿佐弥"
+	case strings.HasPrefix(cg, "CGSH"):
+		return "紫芳"
+	case strings.HasPrefix(cg, "CGS"):
+		return "更紗"
+	case strings.HasPrefix(cg, "CGH"):
+		return "紫芳"
+	default:
+		return ""
+	}
+}
+
+func eventHeroine(name, speaker, cg string) string {
+	if heroine := heroineFromSpeaker(speaker); heroine != "" {
+		return heroine
+	}
+	if heroine := heroineFromCG(cg); heroine != "" {
+		return heroine
+	}
+	switch {
+	case strings.HasPrefix(name, "eoa"):
+		return "阿佐弥"
+	case strings.HasPrefix(name, "eoe"):
+		return "諏慧姫"
+	case strings.HasPrefix(name, "eoh"), strings.HasPrefix(name, "eos"):
+		return "更紗"
+	case strings.HasPrefix(name, "eyk"):
+		return "紅羽"
+	case strings.HasPrefix(name, "eym"):
+		return "瑞希"
+	case strings.HasPrefix(name, "eyr"):
+		return "蘭"
+	default:
+		return ""
 	}
 }
 
@@ -190,17 +287,45 @@ func (s *server) handleGallery(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 		title := name
+		cover := ""
+		coverThumb := ""
+		firstCG := ""
+		firstHeroineSpeaker := ""
 		for _, c := range sc.Commands {
-			if c.Cmd == "STS" && len(c.Args) > 0 {
+			if c.Cmd == "STS" && len(c.Args) > 0 && title == name {
 				title = c.Args[0]
-				break
+			}
+			if c.Cmd == "TEXT" && firstHeroineSpeaker == "" {
+				if heroine := heroineFromSpeaker(c.Speaker); heroine != "" {
+					firstHeroineSpeaker = c.Speaker
+				}
+			}
+			if c.Cmd == "BMP" && len(c.Args) > 0 && cover == "" {
+				if strings.HasPrefix(strings.ToUpper(c.Args[0]), "CG") {
+					firstCG = c.Args[0]
+					if picture := pictures[galleryPictureKey(c.Args[0])]; picture != nil {
+						cover = picture.Full
+						coverThumb = picture.Thumb
+						if coverThumb == "" {
+							coverThumb = cover
+						}
+					}
+				}
 			}
 		}
 		chapter := name
 		if i := strings.IndexAny(name, "_"); i > 0 {
 			chapter = name[:i]
 		}
-		out.Scenes = append(out.Scenes, galleryScene{Name: name, Title: title, Chapter: chapter})
+		scene := galleryScene{Name: name, Title: title, Chapter: chapter}
+		if isEventSceneName(name) {
+			scene.Event = true
+			scene.Protagonist = eventProtagonist(name)
+			scene.Heroine = eventHeroine(strings.ToLower(name), firstHeroineSpeaker, firstCG)
+			scene.Cover = cover
+			scene.CoverThumb = coverThumb
+		}
+		out.Scenes = append(out.Scenes, scene)
 		for i, c := range sc.Commands {
 			if c.Cmd == "BMP" && len(c.Args) > 0 {
 				key := galleryPictureKey(c.Args[0])
