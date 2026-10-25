@@ -62,6 +62,8 @@ involved.
 
 - Speaker abbreviations are expanded in the name tag.
 - The microphone button replays the current page's voice.
+- Starting a new page or line stops the previous voice, so fast advancing cannot
+  stack multiple dialogue clips. Sound effects remain independent channels.
 - Dragging to select text does not advance the story.
 - Narration (`説`) has no name tag.
 - Dialogue opacity is controlled from Settings and applies to the box,

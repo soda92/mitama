@@ -562,6 +562,9 @@ export class Player {
       return true;
     }
     if (this.textPage + 1 < this.textPages.length) {
+      // A new page owns the voice channel. Otherwise fast advancing would
+      // leave the previous page's voice playing over the next line.
+      this.audio.stopVoice();
       this.textPage++;
       this.textChars = 0;
       this.textComplete = false;
@@ -604,6 +607,7 @@ export class Player {
     this.textRaf = 0;
     this.textFallbackVoice = "";
     this.textPagesEN = [];
+    this.audio.stopVoice();
     this.textActive = false;
     this.textComplete = false;
     this.emitDialogue(null);
@@ -626,8 +630,11 @@ export class Player {
     const pagesEN = splitPages(messageEN);
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
-    // Drop the previous line before the new one is painted; otherwise React
-    // can briefly show the old/full text while the new typewriter starts.
+    // Drop the previous line before the new one is painted. Do not stop a
+    // voice here: scripts often emit `SEV <voice>` immediately before
+    // `TEXT`, and that voice belongs to the line being shown. Page changes
+    // and finishText() own the voice lifecycle.
+    if (this.textActive) this.audio.stopVoice();
     this.emitDialogue(null);
     // Expand one-character speaker tags ("八", "阿", ...) for the name tag.
     this.textSpeaker = speakerDisplayName(speaker);
@@ -739,6 +746,7 @@ export class Player {
   private finishText(): void {
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
+    this.audio.stopVoice();
     this.textActive = false;
     this.textComplete = false;
     this.textPages = [];
@@ -824,7 +832,7 @@ export class Player {
       this.events.log(`missing se: ${name}`);
       return;
     }
-    this.audio.playSe(rel, name);
+    this.audio.playSe(rel, name, this.isVoiceName(name));
   }
 
   private async run(): Promise<void> {

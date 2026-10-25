@@ -28,6 +28,7 @@ export class AudioEngine {
   private seVolume = 0.7;
   private muted = false;
   private readonly liveSe = new Set<HTMLAudioElement>();
+  private activeVoice: HTMLAudioElement | null = null;
   private lastSeName = "";
   private lastSeAt = 0;
 
@@ -109,16 +110,30 @@ export class AudioEngine {
     this.bgm.currentTime = 0;
   }
 
-  playSe(rel: string, name: string): void {
+  playSe(rel: string, name: string, voice = false): void {
+    if (voice) this.stopVoice();
     this.lastSeName = name;
     this.lastSeAt = Date.now();
     const a = new Audio(this.url(rel));
     a.volume = this.seGain();
     this.liveSe.add(a);
-    const done = () => this.liveSe.delete(a);
+    if (voice) this.activeVoice = a;
+    const done = () => {
+      this.liveSe.delete(a);
+      if (this.activeVoice === a) this.activeVoice = null;
+    };
     a.addEventListener("ended", done, { once: true });
     a.addEventListener("error", done, { once: true });
     void a.play().catch(done);
+  }
+
+  /** Stop a dialogue voice without touching simultaneous SE channels. */
+  stopVoice(): void {
+    const a = this.activeVoice;
+    if (!a) return;
+    this.activeVoice = null;
+    this.liveSe.delete(a);
+    a.pause();
   }
 
   setPaused(paused: boolean): void {
@@ -135,6 +150,7 @@ export class AudioEngine {
 
   stop(): void {
     this.bgmWanted = false;
+    this.stopVoice();
     if (this.bgm) this.bgm.pause();
     for (const a of this.liveSe) a.pause();
     this.liveSe.clear();
