@@ -314,6 +314,7 @@ replays the immediately preceding `SEV` voice command.
 cmd/extract/        ARC/ISO asset extractor
 cmd/xadecode/       KWD1 .xa → WAV converter
 cmd/translate/      batch Google Translate sidecar generator
+scripts/            asset tooling (AI upscaling, etc.)
 cmd/server/         HTTP server + JSON API + static media
 pkg/arc/            ARC directory and LZSS payload decoding
 pkg/disc/           ISO 9660 / CloneCD / MDF image reader
@@ -347,4 +348,5 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/engine/script.md](docs/engine/script.md) — command language
 - [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
 - [docs/engine/translation.md](docs/engine/translation.md) — English translation sidecar and bilingual UI
+- [docs/engine/upscaling.md](docs/engine/upscaling.md) — AI sprite/background upscaling
 - [docs/progress.md](docs/progress.md) — what works, what is next

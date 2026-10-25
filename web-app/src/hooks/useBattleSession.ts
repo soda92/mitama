@@ -74,7 +74,8 @@ export function useBattleSession(options: Options) {
         if (!encRes.ok) throw new Error(`battle: HTTP ${encRes.status}`);
         const encounter = (await encRes.json()) as BattleEncounter;
         if (charRes.ok) player = (await charRes.json()) as BattleCharacter;
-        const rel = assets.game[info.background.toLowerCase()];
+        const key = info.background.toLowerCase();
+        const rel = assets.hd?.[key] ?? assets.game[key];
         const backgroundUrl = rel
           ? `/media/${encodeURIComponent(packId)}/${rel}`
           : undefined;

@@ -587,7 +587,10 @@ export class Player {
     this.audio.setMuted(muted);
   }
 
-  private asset(kind: keyof AssetMap, name: string | undefined): string | null {
+  private asset(
+    kind: "game" | "bgm" | "se" | "text",
+    name: string | undefined,
+  ): string | null {
     if (!name) return null;
     return this.assets[kind]?.[name.toLowerCase()] ?? null;
   }

@@ -88,6 +88,8 @@ Last updated: 2026-10-24.
       `slice(0, -1)` flash caused by a negative RAF elapsed time.
 - [x] Hover-English tooltip for Japanese dialogue, with Settings sidebar and
       `H` shortcut.
+- [x] Optional HD asset overlay + waifu2x upscaling pipeline for smoother
+      character stands and backgrounds.
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
 - [x] Replay-voice button beside the speaker name tag (current page/line),

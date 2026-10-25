@@ -40,6 +40,8 @@ export class StageRenderer {
   private readonly imageCache = new Map<string, ImageSource>();
   private readonly imagePromises = new Map<string, Promise<ImageSource>>();
   private readonly spriteCache = new Map<string, HTMLCanvasElement>();
+  private readonly hdKeys = new Set<string>();
+  private readonly hdScale: number;
 
   constructor(
     private readonly pack: string,
@@ -47,7 +49,9 @@ export class StageRenderer {
     private readonly log: (text: string) => void,
     private readonly isPaused: () => boolean,
     private readonly isStopped: () => boolean,
-  ) {}
+  ) {
+    this.hdScale = Math.max(1, Math.min(8, assets.hdScale ?? 1));
+  }
 
   get value(): Stage {
     return this.stage;
@@ -322,8 +326,11 @@ export class StageRenderer {
 
     for (const bg of stage.bgs) {
       const { w, h } = this.sourceSize(bg.img);
-      if (w === STAGE_W && h === STAGE_H) g.drawImage(bg.img, 0, 0, STAGE_W, STAGE_H);
-      else g.drawImage(bg.img, 0, 0, w, h);
+      const scale = this.hdKeys.has(bg.name.toUpperCase()) ? this.hdScale : 1;
+      const dw = Math.round(w / scale);
+      const dh = Math.round(h / scale);
+      if (dw === STAGE_W && dh === STAGE_H) g.drawImage(bg.img, 0, 0, STAGE_W, STAGE_H);
+      else g.drawImage(bg.img, 0, 0, dw, dh);
     }
 
     for (const slot of ["l", "r", "c"] as const) {
@@ -347,7 +354,10 @@ export class StageRenderer {
     const inFlight = this.imagePromises.get(key);
     if (inFlight) return inFlight;
 
-    const rel = this.assets.game?.[name.toLowerCase()] ?? null;
+    const baseKey = name.toLowerCase();
+    const hdRel = this.assets.hd?.[baseKey];
+    const rel = hdRel ?? this.assets.game?.[baseKey] ?? null;
+    if (hdRel) this.hdKeys.add(key);
     if (!rel) {
       this.log(`missing image: ${name}`);
       return Promise.resolve(this.special("BLACK"));
@@ -379,12 +389,17 @@ export class StageRenderer {
     const key = name.toUpperCase();
     const cached = this.spriteCache.get(key);
     if (cached) return cached;
-    const { w, h } = this.sourceSize(img);
+    const source = this.sourceSize(img);
+    const scale = this.hdKeys.has(key) ? this.hdScale : 1;
+    const w = Math.round(source.w / scale);
+    const h = Math.round(source.h / scale);
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
     const g = c.getContext("2d");
     if (g) {
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
       g.drawImage(img, 0, 0, w, h);
       clearBlackBackground(g, w, h);
     }

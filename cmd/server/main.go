@@ -192,15 +192,24 @@ func (s *server) handleAssets(w http.ResponseWriter, r *http.Request) {
 		id = "demo"
 	}
 	root := filepath.Join(s.dataDir, id)
-	res := map[string]map[string]string{
-		"game": {}, "bgm": {}, "se": {}, "text": {},
+	res := map[string]any{
+		"game": map[string]string{},
+		"hd":   map[string]string{},
+		"bgm":  map[string]string{},
+		"se":   map[string]string{},
+		"text": map[string]string{},
 	}
 	add := func(kind, rel string) {
 		name := filepath.Base(rel)
 		base := strings.TrimSuffix(name, filepath.Ext(name))
 		key := strings.ToLower(base)
-		if _, exists := res[kind][key]; !exists {
-			res[kind][key] = filepath.ToSlash(rel)
+		index, ok := res[kind].(map[string]string)
+		if !ok {
+			index = map[string]string{}
+			res[kind] = index
+		}
+		if _, exists := index[key]; !exists {
+			index[key] = filepath.ToSlash(rel)
 		}
 	}
 
@@ -237,6 +246,31 @@ func (s *server) handleAssets(w http.ResponseWriter, r *http.Request) {
 				} else {
 					add("se", rel)
 				}
+			}
+			return nil
+		})
+		hdRoot := filepath.Join(root, "hd")
+		hdScale := 1
+		if raw, err := os.ReadFile(filepath.Join(hdRoot, "scale.json")); err == nil {
+			var meta struct {
+				Scale int `json:"scale"`
+			}
+			if json.Unmarshal(raw, &meta) == nil && meta.Scale > 1 {
+				hdScale = meta.Scale
+			}
+		}
+		res["hdScale"] = hdScale
+		_ = filepath.Walk(hdRoot, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			rel, err := filepath.Rel(hdRoot, path)
+			if err != nil {
+				return nil
+			}
+			switch strings.ToLower(filepath.Ext(path)) {
+			case ".png", ".bmp":
+				add("hd", filepath.Join("hd", rel))
 			}
 			return nil
 		})

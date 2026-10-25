@@ -72,7 +72,7 @@ interface ResumePoint {
   mapMode?: boolean;
 }
 
-const EMPTY_ASSETS: AssetMap = { game: {}, bgm: {}, se: {}, text: {} };
+const EMPTY_ASSETS: AssetMap = { game: {}, hd: {}, hdScale: 1, bgm: {}, se: {}, text: {} };
 
 function initialParams(): {
   pack: string;
