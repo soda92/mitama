@@ -349,6 +349,7 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
 - [docs/engine/ui.md](docs/engine/ui.md) — layout, input, typewriter and hover-English
 - [docs/guides/in-story-adult-scenes.md](docs/guides/in-story-adult-scenes.md) — 18+ in-story scene route/choice guide
+- [docs/guides/mitama-culture-context.md](docs/guides/mitama-culture-context.md) — release, company and 2001 adult-game market context
 - [docs/engine/translation.md](docs/engine/translation.md) — English translation sidecar and bilingual UI
 - [docs/engine/upscaling.md](docs/engine/upscaling.md) — AI sprite/background upscaling (2×/4× priority)
 - [docs/progress.md](docs/progress.md) — what works, what is next
