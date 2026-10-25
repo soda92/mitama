@@ -20,8 +20,11 @@ stage art and effects are canvas.
     └── side windows             Archives / Navigator / Settings
 ```
 
-Side windows **dock beside** the stage. Opening one shrinks the stage instead
-of covering it, including in fullscreen.
+A single side dock **docks beside** the stage. It has tabs for **Archives**,
+**Navigator** and **Settings**, so those panels never appear side-by-side or
+overflow the play area. Opening a different panel switches the dock tab;
+closing the dock closes the active panel. The stage shrinks instead of being
+covered, including in fullscreen.
 
 ## Title screen
 
@@ -100,7 +103,7 @@ script.
 
 ## Settings sidebar
 
-Settings is a docked side window, not a centered modal. It contains:
+Settings is a tab in the docked side window, not a centered modal. It contains:
 
 - pack
 - Japanese / English language

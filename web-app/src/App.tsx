@@ -14,6 +14,7 @@ import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import DialogueOverlay from "./components/DialogueOverlay";
 import DialogueToolbar from "./components/DialogueToolbar";
+import SideTabs, { type SideTab } from "./components/SideTabs";
 import Gallery from "./components/Gallery";
 import HelpPanel from "./components/HelpPanel";
 import ProtagonistSelect, { type ProtagonistRoute } from "./components/ProtagonistSelect";
@@ -626,12 +627,40 @@ export default function App() {
 
   const openArchives = useCallback(() => {
     setNavigatorOpen(false);
+    setMenuOpen(false);
     setArchiveOpen(true);
   }, []);
 
   const openNavigator = useCallback(() => {
     setArchiveOpen(false);
+    setMenuOpen(false);
     setNavigatorOpen(true);
+  }, []);
+
+  const openSettings = useCallback(() => {
+    setArchiveOpen(false);
+    setNavigatorOpen(false);
+    setMenuOpen(true);
+  }, []);
+
+  const activeSide: SideTab | null = menuOpen
+    ? "settings"
+    : navigatorOpen
+      ? "navigator"
+      : archiveOpen
+        ? "archives"
+        : null;
+
+  const chooseSide = useCallback((tab: SideTab) => {
+    setArchiveOpen(tab === "archives");
+    setNavigatorOpen(tab === "navigator");
+    setMenuOpen(tab === "settings");
+  }, []);
+
+  const closeSide = useCallback(() => {
+    setArchiveOpen(false);
+    setNavigatorOpen(false);
+    setMenuOpen(false);
   }, []);
 
   const openGallery = useCallback(
@@ -989,7 +1018,7 @@ export default function App() {
               onPictures={() => openGallery("pictures")}
               onScenes={() => openGallery("scenes")}
               onMusic={() => openGallery("music")}
-              onSettings={() => setMenuOpen(true)}
+              onSettings={openSettings}
               onQuit={() => window.close()}
             />
           )}
@@ -1018,7 +1047,7 @@ export default function App() {
             onTitle={goHome}
             onMute={() => setMuted((m) => !m)}
             onFullscreen={toggleFullscreen}
-            onSettings={() => setMenuOpen(true)}
+            onSettings={openSettings}
           />
 
           {galleryOpen && (
@@ -1116,77 +1145,78 @@ export default function App() {
         </div>
       </section>
 
-        {menuOpen && (
-          <SettingsPanel
-            packId={packId}
-            packs={packs}
-            currentScene={currentScene}
-            currentPC={currentPC}
-            status={status}
-            bgmVolume={bgmVolume}
-            seVolume={seVolume}
-            dialogOpacity={dialogOpacity}
-            immersiveMode={immersiveMode}
-            battlePolicy={battlePolicy}
-            language={language}
-            onLanguage={setLanguage}
-            typewriterMode={typewriterMode}
-            onTypewriterMode={setTypewriterMode}
-            hoverTranslation={hoverTranslation}
-            onHoverTranslation={setHoverTranslation}
-            onClose={() => setMenuOpen(false)}
-            onPackChange={changePack}
-            onBgmVolume={setBgmVolume}
-            onSeVolume={setSeVolume}
-            onDialogOpacity={setDialogOpacity}
-            onImmersiveMode={setImmersiveMode}
-            onBattlePolicy={setBattlePolicy}
-            onArchives={() => {
-              setMenuOpen(false);
-              openArchives();
-            }}
-            onNavigate={() => {
-              setMenuOpen(false);
-              openNavigator();
-            }}
-            onDebug={() => {
-              setMenuOpen(false);
-              setDebugOpen(true);
-            }}
-            onGallery={openGallery}
-            onTitle={goHome}
-            onReload={reloadCurrent}
-          />
+        {activeSide && (
+          <aside className="side-window side-dock">
+            <SideTabs active={activeSide} onSelect={chooseSide} onClose={closeSide} />
+            <div className="side-dock-body">
+              {activeSide === "archives" && (
+                <ArchiveManager
+                  slots={archives}
+                  canSave={started && !!playerRef.current}
+                  currentScene={currentScene}
+                  currentPC={currentPC}
+                  sync={archiveSync}
+                  onClose={closeSide}
+                  onSaveNew={saveCurrent}
+                  onOverwrite={overwriteArchive}
+                  onLoad={loadArchive}
+                  onDelete={deleteArchive}
+                  onUpdate={updateArchive}
+                />
+              )}
+
+              {activeSide === "navigator" && (
+                <Navigator
+                  packId={packId}
+                  scene={currentScene}
+                  pc={currentPC}
+                  commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}
+                  scenes={Object.keys(assets.text)}
+                  onClose={closeSide}
+                  onSeek={seekTo}
+                  onSelectScene={(name) => navigateToScene(name, 0)}
+                />
+              )}
+
+              {activeSide === "settings" && (
+                <SettingsPanel
+                  packId={packId}
+                  packs={packs}
+                  currentScene={currentScene}
+                  currentPC={currentPC}
+                  status={status}
+                  bgmVolume={bgmVolume}
+                  seVolume={seVolume}
+                  dialogOpacity={dialogOpacity}
+                  immersiveMode={immersiveMode}
+                  battlePolicy={battlePolicy}
+                  language={language}
+                  onLanguage={setLanguage}
+                  typewriterMode={typewriterMode}
+                  onTypewriterMode={setTypewriterMode}
+                  hoverTranslation={hoverTranslation}
+                  onHoverTranslation={setHoverTranslation}
+                  onClose={closeSide}
+                  onPackChange={changePack}
+                  onBgmVolume={setBgmVolume}
+                  onSeVolume={setSeVolume}
+                  onDialogOpacity={setDialogOpacity}
+                  onImmersiveMode={setImmersiveMode}
+                  onBattlePolicy={setBattlePolicy}
+                  onArchives={openArchives}
+                  onNavigate={openNavigator}
+                  onDebug={() => {
+                    closeSide();
+                    setDebugOpen(true);
+                  }}
+                  onGallery={openGallery}
+                  onTitle={goHome}
+                  onReload={reloadCurrent}
+                />
+              )}
+            </div>
+          </aside>
         )}
-
-      {archiveOpen && (
-        <ArchiveManager
-          slots={archives}
-          canSave={started && !!playerRef.current}
-          currentScene={currentScene}
-          currentPC={currentPC}
-          sync={archiveSync}
-          onClose={() => setArchiveOpen(false)}
-          onSaveNew={saveCurrent}
-          onOverwrite={overwriteArchive}
-          onLoad={loadArchive}
-          onDelete={deleteArchive}
-          onUpdate={updateArchive}
-        />
-      )}
-
-      {navigatorOpen && (
-        <Navigator
-          packId={packId}
-          scene={currentScene}
-          pc={currentPC}
-          commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}
-          scenes={Object.keys(assets.text)}
-          onClose={() => setNavigatorOpen(false)}
-          onSeek={seekTo}
-          onSelectScene={(name) => navigateToScene(name, 0)}
-        />
-      )}
       </div>
 
       {debugOpen && (

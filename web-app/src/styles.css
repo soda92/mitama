@@ -1052,6 +1052,76 @@ button.scene-item:hover:not(:disabled) {
   }
 }
 
+/* One dock, tabbed; prevents Archives/Navigator/Settings from sitting
+   side-by-side and overflowing the play area. */
+.side-dock {
+  overflow: hidden;
+}
+
+.side-dock-tabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #24262e;
+  background: #0d0f15;
+}
+
+.side-dock-tabs button {
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #9b9588;
+  font-size: 11px;
+}
+
+.side-dock-tabs button:hover {
+  background: #181a22;
+  color: #e6d3aa;
+}
+
+.side-dock-tabs button.on {
+  background: #181a22;
+  border-color: #3a3327;
+  color: #e6d3aa;
+}
+
+.side-dock-tabs .side-dock-close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 11px;
+}
+
+.side-dock-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-dock-body > .side-window {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  animation: none;
+}
+
+/* The dock tabs carry these controls now. */
+.side-dock-body .side-head-top > strong,
+.side-dock-body .side-close {
+  display: none;
+}
+
 .archive-head {
   flex: none;
   display: flex;
