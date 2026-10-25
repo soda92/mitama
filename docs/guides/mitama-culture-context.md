@@ -157,6 +157,63 @@ They were not “the first few” visual novels. The medium and the adult-game
 industry predate them by many years. They were **landmark works in the
 emotional visual-novel wave**, not the origin of the form.
 
+## Influence on Ciel and Tony
+
+Direct causality is difficult to prove, but the observable continuities are
+clear.
+
+### Ciel
+
+*Mitama* was an early entry in Ciel’s **Tony-associated** catalogue. Ciel kept
+working with Tony on later adult games, including:
+
+| Year | Ciel title | Art / scenario |
+| --- | --- | --- |
+| 2003 | *After...* | Tony / さとだみつひこ |
+| 2004 | *そらのいろ、みずのいろ* | Tony / 嘘屋佐々木酒人 |
+| 2004 | *真章 幻夢館* | Tony / 嘘屋佐々木酒人 |
+| 2006 | *Ciel Limited Collector's Box ~Tony Illustration Games~* | Tony collection |
+
+The shared scenario writer on *Mitama*, *Arcana* and *After...* is
+さとだみつひこ, so *Mitama* belongs to a continuing Ciel/Tony creative line,
+not an isolated one-off.
+
+What Ciel seems to have carried forward most strongly was the **artist-brand
+identity**: Tony’s character designs and the premium illustrated package.
+*Mitama*’s specific historical-ninja + battle structure did not become a
+franchise or a recurring Ciel template. Later Ciel/Tony titles moved toward
+school, romance and other settings.
+
+Ciel also reused the long-tail strategy: a full-price release followed by a
+Special Price DVD and later a download edition. That was standard for the
+market, but *Mitama* was part of Ciel’s catalogue that benefited from it.
+
+### Tony
+
+*Mitama* and *Arcana* belong to Tony’s early Ciel period. They helped build the
+portfolio and working relationship that preceded:
+
+- more Ciel adult games;
+- Tony art books and collector’s editions;
+- later high-profile character-design work, especially the *Shining* series.
+
+The historical/fantasy costume work in *Mitama* fits the direction Tony would
+later take in fantasy character design, but that is an artistic continuity
+rather than a documented direct influence. The safer statement is:
+
+> *Mitama* helped establish Tony’s early adult-game reputation and his
+> association with Ciel; it was not the origin of his later console career, but
+> it was part of the portfolio that made that career possible.
+
+### What did not happen
+
+- No direct *Mitama* sequel or franchise was built from it.
+- Its battle/ADV hybrid did not become Ciel’s house style.
+- The dark historical-ninja material was not carried into later Ciel/Tony
+  school romances.
+- Its main legacy is retrospective: Tony’s early art, Ciel’s Tony-era brand,
+  the ninja/kunoichi premise, and a cult reputation.
+
 ## Mitama’s position in retrospect
 
 - **Commercially:** a mid-tier Ciel package title with a Special Price DVD and
