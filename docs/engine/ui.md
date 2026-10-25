@@ -134,6 +134,21 @@ Settings are stored in `localStorage` under `mitama.settings.v1`.
 | `?` | shortcut help |
 | Escape | close the active panel |
 
+## Chapter / scene browser
+
+Navigator → **Chapters** uses the scene metadata from `/api/gallery`: it groups
+scenes by route and by the in-script chapter title (`STS`), rather than by raw
+file prefixes. For example, `yk2_12` appears under:
+
+```text
+紅羽編 / 壊心
+```
+
+Scenes without their own `STS` title inherit the title of another scene in the
+same route/chapter when possible. If no title exists, they fall back to the
+filename chapter (for example `EYK 2`). The current scene is highlighted, and
+scene ids remain visible for debugging.
+
 ## Branch view
 
 Navigator → **Branches** lists the `SLT`/`MSLT` choices in the current scene.
@@ -142,6 +157,10 @@ Each option shows its target:
 - a label leading to a choice in the same scene;
 - a `LOD` scene transition, including route switches;
 - a battle or scene end.
+
+Options are **select then confirm**: clicking one only previews the target;
+the actual jump happens from the confirmation bar. This avoids accidentally
+skipping a scene while reading the choice graph.
 
 The view is intentionally scene-local. The scripts do not contain a global
 branch graph: route changes are encoded as `LOD` targets plus `PARTY` changes,

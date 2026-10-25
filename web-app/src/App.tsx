@@ -1177,6 +1177,7 @@ export default function App() {
 
       {navigatorOpen && (
         <Navigator
+          packId={packId}
           scene={currentScene}
           pc={currentPC}
           commands={playerRef.current?.currentCommands ?? data?.script.commands ?? []}

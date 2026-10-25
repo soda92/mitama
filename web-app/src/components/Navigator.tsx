@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { speakerDisplayName, type Command } from "../game/types";
 
 interface NavigatorProps {
+  packId: string;
   scene: string;
   pc: number;
   commands: Command[];
@@ -30,6 +31,58 @@ interface BranchPointView {
   line: number;
   prompt?: string;
   options: BranchOptionView[];
+}
+
+interface SceneMeta {
+  name: string;
+  title: string;
+  chapter: string;
+}
+
+interface SceneGroup {
+  key: string;
+  route: string;
+  title: string;
+  order: number;
+  scenes: SceneMeta[];
+}
+
+const sceneMetaCache = new Map<string, SceneMeta[]>();
+
+const ROUTE_ORDER = ["八尋編", "紅羽編", "瑞希編", "朧編", "紫芳編", "阿佐弥編", "その他"];
+
+function routeLabel(scene: string): string {
+  const base = scene.replace(/^e(?=[a-z])/i, "");
+  const m = base.match(/^([a-z]+)/i);
+  const prefix = (m?.[1] ?? "").toLowerCase();
+  switch (prefix) {
+    case "yr":
+    case "ye":
+      return "八尋編";
+    case "yk":
+      return "紅羽編";
+    case "ym":
+      return "瑞希編";
+    case "os":
+    case "oe":
+      return "朧編";
+    case "oh":
+      return "紫芳編";
+    case "oa":
+      return "阿佐弥編";
+    default:
+      return prefix ? prefix.toUpperCase() : "その他";
+  }
+}
+
+function sceneNumber(scene: string): number {
+  const base = scene.replace(/^e(?=[a-z])/i, "");
+  const m = base.match(/^([a-z]+)(\d+)/i);
+  return m ? Number(m[2]) : 999;
+}
+
+function isSceneName(name: string): boolean {
+  return /^e?[a-z]{2,}\d/i.test(name);
 }
 
 function chapterOf(scene?: string): string {
@@ -103,23 +156,28 @@ function promptBefore(index: number, commands: Command[]): string | undefined {
   return fallback || undefined;
 }
 
-function destinationLabel(destination?: BranchDestination): string {
+function destinationName(destination?: BranchDestination): string {
   if (!destination) return "unknown target";
   switch (destination.kind) {
     case "scene":
-      return `→ ${destination.scene}`;
+      return destination.scene;
     case "choice":
-      return `→ choice at pc ${destination.index}`;
+      return `choice at pc ${destination.index}`;
     case "battle":
-      return `→ battle${destination.label ? ` ${destination.label}` : ""}`;
+      return `battle${destination.label ? ` ${destination.label}` : ""}`;
     case "end":
-      return "→ scene end";
+      return "scene end";
     default:
-      return "→ target not found";
+      return "target not found";
   }
 }
 
+function destinationLabel(destination?: BranchDestination): string {
+  return `→ ${destinationName(destination)}`;
+}
+
 export default function Navigator({
+  packId,
   scene,
   pc,
   commands,
@@ -131,6 +189,8 @@ export default function Navigator({
   const [tab, setTab] = useState<"page" | "chapters" | "branches">("page");
   const [target, setTarget] = useState(pc);
   const [query, setQuery] = useState("");
+  const [pending, setPending] = useState<{ point: BranchPointView; option: BranchOptionView } | null>(null);
+  const [sceneMeta, setSceneMeta] = useState<SceneMeta[] | null>(() => sceneMetaCache.get(packId) ?? null);
   const listRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLButtonElement>(null);
   const currentSceneRef = useRef<HTMLButtonElement>(null);
@@ -149,6 +209,32 @@ export default function Navigator({
     if (tab !== "chapters") return;
     currentSceneRef.current?.scrollIntoView({ block: "center" });
   }, [tab, scene]);
+
+  useEffect(() => {
+    const cached = sceneMetaCache.get(packId);
+    if (cached) {
+      setSceneMeta(cached);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/gallery?pack=${encodeURIComponent(packId)}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`scenes: HTTP ${response.status}`);
+        const body = (await response.json()) as { scenes?: SceneMeta[] };
+        return body.scenes ?? [];
+      })
+      .then((items) => {
+        if (cancelled) return;
+        sceneMetaCache.set(packId, items);
+        setSceneMeta(items);
+      })
+      .catch(() => {
+        if (!cancelled) setSceneMeta([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packId]);
 
   const labels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -183,27 +269,58 @@ export default function Navigator({
     });
   }, [commands, labels]);
 
-  const groups = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const name of scenes) {
-      const ch = chapterOf(name);
-      const arr = map.get(ch) ?? [];
-      arr.push(name);
-      map.set(ch, arr);
+  const groups = useMemo<SceneGroup[]>(() => {
+    const source: SceneMeta[] =
+      sceneMeta && sceneMeta.length > 0
+        ? sceneMeta
+        : scenes.map((name) => ({
+            name,
+            title: name,
+            chapter: chapterOf(name),
+          }));
+    const visible = source.filter((item) => isSceneName(item.name));
+    const titleByRouteNumber = new Map<string, string>();
+    for (const item of visible) {
+      if (item.title && item.title !== item.name) {
+        titleByRouteNumber.set(`${routeLabel(item.name)}|${sceneNumber(item.name)}`, item.title);
+      }
     }
+    const map = new Map<string, SceneGroup>();
     const q = query.trim().toLowerCase();
-    return [...map.entries()]
-      .map(
-        ([chapter, list]) =>
-          [
-            chapter,
-            list
-              .filter((name) => !q || name.toLowerCase().includes(q) || chapter.toLowerCase().includes(q))
-              .sort(),
-          ] as const,
-      )
-      .filter(([, list]) => list.length > 0);
-  }, [scenes, query]);
+    for (const item of visible) {
+      const route = routeLabel(item.name);
+      const inferred = titleByRouteNumber.get(`${route}|${sceneNumber(item.name)}`);
+      const rawTitle =
+        item.title && item.title !== item.name
+          ? item.title
+          : inferred || chapterOf(item.name);
+      const title = rawTitle || chapterOf(item.name);
+      if (
+        q &&
+        !item.name.toLowerCase().includes(q) &&
+        !title.toLowerCase().includes(q) &&
+        !route.toLowerCase().includes(q)
+      ) {
+        continue;
+      }
+      const key = `${route}\u0000${title}`;
+      let group = map.get(key);
+      if (!group) {
+        group = { key, route, title, order: 999, scenes: [] };
+        map.set(key, group);
+      }
+      group.order = Math.min(group.order, sceneNumber(item.name));
+      group.scenes.push(item);
+    }
+    return [...map.values()]
+      .map((group) => ({ ...group, scenes: group.scenes.sort((a, b) => a.name.localeCompare(b.name)) }))
+      .sort((a, b) => {
+        const routeDelta = ROUTE_ORDER.indexOf(a.route) - ROUTE_ORDER.indexOf(b.route);
+        if (routeDelta !== 0) return routeDelta;
+        if (a.order !== b.order) return a.order - b.order;
+        return a.title.localeCompare(b.title);
+      });
+  }, [scenes, sceneMeta, query]);
 
   const clamp = (v: number) => Math.max(0, Math.min(max, v));
   const jump = (v: number) => {
@@ -304,18 +421,26 @@ export default function Navigator({
             onChange={(ev) => setQuery(ev.target.value)}
           />
           <div className="navigator-chapter-list">
-            {groups.map(([chapter, list]) => (
-              <section key={chapter}>
-                <h4>{chapter}</h4>
+            <p className="navigator-note">
+              Grouped by the in-script chapter title (<code>STS</code>), then by
+              route. Scene ids are shown under each chapter.
+            </p>
+            {groups.map((group) => (
+              <section key={group.key}>
+                <h4>
+                  <span>{group.route}</span>
+                  {group.title}
+                </h4>
                 <div className="navigator-scene-grid">
-                  {list.map((name) => (
+                  {group.scenes.map((item) => (
                     <button
-                      key={name}
-                      ref={name === scene ? currentSceneRef : undefined}
-                      className={name === scene ? "on" : ""}
-                      onClick={() => onSelectScene(name)}
+                      key={item.name}
+                      ref={item.name === scene ? currentSceneRef : undefined}
+                      className={item.name === scene ? "on" : ""}
+                      onClick={() => onSelectScene(item.name)}
+                      title={item.name}
                     >
-                      {name}
+                      {item.name}
                     </button>
                   ))}
                 </div>
@@ -326,7 +451,8 @@ export default function Navigator({
       ) : (
         <div className="navigator-branches">
           <p className="navigator-note">
-            Choices in <b>{scene}</b>. A <code>LOD</code> target switches to
+            Choices in <b>{scene}</b>. Select an option to preview its target,
+            then confirm with <b>Jump</b>. A <code>LOD</code> target switches to
             another scene / route; “choice” targets stay in this scene.
           </p>
           {branches.length === 0 ? (
@@ -353,10 +479,10 @@ export default function Navigator({
                       return (
                         <button
                           key={`${option.label}-${i}`}
-                          className="branch-option"
+                          className={`branch-option ${pending?.option === option && pending?.point === point ? "selected" : ""}`}
                           disabled={!clickable}
                           title={option.textEn}
-                          onClick={() => openDestination(destination)}
+                          onClick={() => setPending({ point, option })}
                         >
                           <span className="branch-choice">
                             {option.text}
@@ -372,6 +498,26 @@ export default function Navigator({
                   </div>
                 </section>
               ))}
+            </div>
+          )}
+          {pending && (
+            <div className="branch-confirm">
+              <div>
+                <strong>Jump to {destinationName(pending.option.destination)}?</strong>
+                <span>{pending.option.text}</span>
+              </div>
+              <div className="branch-confirm-actions">
+                <button
+                  className="primary"
+                  onClick={() => {
+                    openDestination(pending.option.destination);
+                    setPending(null);
+                  }}
+                >
+                  Jump
+                </button>
+                <button onClick={() => setPending(null)}>Cancel</button>
+              </div>
             </div>
           )}
         </div>
