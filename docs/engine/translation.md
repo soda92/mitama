@@ -144,6 +144,20 @@ The full DVD text corpus is:
 
 The generated file is about 10 MB and lives under `data/dvd/`.
 
+## Repairing partial translations
+
+Google occasionally returns a page with some source lines left in Japanese.
+`scripts/repair_translations.py` scans the sidecar for Japanese characters and
+re-translates the affected text one source line at a time:
+
+```sh
+python3 scripts/repair_translations.py --pack dvd
+```
+
+It writes progress after every batch and leaves lines that Google still refuses
+to translate, mainly moans/onomatopoeia. Those need a manual glossary or
+transliteration pass.
+
 ## Using it in the game
 
 Three equivalent controls:

@@ -42,6 +42,8 @@ Last updated: 2026-10-24.
 - [x] Scene/chapter links in the URL (`?pack=dvd&scene=yr1_02&cmd=123`).
 - [x] Batched Google Translate sidecar for all DVD dialogue/choices;
       `L`/toolbar/Settings language switching with Japanese fallback.
+- [x] Line-level repair pass for partially translated Google output; only
+      moans/onomatopoeia remain untranslated.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.
