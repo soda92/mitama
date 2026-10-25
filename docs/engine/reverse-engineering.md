@@ -118,6 +118,29 @@ dispatcher. If the original executable has a gallery/event launcher, it is not
 wired through `FUN_00432030`; it would need a separate title/gallery path. Do
 not assume a `e…` scene is reachable in-game until such a path is found.
 
+### They are story-adjacent, but not story branches
+
+This is why the “e” content feels like part of the story: many entries are
+event/CG replays of a scene that exists in a normal story script. A concrete
+example:
+
+- `yk2_03` contains the Shihou scene, including the CG sequence `CGH_a01`,
+  `CGH_a01_1`, `CGH_a01_2`.
+- `eyk2_03` starts with the same “紫芳 removes her sash” text, uses the same
+  voice cues and the same three CGs, then ends at `TITLE`.
+- The CG table entry near `0x0048fbec` points at `CGH_a01s.bmp` and
+  `0x0048fbf4` points at `eyk2_03.txt`.
+
+So `eyk2_03` is a **standalone replay/event version** of a CG event that also
+appears in the story. It is not a `LOD` target at `yk2_03` or `yk2_13`, and it
+does not continue into the Kureha route. The same pattern appears for other
+`e…` scripts; some contain explicit material that is not in the base scene,
+which is why they read like bonus content.
+
+If a future investigation finds the original title/gallery launcher, that
+launcher can load these scenes without changing the story dispatcher. Until
+then, keep them separate from the route graph in the web UI.
+
 ## Reproducing the e-scene check
 
 Search all decoded scripts for `LOD`/`JMP` targets and compare against the
