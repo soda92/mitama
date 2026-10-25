@@ -105,9 +105,9 @@ of **真木 碧 / Maki Midori**.
 | **相葉 茉美** | Aiba Mami | Another adult-game alias |
 | **叶芽 枢** | Kaname Kururu | Another adult-game alias |
 
-Her real name is **伊藤 麻喜 (Itou Maki)**. Her younger sister, **伊藤 麻衣
-(Itou Mai)**, is also a voice actress. The aliases are the reason searches can
-turn up what look like several different people.
+Her real name is **伊藤 麻喜 (Itou Maki)**. Her younger sister,
+[**伊藤 麻衣 (Itou Mai)**](itou-mai.md), is also a voice actress. The aliases
+are the reason searches can turn up what look like several different people.
 
 ### Game voice and OVA voice
 
@@ -213,6 +213,7 @@ VNDB and Wikipedia pages, which are the best starting points.
 
 ## Related
 
+- [伊藤麻衣 / Itou Mai](itou-mai.md)
 - [Voice production, work culture and marketing](voice-production-and-work-culture.md)
 - [Mitama cultural and market context](mitama-culture-context.md)
 - [In-story adult scene guide (18+)](in-story-adult-scenes.md)

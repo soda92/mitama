@@ -65,5 +65,8 @@ UI/input/settings: [engine/ui.md](engine/ui.md).
 Voice recording, KWD1/ADPCM delivery, 2001 studio structure and marketing:
 [guides/voice-production-and-work-culture.md](guides/voice-production-and-work-culture.md).
 
+Cast profile for Ran's younger sister:
+[guides/itou-mai.md](guides/itou-mai.md).
+
 Ghidra workflow and reverse-engineering notes:
 [engine/reverse-engineering.md](engine/reverse-engineering.md).

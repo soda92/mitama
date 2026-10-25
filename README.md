@@ -351,6 +351,7 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/guides/in-story-adult-scenes.md](docs/guides/in-story-adult-scenes.md) — 18+ in-story scene route/choice guide
 - [docs/guides/mitama-culture-context.md](docs/guides/mitama-culture-context.md) — release, company and 2001 adult-game market context
 - [docs/guides/tony-and-ran-voice-actor.md](docs/guides/tony-and-ran-voice-actor.md) — Tony's works and Ran's voice actor
+- [docs/guides/itou-mai.md](docs/guides/itou-mai.md) — 伊藤麻衣 / Itou Mai profile and selected works
 - [docs/guides/voice-production-and-work-culture.md](docs/guides/voice-production-and-work-culture.md) — recording chain, KWD1/ADPCM delivery, 2001 studio structure and marketing
 - [docs/engine/translation.md](docs/engine/translation.md) — English translation sidecar and bilingual UI
 - [docs/engine/upscaling.md](docs/engine/upscaling.md) — AI sprite/background upscaling (2×/4× priority)
