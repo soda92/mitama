@@ -214,7 +214,7 @@ canvas {
   padding: 1.1cqw 1.4cqw;
   border: 1px solid rgba(201, 168, 106, 0.65);
   border-radius: 0.8cqw;
-  background: rgba(8, 9, 13, 0.97);
+  background: rgba(8, 9, 13, var(--dialog-opacity, 1));
   color: rgba(238, 230, 210, 0.98);
   font: 2.55cqw/1.35 "Hiragino Mincho ProN", "Yu Mincho",
     "Noto Serif JP", serif;
@@ -234,7 +234,7 @@ canvas {
   transform: translate(-50%, 0.4cqw);
   border: 1px solid rgba(201, 168, 106, 0.65);
   border-radius: 0.8cqw;
-  background: rgba(8, 9, 13, 0.97);
+  background: rgba(8, 9, 13, var(--dialog-opacity, 1));
   color: rgba(238, 230, 210, 0.98);
   font: 2.55cqw/1.35 "Hiragino Mincho ProN", "Yu Mincho",
     "Noto Serif JP", serif;
