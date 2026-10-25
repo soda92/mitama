@@ -48,6 +48,7 @@ import {
   writeSettings,
   type BattlePolicy,
   type Language,
+  type TypewriterMode,
 } from "./game/settings";
 import {
   readSeen,
@@ -150,6 +151,9 @@ export default function App() {
   const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
   const [immersiveMode, setImmersiveMode] = useState(initialSettings.immersiveMode);
   const [language, setLanguage] = useState<Language>(initialSettings.language);
+  const [typewriterMode, setTypewriterMode] = useState<TypewriterMode>(
+    initialSettings.typewriterMode,
+  );
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -435,6 +439,10 @@ export default function App() {
   }, [language, data]);
 
   useEffect(() => {
+    playerRef.current?.setTypewriterMode(typewriterMode);
+  }, [typewriterMode, data]);
+
+  useEffect(() => {
     playerRef.current?.setMuted(muted);
   }, [muted]);
 
@@ -447,8 +455,18 @@ export default function App() {
       immersiveMode,
       battlePolicy,
       language,
+      typewriterMode,
     });
-  }, [bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy, language]);
+  }, [
+    bgmVolume,
+    seVolume,
+    muted,
+    dialogOpacity,
+    immersiveMode,
+    battlePolicy,
+    language,
+    typewriterMode,
+  ]);
 
   useEffect(() => {
     writeSeen(gallerySeen);
@@ -926,7 +944,7 @@ export default function App() {
   return (
     <main
       ref={shellRef}
-      className={`shell ${uiHidden ? "ui-hidden" : ""} ${archiveOpen || navigatorOpen ? "side-open" : ""} ${immersiveMode ? "immersive" : ""}`}
+      className={`shell ${uiHidden ? "ui-hidden" : ""} ${archiveOpen || navigatorOpen || menuOpen ? "side-open" : ""} ${immersiveMode ? "immersive" : ""}`}
       style={{ "--dialog-opacity": dialogOpacity } as CSSProperties}
     >
       <div className="play-area">
@@ -983,45 +1001,6 @@ export default function App() {
             onFullscreen={toggleFullscreen}
             onSettings={() => setMenuOpen(true)}
           />
-
-          {menuOpen && (
-            <SettingsPanel
-              packId={packId}
-              packs={packs}
-              currentScene={currentScene}
-              currentPC={currentPC}
-              status={status}
-              bgmVolume={bgmVolume}
-              seVolume={seVolume}
-              dialogOpacity={dialogOpacity}
-              immersiveMode={immersiveMode}
-              battlePolicy={battlePolicy}
-              language={language}
-              onLanguage={setLanguage}
-              onClose={() => setMenuOpen(false)}
-              onPackChange={changePack}
-              onBgmVolume={setBgmVolume}
-              onSeVolume={setSeVolume}
-              onDialogOpacity={setDialogOpacity}
-              onImmersiveMode={setImmersiveMode}
-              onBattlePolicy={setBattlePolicy}
-              onArchives={() => {
-                setMenuOpen(false);
-                openArchives();
-              }}
-              onNavigate={() => {
-                setMenuOpen(false);
-                openNavigator();
-              }}
-              onDebug={() => {
-                setMenuOpen(false);
-                setDebugOpen(true);
-              }}
-              onGallery={openGallery}
-              onTitle={goHome}
-              onReload={reloadCurrent}
-            />
-          )}
 
           {galleryOpen && (
             <Gallery
@@ -1107,6 +1086,47 @@ export default function App() {
           {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
         </div>
       </section>
+
+        {menuOpen && (
+          <SettingsPanel
+            packId={packId}
+            packs={packs}
+            currentScene={currentScene}
+            currentPC={currentPC}
+            status={status}
+            bgmVolume={bgmVolume}
+            seVolume={seVolume}
+            dialogOpacity={dialogOpacity}
+            immersiveMode={immersiveMode}
+            battlePolicy={battlePolicy}
+            language={language}
+            onLanguage={setLanguage}
+            typewriterMode={typewriterMode}
+            onTypewriterMode={setTypewriterMode}
+            onClose={() => setMenuOpen(false)}
+            onPackChange={changePack}
+            onBgmVolume={setBgmVolume}
+            onSeVolume={setSeVolume}
+            onDialogOpacity={setDialogOpacity}
+            onImmersiveMode={setImmersiveMode}
+            onBattlePolicy={setBattlePolicy}
+            onArchives={() => {
+              setMenuOpen(false);
+              openArchives();
+            }}
+            onNavigate={() => {
+              setMenuOpen(false);
+              openNavigator();
+            }}
+            onDebug={() => {
+              setMenuOpen(false);
+              setDebugOpen(true);
+            }}
+            onGallery={openGallery}
+            onTitle={goHome}
+            onReload={reloadCurrent}
+          />
+        )}
 
       {archiveOpen && (
         <ArchiveManager

@@ -1,5 +1,6 @@
 export type BattlePolicy = "play" | "win" | "lose" | "random";
 export type Language = "ja" | "en";
+export type TypewriterMode = "char" | "word" | "instant";
 
 export interface StoredSettings {
   bgmVolume: number;
@@ -9,6 +10,7 @@ export interface StoredSettings {
   immersiveMode: boolean;
   battlePolicy: BattlePolicy;
   language: Language;
+  typewriterMode: TypewriterMode;
 }
 
 export const SETTINGS_KEY = "mitama.settings.v1";
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   immersiveMode: false,
   battlePolicy: "play",
   language: "ja",
+  typewriterMode: "char",
 };
 
 function volumeSetting(value: unknown, fallback: number): number {
@@ -56,6 +59,12 @@ export function readSettings(): StoredSettings {
     volumeSetting(legacyOpacity, DEFAULT_SETTINGS.dialogOpacity),
   );
   const language: Language = saved.language === "en" ? "en" : "ja";
+  const typewriterMode: TypewriterMode =
+    saved.typewriterMode === "word" ||
+    saved.typewriterMode === "instant" ||
+    saved.typewriterMode === "char"
+      ? saved.typewriterMode
+      : DEFAULT_SETTINGS.typewriterMode;
   const battle =
     saved.battlePolicy === "play" ||
     saved.battlePolicy === "win" ||
@@ -77,6 +86,7 @@ export function readSettings(): StoredSettings {
     immersiveMode: typeof saved.immersiveMode === "boolean" ? saved.immersiveMode : DEFAULT_SETTINGS.immersiveMode,
     battlePolicy: battle,
     language,
+    typewriterMode,
   };
 }
 

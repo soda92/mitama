@@ -84,13 +84,18 @@ go run ./cmd/server            # http://localhost:8080
 Development mode (Vite HMR, Go API on :8080):
 
 ```sh
-go run ./cmd/server &
-cd web-app && pnpm dev         # http://localhost:5173
+cd web-app && pnpm dev         # terminal 1: http://localhost:5173
+go run ./cmd/server -dev       # terminal 2: http://localhost:8080
 ```
 
+`-dev` proxies the frontend to Vite at `http://localhost:5173` while keeping
+`/api` and `/media` on the Go server. Change the target with
+`-vite http://localhost:5173` if needed. The old two-process setup (browse
+directly to `:5173`) still works.
+
 Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`,
-`-db ./data/mitama-saves.db`. The database path defaults to
-`<data>/mitama-saves.db`.
+`-db ./data/mitama-saves.db`, `-dev`, `-vite http://localhost:5173`. The
+database path defaults to `<data>/mitama-saves.db`.
 
 The English sidecar is generated separately and is not required to play:
 
@@ -172,8 +177,12 @@ stay beside the stage and remain docked in fullscreen.
 
 The in-game controls are on the dialogue box; there is no separate pause button,
 but **P** still pauses. Speaker tags use full names (e.g. `八` → 八尋,
-`阿` → 阿門). Hide/show controls with **Space**.
-- **Title** — return to the title screen (also in Settings)
+`阿` → 阿門). Hide/show controls with **Space**. **Settings** (☰) opens as a
+docked sidebar beside the stage, not as a modal.
+
+Settings includes pack, language (`日本語`/`English`), typewriter mode
+(`character`, `word`, `instant`), BGM/SE volumes, dialogue opacity,
+immersive mode and battle policy. **Title** returns to the title screen.
 
 The title screen (`title007.bmp`) is shown on a normal launch with entries for
 new/continue, pictures, scene review, music, settings and quit. Scene links

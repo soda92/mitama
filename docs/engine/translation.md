@@ -149,7 +149,7 @@ The generated file is about 10 MB and lives under `data/dvd/`.
 Three equivalent controls:
 
 - toolbar button: `EN` / `JA`
-- Settings → language
+- Settings sidebar → language
 - keyboard: `L`
 
 The setting is persisted in `mitama.settings.v1`. Switching language redraws

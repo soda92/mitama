@@ -1,4 +1,4 @@
-import type { BattlePolicy, Language } from "../game/settings";
+import type { BattlePolicy, Language, TypewriterMode } from "../game/settings";
 import type { PackInfo } from "../game/types";
 
 interface SettingsPanelProps {
@@ -13,6 +13,7 @@ interface SettingsPanelProps {
   immersiveMode: boolean;
   battlePolicy: BattlePolicy;
   language: Language;
+  typewriterMode: TypewriterMode;
   onClose: () => void;
   onPackChange: (id: string) => void;
   onBgmVolume: (value: number) => void;
@@ -21,6 +22,7 @@ interface SettingsPanelProps {
   onImmersiveMode: (value: boolean) => void;
   onBattlePolicy: (value: BattlePolicy) => void;
   onLanguage: (value: Language) => void;
+  onTypewriterMode: (value: TypewriterMode) => void;
   onArchives: () => void;
   onNavigate: () => void;
   onDebug: () => void;
@@ -43,6 +45,7 @@ export default function SettingsPanel({
   immersiveMode,
   battlePolicy,
   language,
+  typewriterMode,
   onClose,
   onPackChange,
   onBgmVolume,
@@ -51,6 +54,7 @@ export default function SettingsPanel({
   onImmersiveMode,
   onBattlePolicy,
   onLanguage,
+  onTypewriterMode,
   onArchives,
   onNavigate,
   onDebug,
@@ -59,18 +63,17 @@ export default function SettingsPanel({
   onReload,
 }: SettingsPanelProps) {
   return (
-    <div
-      className="save-overlay"
-      onClick={(ev) => {
-        ev.stopPropagation();
-        onClose();
-      }}
-    >
-      <div className="save-panel settings-panel" onClick={(ev) => ev.stopPropagation()}>
-        <div className="save-head">
+    <aside className="side-window settings-window">
+      <header className="settings-head">
+        <div className="side-head-top">
           <strong>Settings</strong>
-          <button onClick={onClose}>✕</button>
+          <span>{currentScene || "—"}:{currentPC}</span>
+          <button className="side-close" onClick={onClose} title="Close">
+            ✕
+          </button>
         </div>
+      </header>
+      <div className="settings-scroll">
         <div className="kv settings-kv">
           <span>scene</span>
           <b>{currentScene || "—"}</b>
@@ -98,6 +101,18 @@ export default function SettingsPanel({
           >
             <option value="ja">日本語</option>
             <option value="en">English</option>
+          </select>
+        </label>
+        <label className="settings-row">
+          <span>typewriter</span>
+          <select
+            className="pack"
+            value={typewriterMode}
+            onChange={(ev) => onTypewriterMode(ev.target.value as TypewriterMode)}
+          >
+            <option value="char">character</option>
+            <option value="word">word</option>
+            <option value="instant">instant</option>
           </select>
         </label>
         <label className="settings-row">
@@ -163,6 +178,6 @@ export default function SettingsPanel({
           <button onClick={onReload}>Reload scene</button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

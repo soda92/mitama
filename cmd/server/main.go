@@ -9,6 +9,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +32,8 @@ func main() {
 	web := flag.String("web", "./web-app/dist", "built frontend directory")
 	addr := flag.String("addr", ":8080", "listen address")
 	dbPath := flag.String("db", "", "SQLite archive database (default <data>/mitama-saves.db)")
+	dev := flag.Bool("dev", false, "proxy frontend requests to the Vite dev server")
+	viteAddr := flag.String("vite", "http://localhost:5173", "Vite dev server URL for -dev")
 	flag.Parse()
 
 	archivePath := *dbPath
@@ -63,9 +67,24 @@ func main() {
 	mux.HandleFunc("PUT /api/archives/{id}", s.handleArchivePut)
 	mux.HandleFunc("DELETE /api/archives/{id}", s.handleArchiveDelete)
 	mux.Handle("/media/", http.StripPrefix("/media/", http.FileServer(http.Dir(*data))))
-	mux.Handle("/", http.FileServer(http.Dir(*web)))
 
-	log.Printf("mitama: serving %s on %s", *data, *addr)
+	if *dev {
+		target, err := url.Parse(*viteAddr)
+		if err != nil || target.Scheme == "" || target.Host == "" {
+			log.Fatalf("invalid -vite URL %q", *viteAddr)
+		}
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.FlushInterval = -1
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Printf("vite proxy: %v", err)
+			http.Error(w, "Vite dev server is not reachable at "+target.String(), http.StatusBadGateway)
+		}
+		mux.Handle("/", proxy)
+		log.Printf("mitama: serving %s with Vite dev proxy %s on %s", *data, target.String(), *addr)
+	} else {
+		mux.Handle("/", http.FileServer(http.Dir(*web)))
+		log.Printf("mitama: serving %s on %s", *data, *addr)
+	}
 	if err := http.ListenAndServe(*addr, logRequests(mux)); err != nil {
 		log.Fatal(err)
 	}

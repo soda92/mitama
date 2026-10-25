@@ -61,6 +61,8 @@ Last updated: 2026-10-24.
 - [x] BGM and voice playback from the DVD data.
 - [x] `kunoichi.arc` extracted into the DVD pack (female voices).
 - [x] Scene URLs auto-start and rebuild stage/flags/BGM.
+- [x] `-dev` Go-server mode proxies the frontend to the Vite dev server while
+      keeping `/api` and `/media` on Go.
 - [x] Resuming at a TEXT line replays the preceding `SEV` voice.
 - [x] Engine debug panel (`D` / `?debug=1`) and `/api/debug` APIs.
 - [x] Canvas stage with a DOM dialogue overlay; selectable text and
@@ -81,7 +83,9 @@ Last updated: 2026-10-24.
 - [x] Dialogue box is opaque and the DOM overlay updates per typewriter
       tick (no stale/accumulated box alpha).
 - [x] Adjustable dialogue opacity and immersive subtitle mode in Settings
-      (persisted per browser).
+      (persisted per browser); Settings opens as a docked side window.
+- [x] Typewriter modes: character, word and instant; new lines explicitly
+      clear the old text before typing starts.
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
 - [x] Replay-voice button beside the speaker name tag (current page/line),

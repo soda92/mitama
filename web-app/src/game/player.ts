@@ -30,6 +30,23 @@ function splitPages(message: string): string[] {
     .filter((page) => page.length > 0);
 }
 
+function typewriterBoundaries(text: string): number[] {
+  const boundaries: number[] = [];
+  const token = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]|[A-Za-z0-9'’_-]+|\s+|./gu;
+  let match: RegExpExecArray | null;
+  while ((match = token.exec(text)) !== null) {
+    boundaries.push(match.index + match[0].length);
+  }
+  return boundaries;
+}
+
+function nextTypewriterBoundary(text: string, from: number): number {
+  for (const boundary of typewriterBoundaries(text)) {
+    if (boundary > from) return boundary;
+  }
+  return text.length;
+}
+
 export interface BattleInfo {
   background: string;
   script: string;
@@ -140,6 +157,7 @@ export class Player {
   private dialogueOpacity = 1;
   private immersive = false;
   private language: "ja" | "en" = "ja";
+  private typewriterMode: "char" | "word" | "instant" = "char";
 
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
@@ -325,6 +343,22 @@ export class Player {
   setImmersive(immersive: boolean): void {
     if (this.immersive === immersive) return;
     this.immersive = immersive;
+    this.draw();
+  }
+
+  setTypewriterMode(mode: "char" | "word" | "instant"): void {
+    if (this.typewriterMode === mode) return;
+    this.typewriterMode = mode;
+    if (this.textActive) {
+      if (mode === "instant") {
+        if (this.textRaf) cancelAnimationFrame(this.textRaf);
+        this.textRaf = 0;
+        this.textChars = this.currentPageText().length;
+        this.textComplete = true;
+      } else if (!this.textComplete) {
+        this.scheduleTyping();
+      }
+    }
     this.draw();
   }
 
@@ -585,6 +619,11 @@ export class Player {
   ): Promise<void> {
     const pages = splitPages(message);
     const pagesEN = splitPages(messageEN);
+    if (this.textRaf) cancelAnimationFrame(this.textRaf);
+    this.textRaf = 0;
+    // Drop the previous line before the new one is painted; otherwise React
+    // can briefly show the old/full text while the new typewriter starts.
+    this.emitDialogue(null);
     // Expand one-character speaker tags ("八", "阿", ...) for the name tag.
     this.textSpeaker = speakerDisplayName(speaker);
     this.textSpeakerEN = speakerEnglishName(speaker);
@@ -595,8 +634,14 @@ export class Player {
     this.textChars = 0;
     this.textComplete = false;
     this.textActive = true;
-    this.draw();
-    this.scheduleTyping();
+    if (this.typewriterMode === "instant") {
+      this.textChars = this.currentPageText().length;
+      this.textComplete = true;
+      this.draw();
+    } else {
+      this.draw();
+      this.scheduleTyping();
+    }
     this.playCues(0);
     return new Promise((resolve) => {
       this.textResolve = resolve;
@@ -642,11 +687,21 @@ export class Player {
         return;
       }
       const page = this.currentPageText();
-      if (!this.paused) {
-        const elapsed = now - this.textLast;
-        this.textChars = Math.min(page.length, this.textChars + (elapsed * TEXT_CPS) / 1000);
+      if (this.typewriterMode === "instant") {
+        this.textChars = page.length;
+        this.textLast = now;
+      } else if (this.typewriterMode === "word") {
+        if (!this.paused && now - this.textLast >= 45) {
+          this.textChars = nextTypewriterBoundary(page, this.textChars);
+          this.textLast = now;
+        }
+      } else {
+        if (!this.paused) {
+          const elapsed = now - this.textLast;
+          this.textChars = Math.min(page.length, this.textChars + (elapsed * TEXT_CPS) / 1000);
+        }
+        this.textLast = now;
       }
-      this.textLast = now;
       if (this.textChars >= page.length) {
         this.textChars = page.length;
         this.textComplete = true;
