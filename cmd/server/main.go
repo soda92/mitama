@@ -17,19 +17,35 @@ import (
 )
 
 type server struct {
-	dataDir string
-	webDir  string
-	audio   *audioCache
-	debug   *debugStore
+	dataDir  string
+	webDir   string
+	audio    *audioCache
+	debug    *debugStore
+	archives *archiveStore
 }
 
 func main() {
 	data := flag.String("data", "./data", "extracted data directory")
 	web := flag.String("web", "./web-app/dist", "built frontend directory")
 	addr := flag.String("addr", ":8080", "listen address")
+	dbPath := flag.String("db", "", "SQLite archive database (default <data>/mitama-saves.db)")
 	flag.Parse()
 
-	s := &server{dataDir: *data, webDir: *web, audio: newAudioCache(128 << 20), debug: newDebugStore()}
+	archivePath := *dbPath
+	if archivePath == "" {
+		archivePath = filepath.Join(*data, "mitama-saves.db")
+	}
+	archives, err := openArchiveStore(archivePath)
+	if err != nil {
+		log.Fatalf("archive database: %v", err)
+	}
+	s := &server{
+		dataDir:  *data,
+		webDir:   *web,
+		audio:    newAudioCache(128 << 20),
+		debug:    newDebugStore(),
+		archives: archives,
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/packs", s.handlePacks)
 	mux.HandleFunc("/api/script", s.handleScript)
@@ -41,6 +57,9 @@ func main() {
 	mux.HandleFunc("/api/audio", s.handleAudio)
 	mux.HandleFunc("/api/debug", s.handleDebug)
 	mux.HandleFunc("/api/debug/state", s.handleDebugState)
+	mux.HandleFunc("GET /api/archives", s.handleArchiveList)
+	mux.HandleFunc("PUT /api/archives/{id}", s.handleArchivePut)
+	mux.HandleFunc("DELETE /api/archives/{id}", s.handleArchiveDelete)
 	mux.Handle("/media/", http.StripPrefix("/media/", http.FileServer(http.Dir(*data))))
 	mux.Handle("/", http.FileServer(http.Dir(*web)))
 

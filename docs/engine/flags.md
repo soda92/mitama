@@ -273,7 +273,8 @@ routes.
 
 ## Save and load behavior
 
-Archive snapshots save:
+Archive snapshots are stored in SQLite on the server and cached in browser
+`localStorage`. They save:
 
 - `flags`
 - `party`

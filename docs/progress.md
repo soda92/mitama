@@ -43,6 +43,8 @@ Last updated: 2026-10-24.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.
+- [x] SQLite archive persistence (`data/mitama-saves.db`) with REST API,
+      localStorage cache/fallback and offline delete queue.
 - [x] Page/chapter navigator: command scrubbing, dialogue previews,
       chapter grouping, filtering and direct scene entry.
 - [x] Archives and navigator docked as side windows beside the stage

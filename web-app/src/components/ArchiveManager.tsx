@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import type { Snapshot } from "../game/player";
-import { protagonistLabel, protagonistOfScene } from "../game/types";
+import type { ArchiveSyncState } from "../game/archiveSync";
+import {
+  protagonistLabel,
+  protagonistOfScene,
+  speakerDisplayName,
+} from "../game/types";
 
 type Tab = "recent" | "pinned" | "chapters";
 
@@ -9,6 +14,7 @@ interface ArchiveManagerProps {
   canSave: boolean;
   currentScene: string;
   currentPC: number;
+  sync: ArchiveSyncState;
   onClose: () => void;
   onSaveNew: () => void;
   onOverwrite: (id: string) => void;
@@ -35,11 +41,19 @@ function when(ts: number): string {
   }
 }
 
+const syncLabel = (sync: ArchiveSyncState): string => {
+  if (sync === "online") return "DB synced";
+  if (sync === "syncing") return "syncing…";
+  if (sync === "offline") return "local only";
+  return "local";
+};
+
 export default function ArchiveManager({
   slots,
   canSave,
   currentScene,
   currentPC,
+  sync,
   onClose,
   onSaveNew,
   onOverwrite,
@@ -64,7 +78,7 @@ export default function ArchiveManager({
           s.scene,
           s.pack,
           s.note,
-          s.speaker,
+          speakerDisplayName(s.speaker),
           s.dialogue,
           protagonistOf(s),
           chapterOf(s.scene),
@@ -109,7 +123,7 @@ export default function ArchiveManager({
           <time>{when(s.savedAt)}</time>
         </div>
         <div className="archive-line">
-          {s.speaker ? <b>{s.speaker}　</b> : null}
+          {s.speaker ? <b>{speakerDisplayName(s.speaker)}　</b> : null}
           <span>{(s.note || s.dialogue || "…").replace(/\s+/g, " ").slice(0, 100)}</span>
         </div>
         {editing === id ? (
@@ -187,6 +201,9 @@ export default function ArchiveManager({
           <strong>Archives</strong>
           <span>
             {currentScene || "—"}:{currentPC}
+          </span>
+          <span className={`archive-sync ${sync}`} title="Archive database status">
+            {syncLabel(sync)}
           </span>
           <button className="side-close" onClick={onClose} title="Close">
             ✕

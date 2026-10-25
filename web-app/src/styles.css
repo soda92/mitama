@@ -1026,6 +1026,26 @@ button.scene-item:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+.side-head-top .archive-sync {
+  flex: none;
+  color: #6f7079;
+  font: 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.side-head-top .archive-sync.online {
+  color: #83a889;
+}
+
+.side-head-top .archive-sync.offline {
+  color: #b0786c;
+}
+
+.side-head-top .archive-sync.syncing {
+  color: var(--accent);
+}
+
 .side-close {
   margin-left: auto;
   flex: none;

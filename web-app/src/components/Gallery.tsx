@@ -5,6 +5,7 @@ import type {
   GallerySeen,
   GalleryTrack,
 } from "../game/gallery";
+import { speakerDisplayName } from "../game/types";
 
 interface GalleryProps {
   initialTab?: Tab;
@@ -325,7 +326,7 @@ export default function Gallery({
                     title={use.dialogue}
                   >
                     <b>{use.scene}</b>
-                    {use.speaker && <em>{use.speaker}</em>}
+                    {use.speaker && <em>{speakerDisplayName(use.speaker)}</em>}
                     {use.dialogue && <small>{use.dialogue}</small>}
                   </button>
                 ))}

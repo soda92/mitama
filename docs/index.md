@@ -38,7 +38,8 @@ disc image (ISO/CCD/MDF)
 
 The extractor writes ordinary files, which makes format work and debugging
 simple. The server only serves what is under `data/`, so the original disc is
-never modified.
+never modified. Archive saves are stored separately in
+`data/mitama-saves.db` (SQLite); the browser keeps a local cache.
 
 ## Current milestone
 

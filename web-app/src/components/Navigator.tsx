@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Command } from "../game/types";
+import { speakerDisplayName, type Command } from "../game/types";
 
 interface NavigatorProps {
   scene: string;
@@ -20,7 +20,8 @@ function chapterOf(scene?: string): string {
 function commandLabel(c: Command): string {
   if (c.label) return `▸ ${c.label}`;
   if (c.cmd === "TEXT") {
-    return `${c.speaker ? `${c.speaker}「` : "「"}${(c.message ?? "").split("\n")[0].slice(0, 42)}`;
+    const speaker = speakerDisplayName(c.speaker);
+    return `${speaker ? `${speaker}「` : "「"}${(c.message ?? "").split("\n")[0].slice(0, 42)}`;
   }
   return `${c.cmd ?? "?"}${c.args?.length ? ` ${c.args.join(" ")}` : ""}`;
 }

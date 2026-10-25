@@ -6,7 +6,7 @@ the adventure/RPG built on Ciel's **ARCANA** engine.
 The project has two halves:
 
 - **Go backend** — disc/ISO reader, ARC archive reader, LZSS decoder, asset
-  extractor, and HTTP server.
+  extractor, HTTP server, and a SQLite-backed archive store.
 - **React + Vite frontend** — a 640×480 canvas stage with a DOM dialogue
   overlay that reimplements the
   engine's script VM, transitions, audio and (eventually) the RPG systems.
@@ -29,6 +29,7 @@ extractor at your own data.
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
 | Scene URLs, page/chapter navigator and archive manager | ✅ implemented |
+| SQLite archive persistence with browser cache/fallback | ✅ implemented |
 | Full-game flags (`IFT`/`FLG`/`EQU`/`FCK`/`RND`) | ✅ basic implementation |
 | Map/party state and playable simplified battles | ◐ partial |
 | Sprite/monster/map formats (`.spt` `.mtn` `.o`) | ⛔ next |
@@ -86,7 +87,9 @@ go run ./cmd/server &
 cd web-app && pnpm dev         # http://localhost:5173
 ```
 
-Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`.
+Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`,
+`-db ./data/mitama-saves.db`. The database path defaults to
+`<data>/mitama-saves.db`.
 
 ### Scene links, navigator and archives
 
@@ -101,17 +104,32 @@ Open such a link, press Start, and playback resumes at that command. `pack` is
 zero-based command index.
 
 The **Archives** manager opens in a docked side window beside the stage (the
-stage resizes rather than being covered) and keeps saves in `localStorage`. It
-supports:
+stage resizes rather than being covered). Saves are persisted in **SQLite on the
+Go server** and cached in browser `localStorage` for offline use:
 
-- Recent / Pinned / Chapters views
-- search across scene, note, speaker and dialogue
-- thumbnails, notes, pinning, overwrite, delete
-- save-current with speaker/dialogue and protagonist-route metadata
-- restoring pack, scene, command, stage layers, flags, party and map mode
+- server database defaults to `data/mitama-saves.db`
+- `localStorage` key: `mitama.archives.v1`
+- offline deletes are queued in `mitama.archive-deletes.v1`
+- the Archives header shows `DB synced`, `syncing…`, or `local only`
+- startup merges local and server archives by `savedAt`; newer wins
+- new archive IDs are client-generated, so two browsers do not collide
+
+It supports Recent / Pinned / Chapters, search, thumbnails, notes, pinning,
+overwrite/delete, and restoring pack, scene, command, stage layers, flags,
+party, map mode and protagonist route.
 
 Old four-slot saves are migrated automatically. Save/load while a dialogue or
 menu is open restores that interaction.
+
+Archive API:
+
+```text
+GET    /api/archives
+PUT    /api/archives/{id}
+DELETE /api/archives/{id}
+```
+
+The API has no authentication and is intended for a local/personal server.
 
 The **Navigate** button (or **N**) opens a docked side window with two tabs:
 

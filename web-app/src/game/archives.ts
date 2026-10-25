@@ -35,13 +35,35 @@ export function writeArchives(archives: ArchiveMap): void {
   }
 }
 
+/**
+ * New archives use a client-generated ID so two browsers saving at the same
+ * time cannot overwrite each other. Existing numeric IDs remain valid.
+ */
 export function nextArchiveID(archives: ArchiveMap): string {
-  let max = 0;
-  for (const id of Object.keys(archives)) {
-    const n = Number.parseInt(id, 10);
-    if (Number.isFinite(n) && n > max) max = n;
+  const base = `a${Date.now().toString(36)}`;
+  let id = base;
+  for (let suffix = 1; archives[id]; suffix++) id = `${base}-${suffix}`;
+  return id;
+}
+
+const DELETE_KEY = "mitama.archive-deletes.v1";
+
+export function readPendingDeletes(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETE_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
   }
-  return String(max + 1);
+}
+
+export function writePendingDeletes(ids: Set<string>): void {
+  try {
+    localStorage.setItem(DELETE_KEY, JSON.stringify([...ids]));
+  } catch {
+    // best-effort, same as archive storage
+  }
 }
 
 export function makeThumbnail(canvas: HTMLCanvasElement | null): string | undefined {

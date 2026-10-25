@@ -32,8 +32,17 @@ import {
   writeArchives,
   nextArchiveID,
   makeThumbnail,
+  readPendingDeletes,
+  writePendingDeletes,
   type ArchiveMap,
 } from "./game/archives";
+import {
+  fetchServerArchives,
+  mergeArchives,
+  pushServerArchive,
+  removeServerArchive,
+  type ArchiveSyncState,
+} from "./game/archiveSync";
 import {
   readSettings,
   writeSettings,
@@ -108,6 +117,9 @@ export default function App() {
   const [choices, setChoices] = useState<Option[] | null>(null);
   const [dialogue, setDialogue] = useState<DialogueOverlayState | null>(null);
   const [archives, setArchives] = useState<ArchiveMap>(readArchives);
+  const archivesRef = useRef<ArchiveMap>(archives);
+  archivesRef.current = archives;
+  const [archiveSync, setArchiveSync] = useState<ArchiveSyncState>("local");
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(params.view === "gallery");
@@ -428,6 +440,51 @@ export default function App() {
     writeSeen(gallerySeen);
   }, [gallerySeen]);
 
+  // Merge browser saves with the SQLite-backed server copy. The server wins
+  // only when its savedAt is newer; local-only saves are uploaded.
+  useEffect(() => {
+    let cancelled = false;
+    setArchiveSync("syncing");
+    (async () => {
+      try {
+        const remote = await fetchServerArchives();
+        if (cancelled) return;
+        const pendingDeletes = readPendingDeletes();
+        for (const id of pendingDeletes) delete remote[id];
+        const local = readArchives();
+        const { merged, upload } = mergeArchives(local, remote);
+        archivesRef.current = merged;
+        writeArchives(merged);
+        setArchives(merged);
+
+        let failed = false;
+        const deleteIDs = [...pendingDeletes];
+        if (deleteIDs.length > 0) {
+          const results = await Promise.allSettled(
+            deleteIDs.map((id) => removeServerArchive(id)),
+          );
+          results.forEach((result, index) => {
+            if (result.status === "fulfilled") pendingDeletes.delete(deleteIDs[index]);
+            else failed = true;
+          });
+          writePendingDeletes(pendingDeletes);
+        }
+        if (upload.length > 0) {
+          const results = await Promise.allSettled(
+            upload.map(([id, snap]) => pushServerArchive(id, snap)),
+          );
+          if (results.some((r) => r.status === "rejected")) failed = true;
+        }
+        if (!cancelled) setArchiveSync(failed ? "offline" : "online");
+      } catch {
+        if (!cancelled) setArchiveSync("offline");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (homeOpen && !galleryOpen && !protagonistOpen) updateView("title");
   }, [homeOpen, galleryOpen, protagonistOpen, updateView]);
@@ -641,59 +698,83 @@ export default function App() {
     playerRef.current?.choose(label);
   }, []);
 
+  const syncPut = useCallback((id: string, snap: Snapshot) => {
+    setArchiveSync("syncing");
+    void pushServerArchive(id, snap)
+      .then(() => setArchiveSync("online"))
+      .catch(() => setArchiveSync("offline"));
+  }, []);
+
+  const syncDelete = useCallback((id: string) => {
+    const pending = readPendingDeletes();
+    pending.add(id);
+    writePendingDeletes(pending);
+    setArchiveSync("syncing");
+    void removeServerArchive(id)
+      .then(() => {
+        const remaining = readPendingDeletes();
+        remaining.delete(id);
+        writePendingDeletes(remaining);
+        setArchiveSync("online");
+      })
+      .catch(() => setArchiveSync("offline"));
+  }, []);
+
   const saveCurrent = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
     const snap = player.snapshot();
     snap.thumbnail = makeThumbnail(canvasRef.current);
-    setArchives((prev) => {
-      const id = nextArchiveID(prev);
-      const next = { ...prev, [id]: snap };
-      writeArchives(next);
-      return next;
-    });
-  }, []);
+    const id = nextArchiveID(archivesRef.current);
+    const next = { ...archivesRef.current, [id]: snap };
+    archivesRef.current = next;
+    setArchives(next);
+    writeArchives(next);
+    syncPut(id, snap);
+  }, [syncPut]);
 
   const overwriteArchive = useCallback((id: string) => {
     const player = playerRef.current;
     if (!player) return;
+    const old = archivesRef.current[id];
+    if (!old) return;
     const snap = player.snapshot();
     snap.thumbnail = makeThumbnail(canvasRef.current);
-    setArchives((prev) => {
-      const old = prev[id];
-      if (!old) return prev;
-      const next = {
-        ...prev,
-        [id]: {
-          ...snap,
-          note: old.note,
-          pinned: old.pinned,
-          thumbnail: snap.thumbnail ?? old.thumbnail,
-        },
-      };
-      writeArchives(next);
-      return next;
-    });
-  }, []);
+    const updated = {
+      ...snap,
+      note: old.note,
+      pinned: old.pinned,
+      thumbnail: snap.thumbnail ?? old.thumbnail,
+    };
+    const next = { ...archivesRef.current, [id]: updated };
+    archivesRef.current = next;
+    setArchives(next);
+    writeArchives(next);
+    syncPut(id, updated);
+  }, [syncPut]);
 
   const deleteArchive = useCallback((id: string) => {
-    setArchives((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      writeArchives(next);
-      return next;
-    });
-  }, []);
+    const next = { ...archivesRef.current };
+    delete next[id];
+    archivesRef.current = next;
+    setArchives(next);
+    writeArchives(next);
+    syncDelete(id);
+  }, [syncDelete]);
 
-  const updateArchive = useCallback((id: string, patch: { note?: string; pinned?: boolean }) => {
-    setArchives((prev) => {
-      const old = prev[id];
-      if (!old) return prev;
-      const next = { ...prev, [id]: { ...old, ...patch } };
+  const updateArchive = useCallback(
+    (id: string, patch: { note?: string; pinned?: boolean }) => {
+      const old = archivesRef.current[id];
+      if (!old) return;
+      const updated = { ...old, ...patch };
+      const next = { ...archivesRef.current, [id]: updated };
+      archivesRef.current = next;
+      setArchives(next);
       writeArchives(next);
-      return next;
-    });
-  }, []);
+      syncPut(id, updated);
+    },
+    [syncPut],
+  );
 
   const loadArchive = useCallback(
     (snap: Snapshot) => {
@@ -1010,6 +1091,7 @@ export default function App() {
           canSave={started && !!playerRef.current}
           currentScene={currentScene}
           currentPC={currentPC}
+          sync={archiveSync}
           onClose={() => setArchiveOpen(false)}
           onSaveNew={saveCurrent}
           onOverwrite={overwriteArchive}
