@@ -199,5 +199,6 @@ VNDB and Wikipedia pages, which are the best starting points.
 
 ## Related
 
+- [Voice production and studio work culture](voice-production-and-work-culture.md)
 - [Mitama cultural and market context](mitama-culture-context.md)
 - [In-story adult scene guide (18+)](in-story-adult-scenes.md)

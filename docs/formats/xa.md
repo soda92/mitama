@@ -1,5 +1,9 @@
 # KWD1 / .XA audio
 
+> For the recording chain, why the engine used this format, and the studio/work
+> structure around it, see
+> [Voice production and studio work culture](../guides/voice-production-and-work-culture.md).
+
 Every `.xa` file in the archives is a **KWD1** block. It is decoded by
 `xadec.dll` (`xaDecodeOpen`, `xaDecodeSize`, `xaDecodeConvert`,
 `xaDecodeClose`) and output as 16-bit signed PCM.
