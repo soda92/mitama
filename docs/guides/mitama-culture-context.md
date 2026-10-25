@@ -2,6 +2,9 @@
 
 > This is historical/industry context for the 18+ Japanese PC game
 > **御魂 ～忍～ / Mitama ~Shinobi~**. It is not a content guide.
+>
+> For Tony's and Ran's voice actor's other work, see
+> [Tony and Ran's voice actor](tony-and-ran-voice-actor.md).
 
 ## Release snapshot
 

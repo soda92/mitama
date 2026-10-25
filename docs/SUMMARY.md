@@ -13,6 +13,7 @@
 
 - [In-story adult scene guide (18+)](guides/in-story-adult-scenes.md)
 - [Mitama cultural and market context](guides/mitama-culture-context.md)
+- [Tony and Ran's voice actor](guides/tony-and-ran-voice-actor.md)
 
 # Engine
 
