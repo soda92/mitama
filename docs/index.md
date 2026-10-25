@@ -55,3 +55,4 @@ Start with [Progress](progress.md).
 Battle file details: [engine/battle.md](engine/battle.md).
 Gallery data and seen-state details: [engine/gallery.md](engine/gallery.md).
 Story flags, route gates and ending conditions: [engine/flags.md](engine/flags.md).
+English translation sidecar and bilingual UI: [engine/translation.md](engine/translation.md).

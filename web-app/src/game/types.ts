@@ -1,5 +1,6 @@
 export interface Option {
   text: string;
+  textEn?: string;
   label: string;
 }
 
@@ -17,6 +18,7 @@ export interface Command {
   text?: string;
   speaker?: string;
   message?: string;
+  messageEn?: string;
   cues?: Cue[];
   options?: Option[];
 }
@@ -68,6 +70,42 @@ export function speakerDisplayName(speaker?: string): string {
     .split("・")
     .map((part) => SPEAKER_NAMES[part.trim()] ?? part.trim())
     .join("・");
+}
+
+
+const SPEAKER_NAMES_EN: Record<string, string> = {
+  八尋: "Yahiro",
+  蘭: "Ran",
+  朧: "Oboro",
+  阿門: "Amon",
+  更紗: "Sarasa",
+  諏慧姫: "Suikihime",
+  紅羽: "Kureha",
+  瑞希: "Mizuki",
+  我吽: "Gaun",
+  紫芳: "Shihou",
+  阿佐弥: "Asami",
+  文観: "Bunkan",
+  七巳: "Nanami",
+  耳目: "Jimoku",
+  長虫: "Nagamushi",
+  五鬼: "Goki",
+  素戔鳴: "Susanoo",
+  お館: "Master",
+  関番: "Guard",
+  随身: "Attendant",
+  阿闍梨: "Ajari",
+  猿: "Monkey",
+  子供: "Child",
+};
+
+export function speakerEnglishName(speaker?: string): string {
+  const jp = speakerDisplayName(speaker);
+  if (!jp) return "";
+  return jp
+    .split("・")
+    .map((part) => SPEAKER_NAMES_EN[part] ?? part)
+    .join(" / ");
 }
 
 export type Protagonist = "yahiro" | "oboro";

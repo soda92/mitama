@@ -33,21 +33,23 @@ type Cue struct {
 
 // Option is one entry of an SLT/MSLT choice menu.
 type Option struct {
-	Text  string `json:"text"`
-	Label string `json:"label"`
+	Text   string `json:"text"`
+	TextEN string `json:"textEn,omitempty"`
+	Label  string `json:"label"`
 }
 
 // Command is one executable line.
 type Command struct {
-	Line    int      `json:"line"`
-	Cmd     string   `json:"cmd,omitempty"`
-	Args    []string `json:"args,omitempty"`
-	Label   string   `json:"label,omitempty"`
-	Text    string   `json:"text,omitempty"` // original line, for debugging
-	Speaker string   `json:"speaker,omitempty"`
-	Message string   `json:"message,omitempty"`
-	Cues    []Cue    `json:"cues,omitempty"`
-	Options []Option `json:"options,omitempty"`
+	Line      int      `json:"line"`
+	Cmd       string   `json:"cmd,omitempty"`
+	Args      []string `json:"args,omitempty"`
+	Label     string   `json:"label,omitempty"`
+	Text      string   `json:"text,omitempty"` // original line, for debugging
+	Speaker   string   `json:"speaker,omitempty"`
+	Message   string   `json:"message,omitempty"`
+	MessageEN string   `json:"messageEn,omitempty"`
+	Cues      []Cue    `json:"cues,omitempty"`
+	Options   []Option `json:"options,omitempty"`
 }
 
 // Script is a parsed command stream.

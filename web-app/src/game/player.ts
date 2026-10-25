@@ -1,4 +1,4 @@
-import { protagonistOfScene, speakerDisplayName } from "./types";
+import { protagonistOfScene, speakerDisplayName, speakerEnglishName } from "./types";
 import type {
   AssetMap,
   Command,
@@ -22,6 +22,13 @@ import {
 } from "./player/stage";
 
 export type { StageSnapshot } from "./player/stage";
+
+function splitPages(message: string): string[] {
+  return message
+    .split(/[￥¥]/)
+    .map((page) => page.replace(/\r/g, "").trim())
+    .filter((page) => page.length > 0);
+}
 
 export interface BattleInfo {
   background: string;
@@ -116,7 +123,9 @@ export class Player {
 
   // Dialogue state.
   private textSpeaker = "";
+  private textSpeakerEN = "";
   private textPages: string[] = [];
+  private textPagesEN: string[] = [];
   private textCues: Cue[] = [];
   private textPage = 0;
   private textChars = 0;
@@ -130,9 +139,11 @@ export class Player {
   private dialogueHidden = false;
   private dialogueOpacity = 1;
   private immersive = false;
+  private language: "ja" | "en" = "ja";
 
   private choiceResolve: ((label: string) => void) | null = null;
   private pendingChoice: Option[] | null = null;
+  private pendingChoiceSource: Option[] | null = null;
   private flags = new Map<number, number>();
   private mapMode = false;
   private party = new Set<string>();
@@ -214,6 +225,7 @@ export class Player {
     const resolve = this.choiceResolve;
     this.choiceResolve = null;
     this.pendingChoice = null;
+    this.pendingChoiceSource = null;
     this.events.choice?.(null);
     if (resolve) resolve(label);
   }
@@ -313,6 +325,21 @@ export class Player {
   setImmersive(immersive: boolean): void {
     if (this.immersive === immersive) return;
     this.immersive = immersive;
+    this.draw();
+  }
+
+  setLanguage(language: "ja" | "en"): void {
+    if (this.language === language) return;
+    this.language = language;
+    if (this.textActive) {
+      const page = this.currentPageText();
+      this.textChars = page.length;
+      this.textComplete = true;
+    }
+    if (this.pendingChoiceSource) {
+      this.pendingChoice = this.translateChoice(this.pendingChoiceSource);
+      this.events.choice?.(this.pendingChoice);
+    }
     this.draw();
   }
 
@@ -449,6 +476,7 @@ export class Player {
     const choiceResolve = this.choiceResolve;
     this.choiceResolve = null;
     this.pendingChoice = null;
+    this.pendingChoiceSource = null;
     this.events.choice?.(null);
     if (choiceResolve) choiceResolve("");
     this.audio.stop();
@@ -490,7 +518,7 @@ export class Player {
    */
   advance(): boolean {
     if (!this.textActive) return false;
-    const page = this.textPages[this.textPage] ?? "";
+    const page = this.currentPageText();
     if (this.textChars < page.length) {
       this.textChars = page.length;
       this.textComplete = true;
@@ -536,6 +564,7 @@ export class Player {
     if (this.textRaf) cancelAnimationFrame(this.textRaf);
     this.textRaf = 0;
     this.textFallbackVoice = "";
+    this.textPagesEN = [];
     this.textActive = false;
     this.textComplete = false;
     this.emitDialogue(null);
@@ -548,15 +577,20 @@ export class Player {
     if (resolve) resolve();
   }
 
-  private showText(speaker: string, message: string, cues: Cue[] = []): Promise<void> {
-    const pages = message
-      .split(/[￥¥]/)
-      .map((page) => page.replace(/\r/g, "").trim())
-      .filter((page) => page.length > 0);
+  private showText(
+    speaker: string,
+    message: string,
+    cues: Cue[] = [],
+    messageEN = "",
+  ): Promise<void> {
+    const pages = splitPages(message);
+    const pagesEN = splitPages(messageEN);
     // Expand one-character speaker tags ("八", "阿", ...) for the name tag.
     this.textSpeaker = speakerDisplayName(speaker);
+    this.textSpeakerEN = speakerEnglishName(speaker);
     this.textCues = cues;
     this.textPages = pages.length > 0 ? pages : [""];
+    this.textPagesEN = pagesEN;
     this.textPage = 0;
     this.textChars = 0;
     this.textComplete = false;
@@ -569,6 +603,19 @@ export class Player {
     });
   }
 
+  private translateChoice(options: Option[]): Option[] {
+    return options.map((option) => ({
+      ...option,
+      text: this.language === "en" && option.textEn ? option.textEn : option.text,
+    }));
+  }
+
+  private currentPageText(): string {
+    const jp = this.textPages[this.textPage] ?? "";
+    if (this.language === "en") return this.textPagesEN[this.textPage] || jp;
+    return jp;
+  }
+
   private playCues(page: number): void {
     for (const cue of this.textCues) {
       if (cue.page === page) this.playSe(cue.name);
@@ -577,8 +624,10 @@ export class Player {
 
   private showChoice(options: Option[]): Promise<string> {
     if (options.length === 0) return Promise.resolve("");
-    this.pendingChoice = options;
-    this.events.choice?.(options);
+    this.pendingChoiceSource = options;
+    const shown = this.translateChoice(options);
+    this.pendingChoice = shown;
+    this.events.choice?.(shown);
     return new Promise((resolve) => {
       this.choiceResolve = resolve;
     });
@@ -592,7 +641,7 @@ export class Player {
         this.textRaf = 0;
         return;
       }
-      const page = this.textPages[this.textPage] ?? "";
+      const page = this.currentPageText();
       if (!this.paused) {
         const elapsed = now - this.textLast;
         this.textChars = Math.min(page.length, this.textChars + (elapsed * TEXT_CPS) / 1000);
@@ -629,6 +678,7 @@ export class Player {
     this.textActive = false;
     this.textComplete = false;
     this.textPages = [];
+    this.textPagesEN = [];
     this.textCues = [];
     this.textFallbackVoice = "";
     this.textPage = 0;
@@ -658,9 +708,9 @@ export class Player {
       this.emitDialogue(null);
       return;
     }
-    const page = this.textPages[this.textPage] ?? "";
+    const page = this.currentPageText();
     this.emitDialogue({
-      speaker: this.textSpeaker,
+      speaker: this.language === "en" ? this.textSpeakerEN : this.textSpeaker,
       text: page.slice(0, Math.floor(this.textChars)),
       complete: this.textComplete,
       opacity: this.dialogueOpacity,
@@ -723,7 +773,7 @@ export class Player {
         switch (c.cmd) {
           case "TEXT":
             this.events.position?.(this.scene, Math.max(0, this.pc - 1));
-            await this.showText(c.speaker ?? "", c.message ?? "", c.cues ?? []);
+            await this.showText(c.speaker ?? "", c.message ?? "", c.cues ?? [], c.messageEn ?? "");
             break;
           case "BMP":
             if (args[0]) this.events.asset?.("image", args[0]);
@@ -936,6 +986,7 @@ export class Player {
     this.stopped = true;
     this.choiceResolve = null;
     this.pendingChoice = null;
+    this.pendingChoiceSource = null;
     this.events.choice?.(null);
     this.events.loading(false);
     this.events.status("ended");

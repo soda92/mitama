@@ -112,7 +112,8 @@ Example (from `yr1_00.txt`):
 ```
 
 For the decoded story-level meaning of individual flags, route gates and
-ending conditions, see [flags.md](flags.md).
+ending conditions, see [flags.md](flags.md). For English sidecar fields and
+the bilingual UI, see [translation.md](translation.md).
 
 ## Asset routing
 

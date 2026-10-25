@@ -1,4 +1,4 @@
-import type { BattlePolicy } from "../game/settings";
+import type { BattlePolicy, Language } from "../game/settings";
 import type { PackInfo } from "../game/types";
 
 interface SettingsPanelProps {
@@ -12,6 +12,7 @@ interface SettingsPanelProps {
   dialogOpacity: number;
   immersiveMode: boolean;
   battlePolicy: BattlePolicy;
+  language: Language;
   onClose: () => void;
   onPackChange: (id: string) => void;
   onBgmVolume: (value: number) => void;
@@ -19,6 +20,7 @@ interface SettingsPanelProps {
   onDialogOpacity: (value: number) => void;
   onImmersiveMode: (value: boolean) => void;
   onBattlePolicy: (value: BattlePolicy) => void;
+  onLanguage: (value: Language) => void;
   onArchives: () => void;
   onNavigate: () => void;
   onDebug: () => void;
@@ -40,6 +42,7 @@ export default function SettingsPanel({
   dialogOpacity,
   immersiveMode,
   battlePolicy,
+  language,
   onClose,
   onPackChange,
   onBgmVolume,
@@ -47,6 +50,7 @@ export default function SettingsPanel({
   onDialogOpacity,
   onImmersiveMode,
   onBattlePolicy,
+  onLanguage,
   onArchives,
   onNavigate,
   onDebug,
@@ -83,6 +87,17 @@ export default function SettingsPanel({
                 {pack.title}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="settings-row">
+          <span>language</span>
+          <select
+            className="pack"
+            value={language}
+            onChange={(ev) => onLanguage(ev.target.value as Language)}
+          >
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
           </select>
         </label>
         <label className="settings-row">

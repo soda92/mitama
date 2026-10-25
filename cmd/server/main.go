@@ -17,11 +17,12 @@ import (
 )
 
 type server struct {
-	dataDir  string
-	webDir   string
-	audio    *audioCache
-	debug    *debugStore
-	archives *archiveStore
+	dataDir      string
+	webDir       string
+	audio        *audioCache
+	debug        *debugStore
+	archives     *archiveStore
+	translations *translationStore
 }
 
 func main() {
@@ -40,11 +41,12 @@ func main() {
 		log.Fatalf("archive database: %v", err)
 	}
 	s := &server{
-		dataDir:  *data,
-		webDir:   *web,
-		audio:    newAudioCache(128 << 20),
-		debug:    newDebugStore(),
-		archives: archives,
+		dataDir:      *data,
+		webDir:       *web,
+		audio:        newAudioCache(128 << 20),
+		debug:        newDebugStore(),
+		archives:     archives,
+		translations: newTranslationStore(*data),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/packs", s.handlePacks)
@@ -160,6 +162,8 @@ func (s *server) handleScript(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	scene := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	s.translations.apply(p.Root, scene, sc)
 	writeJSON(w, sc)
 }
 

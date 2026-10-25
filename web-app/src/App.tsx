@@ -47,6 +47,7 @@ import {
   readSettings,
   writeSettings,
   type BattlePolicy,
+  type Language,
 } from "./game/settings";
 import {
   readSeen,
@@ -148,6 +149,7 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
   const [immersiveMode, setImmersiveMode] = useState(initialSettings.immersiveMode);
+  const [language, setLanguage] = useState<Language>(initialSettings.language);
   const [currentScene, setCurrentScene] = useState(params.scene);
   const [currentPC, setCurrentPC] = useState(params.pc);
   const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(window.location.search).has("debug"));
@@ -429,12 +431,24 @@ export default function App() {
   }, [immersiveMode, data]);
 
   useEffect(() => {
+    playerRef.current?.setLanguage(language);
+  }, [language, data]);
+
+  useEffect(() => {
     playerRef.current?.setMuted(muted);
   }, [muted]);
 
   useEffect(() => {
-    writeSettings({ bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy });
-  }, [bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy]);
+    writeSettings({
+      bgmVolume,
+      seVolume,
+      muted,
+      dialogOpacity,
+      immersiveMode,
+      battlePolicy,
+      language,
+    });
+  }, [bgmVolume, seVolume, muted, dialogOpacity, immersiveMode, battlePolicy, language]);
 
   useEffect(() => {
     writeSeen(gallerySeen);
@@ -540,6 +554,10 @@ export default function App() {
 
   const togglePause = useCallback(() => {
     playerRef.current?.togglePaused();
+  }, []);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage((current) => (current === "ja" ? "en" : "ja"));
   }, []);
 
   const advance = useCallback(() => {
@@ -889,6 +907,7 @@ export default function App() {
     debugOpen,
     advance,
     togglePause,
+    toggleLanguage,
     toggleFullscreen,
     openNavigator,
     openGallery,
@@ -955,6 +974,8 @@ export default function App() {
             navigatorOpen={navigatorOpen}
             scriptCount={scriptCount}
             muted={muted}
+            language={language}
+            onLanguage={toggleLanguage}
             onArchives={() => (archiveOpen ? setArchiveOpen(false) : openArchives())}
             onNavigator={() => (navigatorOpen ? setNavigatorOpen(false) : openNavigator())}
             onTitle={goHome}
@@ -975,6 +996,8 @@ export default function App() {
               dialogOpacity={dialogOpacity}
               immersiveMode={immersiveMode}
               battlePolicy={battlePolicy}
+              language={language}
+              onLanguage={setLanguage}
               onClose={() => setMenuOpen(false)}
               onPackChange={changePack}
               onBgmVolume={setBgmVolume}

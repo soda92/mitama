@@ -1,6 +1,7 @@
 const SHORTCUTS: Array<[string, string]> = [
   ["Click / Enter / ↓ / →", "Advance dialogue"],
   ["Space", "Hide / show dialogue and HUD"],
+  ["L", "Switch Japanese / English"],
   ["M", "Mute / unmute audio"],
   ["F", "Toggle fullscreen"],
   ["N", "Open page/chapter navigator"],

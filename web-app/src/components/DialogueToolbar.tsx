@@ -4,10 +4,12 @@ interface DialogueToolbarProps {
   navigatorOpen: boolean;
   scriptCount: number;
   muted: boolean;
+  language: "ja" | "en";
   onArchives: () => void;
   onNavigator: () => void;
   onTitle: () => void;
   onMute: () => void;
+  onLanguage: () => void;
   onFullscreen: () => void;
   onSettings: () => void;
 }
@@ -18,6 +20,8 @@ export default function DialogueToolbar({
   navigatorOpen,
   scriptCount,
   muted,
+  language,
+  onLanguage,
   onArchives,
   onNavigator,
   onTitle,
@@ -45,6 +49,9 @@ export default function DialogueToolbar({
       </button>
       <button className="tool" onClick={onTitle} title="Title">
         Title
+      </button>
+      <button className="tool" onClick={onLanguage} title="Language (L)">
+        {language === "ja" ? "EN" : "JA"}
       </button>
       <button className="tool" onClick={onMute} title="Mute (M)">
         {muted ? "Unmute" : "Mute"}

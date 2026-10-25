@@ -25,6 +25,7 @@ extractor at your own data.
 | Full-game asset extraction | ✅ `mitama.arc` etc. extract correctly |
 | Demo command VM (BMP/UPD/WAIT/MUS/SEV/JMP) | ✅ implemented |
 | Text / dialogue rendering (DOM overlay, typewriter, click, `￥` pages) | ✅ implemented |
+| Bilingual dialogue with batch Google translation sidecar | ✅ implemented |
 | Layered stage (BG + L/R/C stands, black color key) | ✅ implemented |
 | DVD opening and chapter 1 (`yr1_00` → `yr1_02`) | ✅ plays with text, images, BGM, voice |
 | Choices (`SLT` / `MSLT`) and `LOD` chapter changes | ✅ implemented |
@@ -91,6 +92,16 @@ Flags: `-data ./data`, `-web ./web-app/dist`, `-addr :8080`,
 `-db ./data/mitama-saves.db`. The database path defaults to
 `<data>/mitama-saves.db`.
 
+The English sidecar is generated separately and is not required to play:
+
+```sh
+go run ./cmd/translate -pack dvd -workers 4
+```
+
+It writes `data/dvd/translations.json`. See
+[docs/engine/translation.md](docs/engine/translation.md) for batching, resuming
+and the translation schema.
+
 ### Scene links, navigator and archives
 
 The current scene and command index are always reflected in the URL:
@@ -156,6 +167,7 @@ stay beside the stage and remain docked in fullscreen.
 - **N** — page/chapter navigator
 - **G** — gallery (pictures, scenes, music)
 - **I** — immersive subtitle mode
+- **L** — switch Japanese / English
 - **?** — keyboard shortcut help
 
 The in-game controls are on the dialogue box; there is no separate pause button,
@@ -287,6 +299,7 @@ replays the immediately preceding `SEV` voice command.
 ```text
 cmd/extract/        ARC/ISO asset extractor
 cmd/xadecode/       KWD1 .xa → WAV converter
+cmd/translate/      batch Google Translate sidecar generator
 cmd/server/         HTTP server + JSON API + static media
 pkg/arc/            ARC directory and LZSS payload decoding
 pkg/disc/           ISO 9660 / CloneCD / MDF image reader
@@ -319,4 +332,5 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/formats/xa.md](docs/formats/xa.md) — KWD1 / `.XA` audio
 - [docs/engine/script.md](docs/engine/script.md) — command language
 - [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
+- [docs/engine/translation.md](docs/engine/translation.md) — English translation sidecar and bilingual UI
 - [docs/progress.md](docs/progress.md) — what works, what is next
