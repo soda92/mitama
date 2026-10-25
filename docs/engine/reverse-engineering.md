@@ -99,6 +99,12 @@ eoa4_07.txt  string @ 0x0049f69c
              direct code xrefs: none
 ```
 
+`FindRefsInRange` over the CG/event metadata area
+`0x0048f000..0x00490600` reports only a single data pointer at
+`0x0048f074 -> 0x0040185c` (a thunk), not a code path into the e-scene
+entries. This is why the conclusion is "not reachable from the story VM in
+this build", not "e-scenes are definitely story bonus branches".
+
 The surrounding static data pairs CG filenames (e.g. `CGX_a15.bmp`) with the
 `e…` scripts. It is consistent with a CG/event gallery table, not with a story
 branch table. The current web runtime exposes those scripts through the Gallery
