@@ -348,5 +348,5 @@ advance with Enter, screenshot, inspect console/network).
 - [docs/engine/script.md](docs/engine/script.md) — command language
 - [docs/engine/flags.md](docs/engine/flags.md) — story flags, routes and endings
 - [docs/engine/translation.md](docs/engine/translation.md) — English translation sidecar and bilingual UI
-- [docs/engine/upscaling.md](docs/engine/upscaling.md) — AI sprite/background upscaling
+- [docs/engine/upscaling.md](docs/engine/upscaling.md) — AI sprite/background upscaling (2×/4× priority)
 - [docs/progress.md](docs/progress.md) — what works, what is next

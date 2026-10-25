@@ -89,7 +89,7 @@ Last updated: 2026-10-24.
 - [x] Hover-English tooltip for Japanese dialogue, with Settings sidebar and
       `H` shortcut.
 - [x] Optional HD asset overlay + waifu2x upscaling pipeline for smoother
-      character stands and backgrounds.
+      character stands and backgrounds, with 4× → 2× → original priority.
 - [x] Independent BGM/SE volumes and unified settings persistence
       (`mitama.settings.v1`).
 - [x] Replay-voice button beside the speaker name tag (current page/line),

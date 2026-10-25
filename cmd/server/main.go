@@ -249,31 +249,40 @@ func (s *server) handleAssets(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		})
-		hdRoot := filepath.Join(root, "hd")
-		hdScale := 1
-		if raw, err := os.ReadFile(filepath.Join(hdRoot, "scale.json")); err == nil {
-			var meta struct {
-				Scale int `json:"scale"`
+		for _, layer := range []struct {
+			dir   string
+			key   string
+			scale int
+		}{
+			{"hd", "hdScale", 2},
+			{"hd4", "hd4Scale", 4},
+		} {
+			layerRoot := filepath.Join(root, layer.dir)
+			scale := layer.scale
+			if raw, err := os.ReadFile(filepath.Join(layerRoot, "scale.json")); err == nil {
+				var meta struct {
+					Scale int `json:"scale"`
+				}
+				if json.Unmarshal(raw, &meta) == nil && meta.Scale > 1 {
+					scale = meta.Scale
+				}
 			}
-			if json.Unmarshal(raw, &meta) == nil && meta.Scale > 1 {
-				hdScale = meta.Scale
-			}
+			res[layer.key] = scale
+			_ = filepath.Walk(layerRoot, func(path string, info os.FileInfo, err error) error {
+				if err != nil || info.IsDir() {
+					return nil
+				}
+				rel, err := filepath.Rel(layerRoot, path)
+				if err != nil {
+					return nil
+				}
+				switch strings.ToLower(filepath.Ext(path)) {
+				case ".png", ".bmp":
+					add(layer.dir, filepath.Join(layer.dir, rel))
+				}
+				return nil
+			})
 		}
-		res["hdScale"] = hdScale
-		_ = filepath.Walk(hdRoot, func(path string, info os.FileInfo, err error) error {
-			if err != nil || info.IsDir() {
-				return nil
-			}
-			rel, err := filepath.Rel(hdRoot, path)
-			if err != nil {
-				return nil
-			}
-			switch strings.ToLower(filepath.Ext(path)) {
-			case ".png", ".bmp":
-				add("hd", filepath.Join("hd", rel))
-			}
-			return nil
-		})
 	}
 	writeJSON(w, res)
 }

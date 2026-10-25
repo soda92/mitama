@@ -12,16 +12,24 @@ the larger images at runtime. HD files live alongside the extracted data and
 are ignored by git:
 
 ```text
-data/dvd/hd/
+data/dvd/hd/        2× stands
   scale.json
   mitama/T02_5.png
-  mitama/BG018.png
   ...
+data/dvd/hd4/       4× stands (higher priority)
+  scale.json
+  mitama/T02_5.png
 ```
 
-The server includes these in `/api/assets` as `hd`. The renderer prefers an HD
-file by original base name and scales it back to the original logical size
-using `hd/scale.json`.
+The server includes these in `/api/assets` as `hd` and `hd4`. The renderer
+tries, in order:
+
+1. `hd4` (4×)
+2. `hd` (2×)
+3. original BMP
+
+It scales the selected image back to the original logical size using the
+layer's `scale.json`.
 
 ## Hardware
 
@@ -71,6 +79,13 @@ python3 scripts/upscale_assets.py --pattern 'mitama/BG*.bmp' --scale 2
 # CGs
 python3 scripts/upscale_assets.py --pattern 'mitama/CG*.bmp' --scale 2
 
+# 4x character stands (writes hd4/)
+python3 scripts/upscale_assets.py \
+  --pattern 'mitama/T*.bmp' \
+  --scale 4 \
+  --out-dir hd4 \
+  --skip-existing
+
 # test one file
 python3 scripts/upscale_assets.py --pattern 'mitama/T02_5.bmp' --scale 2
 
@@ -90,10 +105,10 @@ Resume with `--skip-existing`.
 ## Scale choice
 
 - **2×** — recommended for the current 4:3 stage; sprites become 704×960,
-  backgrounds 1280×960.
-- **4×** — better for high-DPI/zoomed viewing, but roughly 4× slower and larger.
-- Keep the original BMPs; the renderer falls back to them when no HD file
-  exists.
+  backgrounds 1280×960. Output goes to `hd/`.
+- **4×** — better for high-DPI/zoomed viewing, but roughly 4× slower and larger
+  (about 1.4 MB per stand). Output goes to `hd4/`; the renderer prefers it.
+- Keep the original BMPs; the renderer falls back to `hd4` → `hd` → BMP.
 
 ## Sprites and transparency
 

@@ -35,6 +35,7 @@ def main() -> int:
     parser.add_argument("--pattern", action="append", default=None,
                         help="glob relative to <data>/<pack>; repeatable")
     parser.add_argument("--scale", type=int, default=2, choices=[2, 4])
+    parser.add_argument("--out-dir", default="hd", help="output directory relative to pack")
     parser.add_argument("--tool", default="waifu2x-ncnn-vulkan")
     parser.add_argument("--gpu", default="0")
     parser.add_argument("--skip-existing", action="store_true")
@@ -57,8 +58,8 @@ def main() -> int:
         return 2
 
     if not args.dry_run:
-        (root / "hd").mkdir(parents=True, exist_ok=True)
-        (root / "hd" / "scale.json").write_text(
+        (root / args.out_dir).mkdir(parents=True, exist_ok=True)
+        (root / args.out_dir / "scale.json").write_text(
             '{"scale": %d}\n' % args.scale, encoding="utf-8"
         )
 
@@ -67,7 +68,7 @@ def main() -> int:
     skipped = 0
     for idx, src in enumerate(inputs, 1):
         rel = src.relative_to(root)
-        out = root / "hd" / rel.with_suffix(".png")
+        out = root / args.out_dir / rel.with_suffix(".png")
         if args.skip_existing and out.exists():
             skipped += 1
             continue
@@ -90,8 +91,8 @@ def main() -> int:
         done += 1
 
     if not args.dry_run:
-        (root / "hd").mkdir(parents=True, exist_ok=True)
-        (root / "hd" / "scale.json").write_text(
+        (root / args.out_dir).mkdir(parents=True, exist_ok=True)
+        (root / args.out_dir / "scale.json").write_text(
             '{"scale": %d}\n' % args.scale, encoding="utf-8"
         )
 

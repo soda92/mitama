@@ -32,7 +32,9 @@ export interface AssetMap {
   game: Record<string, string>;
   /** Optional AI-upscaled replacements keyed by the original base name. */
   hd: Record<string, string>;
+  hd4: Record<string, string>;
   hdScale?: number;
+  hd4Scale?: number;
   bgm: Record<string, string>;
   se: Record<string, string>;
   text: Record<string, string>;
