@@ -59,6 +59,7 @@ Last updated: 2026-10-25.
 - [x] Gallery scene selection from the title screen clears title URL/state and starts the scene.
 - [x] Gallery Scenes is an event/CG recollection browser with cover thumbnails,
       heroine labels and 八尋編 / 朧編 grouping.
+- [x] 18+ in-story scene route/choice guide in `docs/guides`.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.

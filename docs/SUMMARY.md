@@ -9,6 +9,10 @@
 - [ARC archives](formats/arc.md)
 - [KWD1 / .XA audio](formats/xa.md)
 
+# Guides
+
+- [In-story adult scene guide (18+)](guides/in-story-adult-scenes.md)
+
 # Engine
 
 - [Reverse engineering notes](engine/reverse-engineering.md)
