@@ -50,6 +50,7 @@ Last updated: 2026-10-25.
 - [x] Chapter browser grouped by actual `STS` titles; branch jumps require confirmation.
 - [x] Global chapter-level story map at `/api/storymap`, with explicit route changes.
 - [x] Side panels share one tabbed dock (Archives / Navigator / Settings) instead of overflowing side-by-side.
+- [x] Ghidra helper scripts and durable reverse-engineering notes committed under `tools/ghidra` and `docs/engine/reverse-engineering.md`.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.

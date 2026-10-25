@@ -61,3 +61,6 @@ Story flags, route gates and ending conditions: [engine/flags.md](engine/flags.m
 English translation sidecar and bilingual UI: [engine/translation.md](engine/translation.md).
 AI sprite/background upscaling: [engine/upscaling.md](engine/upscaling.md).
 UI/input/settings: [engine/ui.md](engine/ui.md).
+
+Ghidra workflow and reverse-engineering notes:
+[engine/reverse-engineering.md](engine/reverse-engineering.md).

@@ -177,3 +177,7 @@ Lookups are case-insensitive and load `.chr` files referenced by the `.pty`.
 - Exact attack/hit/damage formula; action-rate power is currently the average
   of the row's min/max values.
 - Player party level/HP persistence in archive snapshots.
+
+
+For the Ghidra workflow, reusable scripts and the scene-loader call path,
+see [reverse-engineering.md](reverse-engineering.md).

@@ -11,6 +11,7 @@
 
 # Engine
 
+- [Reverse engineering notes](engine/reverse-engineering.md)
 - [Script language](engine/script.md)
 - [Stage composition](engine/stage.md)
 - [UI, input and presentation](engine/ui.md)
