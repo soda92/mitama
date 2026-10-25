@@ -181,6 +181,8 @@ export class Player {
     canvas.height = H * RENDER_SCALE;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("canvas 2d context unavailable");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.scale(RENDER_SCALE, RENDER_SCALE);
     this.ctx = ctx;
     this.commands = script.commands;

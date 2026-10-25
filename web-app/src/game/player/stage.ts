@@ -315,6 +315,8 @@ export class StageRenderer {
     c.height = STAGE_H;
     const g = c.getContext("2d");
     if (!g) return c;
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
     g.fillStyle = "#000";
     g.fillRect(0, 0, STAGE_W, STAGE_H);
 
