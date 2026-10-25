@@ -120,6 +120,20 @@ export class StageRenderer {
     }
   }
 
+  async restoreSnapshot(snapshot: StageSnapshot): Promise<void> {
+    this.pendingStage = null;
+    this.pendingLoads = [];
+    this.stage = emptyStage();
+    const bgs = snapshot.bgs && snapshot.bgs.length > 0 ? snapshot.bgs : snapshot.bg ? [snapshot.bg] : [];
+    await this.restoreBackgrounds(bgs);
+    await Promise.all([
+      this.restoreSlot("l", snapshot.l),
+      this.restoreSlot("r", snapshot.r),
+      this.restoreSlot("c", snapshot.c),
+    ]);
+    this.markDirty();
+  }
+
   async restoreSlot(slot: Slot, name?: string): Promise<void> {
     if (!name) return;
     const img = await this.loadImage(name);

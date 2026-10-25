@@ -52,6 +52,8 @@ Last updated: 2026-10-25.
 - [x] Side panels share one tabbed dock (Archives / Navigator / Settings) instead of overflowing side-by-side.
 - [x] Ghidra helper scripts and durable reverse-engineering notes committed under `tools/ghidra` and `docs/engine/reverse-engineering.md`.
 - [x] Advancing dialogue stops the previous voice clip; SE channels remain independent.
+- [x] Event-interlude runtime with temporary scene frames, TITLE return interception,
+      state restoration, settings toggle and two validated vertical-slice mappings.
 - [x] Gallery scene selection from the title screen clears title URL/state and starts the scene.
 - [x] Gallery Scenes is an event/CG recollection browser with cover thumbnails,
       heroine labels and 八尋編 / 朧編 grouping.

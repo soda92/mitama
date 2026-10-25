@@ -1,6 +1,7 @@
 export type BattlePolicy = "play" | "win" | "lose" | "random";
 export type Language = "ja" | "en";
 export type TypewriterMode = "char" | "word" | "instant";
+export type EventMode = "off" | "interlude";
 
 export interface StoredSettings {
   bgmVolume: number;
@@ -12,6 +13,7 @@ export interface StoredSettings {
   language: Language;
   typewriterMode: TypewriterMode;
   hoverTranslation: boolean;
+  eventMode: EventMode;
 }
 
 export const SETTINGS_KEY = "mitama.settings.v1";
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   language: "ja",
   typewriterMode: "char",
   hoverTranslation: false,
+  eventMode: "off",
 };
 
 function volumeSetting(value: unknown, fallback: number): number {
@@ -67,6 +70,8 @@ export function readSettings(): StoredSettings {
     saved.typewriterMode === "char"
       ? saved.typewriterMode
       : DEFAULT_SETTINGS.typewriterMode;
+  const eventMode: EventMode =
+    saved.eventMode === "interlude" ? "interlude" : "off";
   const battle =
     saved.battlePolicy === "play" ||
     saved.battlePolicy === "win" ||
@@ -93,6 +98,7 @@ export function readSettings(): StoredSettings {
       typeof saved.hoverTranslation === "boolean"
         ? saved.hoverTranslation
         : DEFAULT_SETTINGS.hoverTranslation,
+    eventMode,
   };
 }
 
