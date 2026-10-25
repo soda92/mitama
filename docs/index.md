@@ -62,7 +62,7 @@ English translation sidecar and bilingual UI: [engine/translation.md](engine/tra
 AI sprite/background upscaling: [engine/upscaling.md](engine/upscaling.md).
 UI/input/settings: [engine/ui.md](engine/ui.md).
 
-Voice recording, KWD1/ADPCM delivery and 2001 studio structure:
+Voice recording, KWD1/ADPCM delivery, 2001 studio structure and marketing:
 [guides/voice-production-and-work-culture.md](guides/voice-production-and-work-culture.md).
 
 Ghidra workflow and reverse-engineering notes:

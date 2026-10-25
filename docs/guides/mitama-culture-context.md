@@ -6,8 +6,8 @@
 > For Tony's and Ran's voice actor's other work, see
 > [Tony and Ran's voice actor](tony-and-ran-voice-actor.md).
 >
-> For the voice-recording chain and the company/work structure behind the game,
-> see [voice production and studio work culture](voice-production-and-work-culture.md).
+> For the voice-recording chain, company/work structure and marketing behind the
+> game, see [voice production, work culture and marketing](voice-production-and-work-culture.md).
 
 ## Release snapshot
 

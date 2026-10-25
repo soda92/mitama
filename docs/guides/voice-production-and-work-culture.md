@@ -1,9 +1,9 @@
-# Voice production and studio work culture (2001)
+# Voice production, studio work culture and marketing (2001)
 
 > Production-context notes for **御魂 ～忍～ / Mitama ~Shinobi~**.
-> This covers the voice-recording chain, the KWD1/`.XA` delivery format, and
-> the company/work structure around a 2001 adult PC game. It is not a content
-> guide.
+> This covers the voice-recording chain, the KWD1/`.XA` delivery format, the
+> company/work structure, and how a 2001 adult PC game was marketed and sold.
+> It is not a content guide.
 
 ## Part 1 — Voice recording and delivery
 
@@ -65,27 +65,27 @@ The `.XA` extension is a CD-era naming convention, but the payload here is
 **custom KWD1**, not Sony's CD-XA ADPCM bitstream. The reasons for using it are
 practical:
 
-1. **Space.**  
-   16-bit/44.1 kHz mono is about 88 KB/s.  
-   8-bit/22.05 kHz ADPCM is about 22.7 KB/s.  
+1. **Space.**
+   16-bit/44.1 kHz mono is about 88 KB/s.
+   8-bit/22.05 kHz ADPCM is about 22.7 KB/s.
    That is roughly a **4× reduction**. Eight hours of voice would be about
    2.5 GB as 16/44.1 mono; the actual voice disc is about 727 MB.
 
-2. **CD-ROM streaming.**  
+2. **CD-ROM streaming.**
    A 1× CD-ROM transfers about 150 KB/s. At 22.7 KB/s, voice leaves room for
    seeking, BGM and SE. The separate voice disc is designed to stream
    independently of the game disc.
 
-3. **CPU cost.**  
+3. **CPU cost.**
    On a 200 MHz Pentium, a fixed-block ADPCM decoder is cheap and predictable.
    MP3/AAC decoding would have been heavier and less attractive for a game that
    also needs CPU for battles and transitions.
 
-4. **Engine reuse.**  
+4. **Engine reuse.**
    The ARCANA engine already used `xadec.dll` for BGM and SE. Reusing the same
    KWD1 family for voice kept one audio path.
 
-5. **Scalable quality.**  
+5. **Scalable quality.**
    KWD1 supports 4-, 6- and 8-bit ADPCM, mono/stereo, and 22.05/44.1 kHz. The
    game uses 8-bit mono for voice; some SE use 44.1 kHz 6-bit stereo. The engine
    can choose the tradeoff per content type.
@@ -131,10 +131,43 @@ The credits for *Mitama* show the layered structure:
 発売・販売  Ciel            brand, publishing and sales
 ```
 
+### Tony's company: rpm
+
+Tony's own company was **有限会社アールピーエム / rpm**, not just a personal
+artist label:
+
+| Item | Detail |
+| --- | --- |
+| Name | 有限会社アールピーエム (rpm Y.K.) |
+| Founded | July 2000, Sendai (Aoba-ku) |
+| Earlier | Team “rpm” formed in 1998 |
+| Representative | 田中 貴之 (Tony) |
+| Capital | ¥3,000,000 |
+| Staff | 13 (archived 2012 profile) |
+| Offices | Tokyo (Shinjuku) and Sendai |
+| Business | Software planning, development and sales |
+
+Timeline: Team “rpm” formed in 1998; company founded in July 2000; Tokyo
+office opened in September 2003; the main base moved to Tokyo in February 2005.
+
+Its archived client list included Sega, Toranoana, Harvest Publishing,
+MediaWorks, France Shoin, Studio Frontline, Stoneheads, Unspeakable and others.
+That is a real small production company with multiple clients, not a one-person
+art circle.
+
+rpm's own product page lists *Partner*, *Room with Lina*, *Tsubasa no
+Hatameki*, *Arcana*, *Mitama*, *Genmukan*, *After...*, *Sora no Iro*, *Shin
+Genmukan* and *Shining Tears*. The formal *Mitama* credits still name
+**sorciere** for 制作 and **FORCE** for 製作, so the exact division of labour is
+not public. The safest reading is:
+
+> rpm was Tony's production base and lists *Mitama* among its works, while
+> sorciere/Force are the credited development/production entities.
+
 Later Ciel/Tony titles — *After...*, *そらのいろ、みずのいろ*, *真章 幻夢館*,
-*Fault!!* — were developed by **rpm**, Tony's own company. So *Mitama* sits at
-the point where Tony was still an external artist for a Ciel project; the
-relationship later became a more direct Ciel/rpm pipeline.
+*Fault!!* — are credited to **rpm** as the production company. By 2013 Tony was
+also leading the production group **AlbionWorks**; rpm's website is now only
+archived.
 
 A simplified structure:
 
@@ -212,6 +245,75 @@ maintaining a separate general-audience career. Maki Midori / Touko Itou is a
 clear example: the same performer is credited as **Midori Maki** in general
 work and **Touko Itou** in adult games.
 
+## Marketing and purchasing in 2001
+
+### The marketing funnel
+
+A Ciel-type adult PC game was marketed through a small, specialised funnel:
+
+1. **Magazine announcement.**
+   Titles were announced and covered in *Tech Gian*, *BugBug*, *Push!!*,
+   *MegaStore*, *Dengeki Hime* and similar magazines. *Tech Gian* was a
+   DVD-ROM magazine, so it could carry demo discs and large media assets.
+
+2. **Official website.**
+   Ciel's *Mitama* page had story, system, characters, gallery, downloadable
+   wallpapers and a **66 MB MPEG-1 demo movie** (1:43). That was a large
+   download in 2001; magazine discs and shop demos mattered.
+
+3. **Character/artist reveal.**
+   Tony's name and art were the main hook. Character profiles and sample CG
+   were released before the game. The package art, telephone cards and
+   wallpapers were part of the same visual campaign.
+
+4. **Demo and store presence.**
+   A playable or movie demo circulated through magazines and stores. The
+   Special Price edition later included the original store demo as an extra.
+
+5. **Preorder campaign.**
+   Preorder bonuses were central to the market: telephone cards, drama CDs,
+   art books, tapestries, clear files and shop-specific extras. I have not
+   confirmed a complete *Mitama*-specific bonus list, but these were the
+   standard campaign items of the period.
+
+6. **Release and word of mouth.**
+   Release-day sales at specialty shops, official BBS/fan sites and 2ch
+   threads created the first wave of impressions. Reviews and play reports in
+   magazines followed.
+
+7. **Long tail.**
+   *Mitama* got a Special Price DVD in 2002 and a download edition in 2007.
+   The 2002 edition added a newly recorded image song and image movie, a
+   24-page full-colour character guidebook, new Tony package art, Windows XP
+   support, the old store demo and new wallpapers. A novelisation followed in
+   2002, and the Milky OVA in 2009.
+
+The overall pattern was **artist-led, magazine-mediated and preorder-driven**,
+not mass-market advertising.
+
+### Where users bought the game
+
+In 2001 the normal purchase was a physical CD-ROM package:
+
+- **Specialty PC-game shops** in Akihabara, Nipponbashi, Osu and other otaku
+  districts: Sofmap, Messe Sanoh, Toranoana, Getchu, Trader and similar stores.
+- **Mail order / online shops**, often with telephone or fax ordering as well
+  as web ordering. Payment was typically credit card or cash on delivery.
+- **Age-restricted floors or sections.** Adult PC games were sold in separate
+  18+ areas, with age checks at the shop or on delivery.
+- **Preorder at a specific shop** to get that shop's bonus. Some fans bought
+  multiple shop editions for different telephone cards or tapestries.
+- **Used market** after release: Sofmap, K-Books, Mandarake and similar
+  stores bought and resold packages.
+
+The standard price was **¥8,800 pre-tax** (¥9,240 with tax). The 2002 Special
+Price DVD was **¥4,800 pre-tax**. The 2007 download edition was sold through
+DLsite, Getchu, Gyutto and Digiket rather than Steam.
+
+There was no general mass-market release, no console version and no global
+digital storefront. The audience was niche, adult and geographically
+concentrated around the specialty-shop districts.
+
 ### Was it different from mainstream game companies?
 
 Yes in structure, less so in deadline pressure.
@@ -256,8 +358,14 @@ about every studio.
 
 - [Ciel: 御魂 ～忍～ official page](https://www.sp-janis.com/ciel/mitama/)
 - [Ciel: 御魂 ～忍～ support page](https://www.sp-janis.com/ciel/mitama/support.html)
+- [Ciel: 御魂 ～忍～ Special Price page](https://www.sp-janis.com/ciel/mitama/specialprice.html)
 - [Wikipedia (ja): スペースプロジェクト](https://ja.wikipedia.org/wiki/スペースプロジェクト)
+- [Wikipedia (ja): Tony](https://ja.wikipedia.org/wiki/Tony)
 - [Wikipedia (en): Tony Taka](https://en.wikipedia.org/wiki/Tony_Taka)
+- [Archived rpm company profile](https://web.archive.org/web/20120717105211/http://www.rpm-web.com/outline.html)
+- [Archived rpm product list](https://web.archive.org/web/20120717105211/http://www.rpm-web.com/product.html)
+- [SEGA VOICE: Tony interview](https://www.sega.jp/fb/segavoice/041103/01.html)
+- [VNDB: Mitama download edition](https://vndb.org/r70848)
 - [Wikipedia (ja): 真木碧](https://ja.wikipedia.org/wiki/真木碧)
 - [VNDB: Maki Midori](https://vndb.org/s2000)
 

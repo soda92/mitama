@@ -36,6 +36,17 @@ The shared scenario writer across *Arcana*, *Mitama* and *After...* is
 **さとだみつひこ**, so *Mitama* sits inside a continuing Ciel/Tony creative
 line rather than being an isolated collaboration.
 
+### rpm and AlbionWorks
+
+Tony founded his own company, **有限会社アールピーエム / rpm**, in July 2000 in
+Sendai. It was a small software planning/development company — 13 staff in its
+archived 2012 profile — with Tokyo and Sendai offices and clients including
+Sega, Toranoana, Harvest Publishing and MediaWorks. Its product list includes
+*Arcana*, *Mitama*, *After...*, *Sora no Iro* and *Shining Tears*.
+
+By 2013 Tony was leading the production group **AlbionWorks**; rpm's website is
+now only archived.
+
 ### Wider work
 
 Tony later became widely known for Sega's **Shining** series and other general
@@ -193,12 +204,15 @@ VNDB and Wikipedia pages, which are the best starting points.
 - [Ciel: 御魂 ～忍～ official page](https://www.sp-janis.com/ciel/mitama/)
 - [Ciel: 御魂 ～忍～ support page](https://www.sp-janis.com/ciel/mitama/support.html)
 - [Wikipedia (en): Tony Taka](https://en.wikipedia.org/wiki/Tony_Taka)
+- [Wikipedia (ja): Tony](https://ja.wikipedia.org/wiki/Tony)
+- [Archived rpm company profile](https://web.archive.org/web/20120717105211/http://www.rpm-web.com/outline.html)
+- [SEGA VOICE: Tony interview](https://www.sega.jp/fb/segavoice/041103/01.html)
 - [Wikipedia (ja): 真木碧](https://ja.wikipedia.org/wiki/真木碧)
 - [VNDB: Maki Midori](https://vndb.org/s2000)
 - [Anime News Network: Shinobi Seduction OVA](https://www.animenewsnetwork.com/encyclopedia/anime.php?id=11460)
 
 ## Related
 
-- [Voice production and studio work culture](voice-production-and-work-culture.md)
+- [Voice production, work culture and marketing](voice-production-and-work-culture.md)
 - [Mitama cultural and market context](mitama-culture-context.md)
 - [In-story adult scene guide (18+)](in-story-adult-scenes.md)
