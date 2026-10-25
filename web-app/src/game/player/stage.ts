@@ -312,10 +312,11 @@ export class StageRenderer {
 
   private compose(stage: Stage): HTMLCanvasElement {
     const c = document.createElement("canvas");
-    c.width = STAGE_W;
-    c.height = STAGE_H;
+    c.width = STAGE_W * RENDER_SCALE;
+    c.height = STAGE_H * RENDER_SCALE;
     const g = c.getContext("2d");
     if (!g) return c;
+    g.scale(RENDER_SCALE, RENDER_SCALE);
     g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = "high";
     g.fillStyle = "#000";
@@ -334,7 +335,9 @@ export class StageRenderer {
       const layer = stage[slot];
       if (!layer) continue;
       const sprite = this.spriteCanvas(layer.name, layer.img);
-      const { w, h } = this.sourceSize(sprite);
+      const source = this.sourceSize(sprite);
+      const w = source.w / RENDER_SCALE;
+      const h = source.h / RENDER_SCALE;
       const x = slot === "l" ? 0 : slot === "r" ? STAGE_W - w : Math.round((STAGE_W - w) / 2);
       g.drawImage(sprite, x, STAGE_H - h, w, h);
     }
@@ -390,8 +393,8 @@ export class StageRenderer {
     if (cached) return cached;
     const source = this.sourceSize(img);
     const scale = this.hdScales.get(key) ?? 1;
-    const w = Math.round(source.w / scale);
-    const h = Math.round(source.h / scale);
+    const w = Math.round((source.w / scale) * RENDER_SCALE);
+    const h = Math.round((source.h / scale) * RENDER_SCALE);
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
