@@ -44,6 +44,7 @@ interface SceneMeta {
   name: string;
   title: string;
   chapter: string;
+  event?: boolean;
 }
 
 interface SceneGroup {
@@ -113,6 +114,10 @@ function sceneNumber(scene: string): number {
 
 function isSceneName(name: string): boolean {
   return /^e?[a-z]{2,}\d/i.test(name);
+}
+
+function isEventSceneName(name: string): boolean {
+  return /^e[a-z]/i.test(name);
 }
 
 function chapterOf(scene?: string): string {
@@ -342,7 +347,9 @@ export default function Navigator({
             title: name,
             chapter: chapterOf(name),
           }));
-    const visible = source.filter((item) => isSceneName(item.name));
+    const visible = source.filter(
+      (item) => isSceneName(item.name) && !item.event && !isEventSceneName(item.name),
+    );
     const titleByRouteNumber = new Map<string, string>();
     for (const item of visible) {
       if (item.title && item.title !== item.name) {
