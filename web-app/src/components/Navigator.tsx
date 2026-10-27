@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { GalleryData, GalleryPicture } from "../game/gallery";
 import { speakerDisplayName, type Command } from "../game/types";
 import {
   loadStoryMap,
@@ -51,9 +52,32 @@ interface SceneGroup {
   title: string;
   order: number;
   scenes: SceneMeta[];
+  cgCount: number;
 }
 
-const sceneMetaCache = new Map<string, SceneMeta[]>();
+interface GalleryIndex {
+  scenes: SceneMeta[];
+  cgKeysByScene: Map<string, Set<string>>;
+}
+
+const galleryIndexCache = new Map<string, GalleryIndex>();
+
+function indexGalleryPictures(pictures: GalleryPicture[]): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  for (const picture of pictures) {
+    const key = picture.key || picture.name;
+    for (const use of picture.uses ?? []) {
+      if (!use.scene) continue;
+      let keys = map.get(use.scene);
+      if (!keys) {
+        keys = new Set<string>();
+        map.set(use.scene, keys);
+      }
+      keys.add(key);
+    }
+  }
+  return map;
+}
 
 const ROUTE_ORDER = ["八尋編", "紅羽編", "瑞希編", "朧編", "紫芳編", "阿佐弥編", "その他"];
 
@@ -199,7 +223,12 @@ export default function Navigator({
   const [pendingMap, setPendingMap] = useState<StoryEdge | null>(null);
   const [storyMap, setStoryMap] = useState<StoryMapData | null>(null);
   const [storyError, setStoryError] = useState<string | null>(null);
-  const [sceneMeta, setSceneMeta] = useState<SceneMeta[] | null>(() => sceneMetaCache.get(packId) ?? null);
+  const [sceneMeta, setSceneMeta] = useState<SceneMeta[] | null>(
+    () => galleryIndexCache.get(packId)?.scenes ?? null,
+  );
+  const [cgKeysByScene, setCgKeysByScene] = useState<Map<string, Set<string>>>(
+    () => galleryIndexCache.get(packId)?.cgKeysByScene ?? new Map(),
+  );
   const listRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLButtonElement>(null);
   const currentSceneRef = useRef<HTMLButtonElement>(null);
@@ -220,25 +249,35 @@ export default function Navigator({
   }, [tab, scene]);
 
   useEffect(() => {
-    const cached = sceneMetaCache.get(packId);
+    const cached = galleryIndexCache.get(packId);
     if (cached) {
-      setSceneMeta(cached);
+      setSceneMeta(cached.scenes);
+      setCgKeysByScene(cached.cgKeysByScene);
       return;
     }
+    setSceneMeta(null);
+    setCgKeysByScene(new Map());
     let cancelled = false;
     fetch(`/api/gallery?pack=${encodeURIComponent(packId)}`)
       .then(async (response) => {
         if (!response.ok) throw new Error(`scenes: HTTP ${response.status}`);
-        const body = (await response.json()) as { scenes?: SceneMeta[] };
-        return body.scenes ?? [];
+        return (await response.json()) as GalleryData;
       })
-      .then((items) => {
+      .then((body) => {
         if (cancelled) return;
-        sceneMetaCache.set(packId, items);
-        setSceneMeta(items);
+        const index: GalleryIndex = {
+          scenes: body.scenes ?? [],
+          cgKeysByScene: indexGalleryPictures(body.pictures ?? []),
+        };
+        galleryIndexCache.set(packId, index);
+        setSceneMeta(index.scenes);
+        setCgKeysByScene(index.cgKeysByScene);
       })
       .catch(() => {
-        if (!cancelled) setSceneMeta([]);
+        if (!cancelled) {
+          setSceneMeta([]);
+          setCgKeysByScene(new Map());
+        }
       });
     return () => {
       cancelled = true;
@@ -331,21 +370,28 @@ export default function Navigator({
       const key = `${route}\u0000${title}`;
       let group = map.get(key);
       if (!group) {
-        group = { key, route, title, order: 999, scenes: [] };
+        group = { key, route, title, order: 999, scenes: [], cgCount: 0 };
         map.set(key, group);
       }
       group.order = Math.min(group.order, sceneNumber(item.name));
       group.scenes.push(item);
     }
     return [...map.values()]
-      .map((group) => ({ ...group, scenes: group.scenes.sort((a, b) => a.name.localeCompare(b.name)) }))
+      .map((group) => {
+        const scenes = group.scenes.sort((a, b) => a.name.localeCompare(b.name));
+        const cgKeys = new Set<string>();
+        for (const item of scenes) {
+          for (const key of cgKeysByScene.get(item.name) ?? []) cgKeys.add(key);
+        }
+        return { ...group, scenes, cgCount: cgKeys.size };
+      })
       .sort((a, b) => {
         const routeDelta = ROUTE_ORDER.indexOf(a.route) - ROUTE_ORDER.indexOf(b.route);
         if (routeDelta !== 0) return routeDelta;
         if (a.order !== b.order) return a.order - b.order;
         return a.title.localeCompare(b.title);
       });
-  }, [scenes, sceneMeta, query]);
+  }, [scenes, sceneMeta, query, cgKeysByScene]);
 
   const chapterByID = useMemo(() => {
     const map = new Map<string, StoryChapter>();
@@ -498,26 +544,50 @@ export default function Navigator({
           <div className="navigator-chapter-list">
             <p className="navigator-note">
               Grouped by the in-script chapter title (<code>STS</code>), then by
-              route. Scene ids are shown under each chapter.
+              route. Scene ids are shown under each chapter. <b>CG n</b> marks
+              chapters that contain gallery pictures; scene buttons show their
+              own per-scene count.
             </p>
             {groups.map((group) => (
               <section key={group.key}>
                 <h4>
                   <span>{group.route}</span>
                   {group.title}
+                  {group.cgCount > 0 && (
+                    <em
+                      className="navigator-chapter-cg"
+                      title={`${group.cgCount} gallery picture${
+                        group.cgCount === 1 ? "" : "s"
+                      } in this chapter`}
+                    >
+                      CG {group.cgCount}
+                    </em>
+                  )}
                 </h4>
                 <div className="navigator-scene-grid">
-                  {group.scenes.map((item) => (
-                    <button
-                      key={item.name}
-                      ref={item.name === scene ? currentSceneRef : undefined}
-                      className={item.name === scene ? "on" : ""}
-                      onClick={() => onSelectScene(item.name)}
-                      title={item.name}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
+                  {group.scenes.map((item) => {
+                    const cgCount = cgKeysByScene.get(item.name)?.size ?? 0;
+                    return (
+                      <button
+                        key={item.name}
+                        ref={item.name === scene ? currentSceneRef : undefined}
+                        className={item.name === scene ? "on" : ""}
+                        onClick={() => onSelectScene(item.name)}
+                        title={
+                          cgCount > 0
+                            ? `${item.name} · ${cgCount} gallery picture${
+                                cgCount === 1 ? "" : "s"
+                              }`
+                            : item.name
+                        }
+                      >
+                        <span className="navigator-scene-name">{item.name}</span>
+                        {cgCount > 0 && (
+                          <em className="navigator-scene-cg">CG {cgCount}</em>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             ))}
