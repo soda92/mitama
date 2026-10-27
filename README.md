@@ -258,11 +258,13 @@ The current view is also addressable:
 ?pack=dvd&view=gallery&tab=music
 ?pack=dvd&scene=yr1_05&cmd=137&view=title
 ?pack=dvd&scene=yr1_05&cmd=137&view=gallery&tab=pictures
+?pack=dvd&scene=yr1_05&cmd=137&side=navigator&nav=chapters
 ```
 
-`from=title` is added when Gallery was opened over the title screen. Refreshing
-keeps the title, protagonist select, or Gallery tab and the underlying story
-position.
+`side` is `archives`, `navigator` or `settings`; `nav` is `page`, `chapters`,
+`map` or `branches`. `from=title` is added when Gallery was opened over the
+title screen. Refreshing keeps the active side dock, Navigator tab and the
+underlying story position.
 
 ### Gallery
 

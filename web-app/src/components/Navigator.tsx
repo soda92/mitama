@@ -8,7 +8,10 @@ import {
   type StoryMapData,
 } from "../game/storymap";
 
+export type NavigatorTab = "page" | "chapters" | "map" | "branches";
+
 interface NavigatorProps {
+  initialTab?: NavigatorTab;
   packId: string;
   scene: string;
   pc: number;
@@ -17,6 +20,7 @@ interface NavigatorProps {
   onClose: () => void;
   onSeek: (pc: number) => void;
   onSelectScene: (scene: string) => void;
+  onTab?: (tab: NavigatorTab) => void;
 }
 
 type BranchDestination =
@@ -212,6 +216,7 @@ function destinationLabel(destination?: BranchDestination): string {
 }
 
 export default function Navigator({
+  initialTab = "page",
   packId,
   scene,
   pc,
@@ -220,8 +225,9 @@ export default function Navigator({
   onClose,
   onSeek,
   onSelectScene,
+  onTab,
 }: NavigatorProps) {
-  const [tab, setTab] = useState<"page" | "chapters" | "map" | "branches">("page");
+  const [tab, setTab] = useState<NavigatorTab>(initialTab);
   const [target, setTarget] = useState(pc);
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<{ point: BranchPointView; option: BranchOptionView } | null>(null);
@@ -238,6 +244,15 @@ export default function Navigator({
   const currentRef = useRef<HTMLButtonElement>(null);
   const currentSceneRef = useRef<HTMLButtonElement>(null);
   const max = Math.max(0, commands.length - 1);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  const selectTab = (next: NavigatorTab) => {
+    setTab(next);
+    onTab?.(next);
+  };
 
   useEffect(() => {
     setTarget(Math.min(pc, max));
@@ -473,16 +488,16 @@ export default function Navigator({
           </button>
         </div>
         <nav className="navigator-tabs">
-          <button className={tab === "page" ? "on" : ""} onClick={() => setTab("page")}>
+          <button className={tab === "page" ? "on" : ""} onClick={() => selectTab("page")}>
             Page
           </button>
-          <button className={tab === "chapters" ? "on" : ""} onClick={() => setTab("chapters")}>
+          <button className={tab === "chapters" ? "on" : ""} onClick={() => selectTab("chapters")}>
             Chapters
           </button>
-          <button className={tab === "map" ? "on" : ""} onClick={() => setTab("map")}>
+          <button className={tab === "map" ? "on" : ""} onClick={() => selectTab("map")}>
             Map
           </button>
-          <button className={tab === "branches" ? "on" : ""} onClick={() => setTab("branches")}>
+          <button className={tab === "branches" ? "on" : ""} onClick={() => selectTab("branches")}>
             Branches
           </button>
         </nav>

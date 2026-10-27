@@ -51,8 +51,11 @@ URL state:
 ?pack=dvd&view=title
 ?pack=dvd&view=protagonist
 ?pack=dvd&view=gallery&tab=music
+?pack=dvd&scene=yr1_05&cmd=137&side=navigator&nav=chapters
 ```
 
+`side` = `archives` / `navigator` / `settings`; `nav` = `page` / `chapters` /
+`map` / `branches`. Reloading restores the active side dock and Navigator tab.
 `?scene=…&cmd=…` bypasses the title. `home=0` bypasses it; `home=1` forces it.
 
 ## Dialogue

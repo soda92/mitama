@@ -9,7 +9,7 @@ import {
 import { Player, type Snapshot, type StageSnapshot } from "./game/player";
 import DebugPanel from "./components/DebugPanel";
 import ArchiveManager from "./components/ArchiveManager";
-import Navigator from "./components/Navigator";
+import Navigator, { type NavigatorTab } from "./components/Navigator";
 import BattleScreen from "./components/BattleScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import DialogueOverlay from "./components/DialogueOverlay";
@@ -90,6 +90,8 @@ function initialParams(): {
   pc: number;
   view: string;
   tab: string;
+  side: string;
+  nav: string;
   from: string;
 } {
   const q = new URLSearchParams(window.location.search);
@@ -100,12 +102,22 @@ function initialParams(): {
     pc: Number.isFinite(pc) ? Math.max(0, pc) : 0,
     view: q.get("view") ?? "",
     tab: q.get("tab") ?? "",
+    side: q.get("side") ?? "",
+    nav: q.get("nav") ?? "",
     from: q.get("from") ?? "",
   };
 }
 
+function parseNavigatorTab(value: string): NavigatorTab {
+  return value === "chapters" || value === "map" || value === "branches" ? value : "page";
+}
+
 export default function App() {
   const params = useMemo(initialParams, []);
+  const initialSide =
+    !params.view && ["archives", "navigator", "settings"].includes(params.side)
+      ? (params.side as "archives" | "navigator" | "settings")
+      : "";
   const initialSettings = useMemo(readSettings, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shellRef = useRef<HTMLElement>(null);
@@ -132,8 +144,9 @@ export default function App() {
   const archivesRef = useRef<ArchiveMap>(archives);
   archivesRef.current = archives;
   const [archiveSync, setArchiveSync] = useState<ArchiveSyncState>("local");
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(initialSide === "archives");
+  const [navigatorOpen, setNavigatorOpen] = useState(initialSide === "navigator");
+  const [navigatorTab, setNavigatorTab] = useState<NavigatorTab>(() => parseNavigatorTab(params.nav));
   const [galleryOpen, setGalleryOpen] = useState(params.view === "gallery");
   const [galleryTab, setGalleryTab] = useState<"pictures" | "scenes" | "music">(
     params.tab === "scenes" || params.tab === "music" ? params.tab : "pictures",
@@ -156,7 +169,7 @@ export default function App() {
   });
   const [battlePolicy, setBattlePolicy] = useState<BattlePolicy>(initialSettings.battlePolicy);
   const [uiHidden, setUiHidden] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(initialSide === "settings");
   const [helpOpen, setHelpOpen] = useState(false);
   const [dialogOpacity, setDialogOpacity] = useState(initialSettings.dialogOpacity);
   const [immersiveMode, setImmersiveMode] = useState(initialSettings.immersiveMode);
@@ -301,12 +314,29 @@ export default function App() {
     [packId, markSeen],
   );
 
+  const updateSide = useCallback(
+    (
+      side: "archives" | "navigator" | "settings" | null,
+      tab?: NavigatorTab,
+    ) => {
+      const url = new URL(window.location.href);
+      if (side) url.searchParams.set("side", side);
+      else url.searchParams.delete("side");
+      if (side === "navigator" && tab) url.searchParams.set("nav", tab);
+      else if (side !== "navigator") url.searchParams.delete("nav");
+      window.history.replaceState(null, "", url.toString());
+    },
+    [],
+  );
+
   const updateView = useCallback(
     (
       view: "title" | "gallery" | "protagonist" | null,
       tab?: "pictures" | "scenes" | "music",
     ) => {
       const url = new URL(window.location.href);
+      url.searchParams.delete("side");
+      url.searchParams.delete("nav");
       if (!packId) url.searchParams.delete("pack");
       else url.searchParams.set("pack", packId);
       if (view === "title" || view === "protagonist") {
@@ -629,19 +659,22 @@ export default function App() {
     setNavigatorOpen(false);
     setMenuOpen(false);
     setArchiveOpen(true);
-  }, []);
+    updateSide("archives");
+  }, [updateSide]);
 
   const openNavigator = useCallback(() => {
     setArchiveOpen(false);
     setMenuOpen(false);
     setNavigatorOpen(true);
-  }, []);
+    updateSide("navigator", navigatorTab);
+  }, [navigatorTab, updateSide]);
 
   const openSettings = useCallback(() => {
     setArchiveOpen(false);
     setNavigatorOpen(false);
     setMenuOpen(true);
-  }, []);
+    updateSide("settings");
+  }, [updateSide]);
 
   const activeSide: SideTab | null = menuOpen
     ? "settings"
@@ -651,17 +684,30 @@ export default function App() {
         ? "archives"
         : null;
 
-  const chooseSide = useCallback((tab: SideTab) => {
-    setArchiveOpen(tab === "archives");
-    setNavigatorOpen(tab === "navigator");
-    setMenuOpen(tab === "settings");
-  }, []);
+  const chooseSide = useCallback(
+    (tab: SideTab) => {
+      setArchiveOpen(tab === "archives");
+      setNavigatorOpen(tab === "navigator");
+      setMenuOpen(tab === "settings");
+      updateSide(tab, tab === "navigator" ? navigatorTab : undefined);
+    },
+    [navigatorTab, updateSide],
+  );
 
   const closeSide = useCallback(() => {
     setArchiveOpen(false);
     setNavigatorOpen(false);
     setMenuOpen(false);
-  }, []);
+    updateSide(null);
+  }, [updateSide]);
+
+  const changeNavigatorTab = useCallback(
+    (tab: NavigatorTab) => {
+      setNavigatorTab(tab);
+      updateSide("navigator", tab);
+    },
+    [updateSide],
+  );
 
   const openGallery = useCallback(
     (tab: "pictures" | "scenes" | "music" = "pictures") => {
@@ -739,6 +785,7 @@ export default function App() {
       setNavigatorOpen(false);
       setGalleryOpen(false);
       setMenuOpen(false);
+      updateSide(null);
       setData(null);
       setStarted(false);
       setEnded(false);
@@ -749,7 +796,7 @@ export default function App() {
       setReloadKey((k) => k + 1);
       updateURL(scene, 0);
     },
-    [cancelBattle, updateURL],
+    [cancelBattle, updateSide, updateURL],
   );
 
   const newGame = useCallback(() => {
@@ -765,13 +812,14 @@ export default function App() {
       setUiHidden(false);
       setMenuOpen(false);
       setProtagonistOpen(false);
+      updateSide(null);
       setPackId(id);
       setResumeScene("");
       setCurrentScene("");
       setCurrentPC(0);
       setResume({ pc: 0, image: "" });
     },
-    [cancelBattle],
+    [cancelBattle, updateSide],
   );
 
   const choose = useCallback((label: string) => {
@@ -1176,6 +1224,7 @@ export default function App() {
 
               {activeSide === "navigator" && (
                 <Navigator
+                  initialTab={navigatorTab}
                   packId={packId}
                   scene={currentScene}
                   pc={currentPC}
@@ -1184,6 +1233,7 @@ export default function App() {
                   onClose={closeSide}
                   onSeek={seekTo}
                   onSelectScene={(name) => navigateToScene(name, 0)}
+                  onTab={changeNavigatorTab}
                 />
               )}
 
