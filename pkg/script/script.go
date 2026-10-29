@@ -66,8 +66,8 @@ var known = map[string]bool{
 	"SHAEND": true, "SLT": true, "MSLT": true, "IFT": true, "EQU": true,
 	"FLG": true, "INC": true, "DEC": true, "FCK": true, "RND": true,
 	"SAV": true, "MAP": true, "TITLE": true, "PARTY": true, "BATTLE": true,
-	"LEVEL": true, "SPRATE": true, "FADE": true, "SHA": true, "WIN": true,
-	"LOSE": true, "VICTORY": true, "EQF": true, "UIW": true, "GSB": true,
+	"LEVEL": true, "SPRATE": true, "FADE": true, "SHA": true,
+	"EQF": true, "UIW": true, "GSB": true,
 	"EVT": true, "LOAD": true, "G_OVER": true,
 }
 

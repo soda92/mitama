@@ -73,9 +73,13 @@ offset `0x181C8`:
 | `FADE` | milliseconds | fade screen | ⛔ |
 | `SHA` | — | screen shake | ⛔ |
 | `EVT` | — | event effect | ⛔ |
-| `WIN` / `LOSE` | — | battle result branches | ⛔ |
+| `WIN` / `LOSE` / `VICTORY` | — | battle-result labels targeted by `IFT`; they are label definitions, not commands | ✅ labels |
 | `EQF` | — | equipment flag | ⛔ |
 | `UIW` / `GSB` | — | UI wait / game screen buffer | ⛔ |
+
+`WIN`, `LOSE` and `VICTORY` are parsed as labels, not commands. Scripts use
+`IFT 20 = 01 WIN` after a battle; treating `□ＷＩＮ` as a command leaves the
+label undefined and the runtime stops at the branch.
 
 The demo build only contains the first eight commands. The full DVD executable
 contains the entire table above.

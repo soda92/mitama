@@ -35,6 +35,31 @@ func TestParseCommandsAndText(t *testing.T) {
 	}
 }
 
+func TestBattleResultLabels(t *testing.T) {
+	src := `□ＢＡＴＴＬＥ　BGB01_1　YR4_03_30
+□ＩＦＴ　２０　＝　０１　ＷＩＮ
+□ＷＩＮ
+□ＢＭＰ　ＢＬＡＣＫ
+□ＬＯＳＥ
+`
+	s := ParseString(src)
+	if len(s.Commands) != 5 {
+		t.Fatalf("commands = %d: %#v", len(s.Commands), s.Commands)
+	}
+	if got := s.Labels["WIN"]; got != 2 {
+		t.Fatalf("WIN label = %d, want 2; labels = %#v", got, s.Labels)
+	}
+	if got := s.Labels["LOSE"]; got != 4 {
+		t.Fatalf("LOSE label = %d, want 4; labels = %#v", got, s.Labels)
+	}
+	if s.Commands[2].Label != "WIN" || s.Commands[2].Cmd != "" {
+		t.Fatalf("WIN command = %#v", s.Commands[2])
+	}
+	if s.Commands[4].Label != "LOSE" || s.Commands[4].Cmd != "" {
+		t.Fatalf("LOSE command = %#v", s.Commands[4])
+	}
+}
+
 func TestParseSLTOptions(t *testing.T) {
 	src := `□ＳＬＴ
 「右に進もう」　ａ
