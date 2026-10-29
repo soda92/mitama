@@ -1870,19 +1870,6 @@ button.navigator-line.cur .navigator-ptr {
   text-transform: uppercase;
 }
 
-.navigator-chapter-list h4 .navigator-chapter-cg {
-  margin-left: auto;
-  padding: 1px 6px;
-  border: 1px solid #4b5a3a;
-  border-radius: 999px;
-  background: #192117;
-  color: #c8e3b0;
-  font: 9px/1.4 ui-monospace, monospace;
-  font-style: normal;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
 .navigator-scene-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));

@@ -57,7 +57,6 @@ interface SceneGroup {
   title: string;
   order: number;
   scenes: SceneMeta[];
-  cgCount: number;
 }
 
 interface GalleryIndex {
@@ -392,28 +391,21 @@ export default function Navigator({
       const key = `${route}\u0000${title}`;
       let group = map.get(key);
       if (!group) {
-        group = { key, route, title, order: 999, scenes: [], cgCount: 0 };
+        group = { key, route, title, order: 999, scenes: [] };
         map.set(key, group);
       }
       group.order = Math.min(group.order, sceneNumber(item.name));
       group.scenes.push(item);
     }
     return [...map.values()]
-      .map((group) => {
-        const scenes = group.scenes.sort((a, b) => a.name.localeCompare(b.name));
-        const cgKeys = new Set<string>();
-        for (const item of scenes) {
-          for (const key of cgKeysByScene.get(item.name) ?? []) cgKeys.add(key);
-        }
-        return { ...group, scenes, cgCount: cgKeys.size };
-      })
+      .map((group) => ({ ...group, scenes: group.scenes.sort((a, b) => a.name.localeCompare(b.name)) }))
       .sort((a, b) => {
         const routeDelta = ROUTE_ORDER.indexOf(a.route) - ROUTE_ORDER.indexOf(b.route);
         if (routeDelta !== 0) return routeDelta;
         if (a.order !== b.order) return a.order - b.order;
         return a.title.localeCompare(b.title);
       });
-  }, [scenes, sceneMeta, query, cgKeysByScene]);
+  }, [scenes, sceneMeta, query]);
 
   const chapterByID = useMemo(() => {
     const map = new Map<string, StoryChapter>();
@@ -566,25 +558,14 @@ export default function Navigator({
           <div className="navigator-chapter-list">
             <p className="navigator-note">
               Grouped by the in-script chapter title (<code>STS</code>), then by
-              route. Scene ids are shown under each chapter. <b>CG n</b> marks
-              chapters that contain gallery pictures; scene buttons show their
-              own per-scene count.
+              route. Scene ids are shown under each chapter. <b>CG n</b> marks a
+              scene that contains gallery pictures.
             </p>
             {groups.map((group) => (
               <section key={group.key}>
                 <h4>
                   <span>{group.route}</span>
                   {group.title}
-                  {group.cgCount > 0 && (
-                    <em
-                      className="navigator-chapter-cg"
-                      title={`${group.cgCount} gallery picture${
-                        group.cgCount === 1 ? "" : "s"
-                      } in this chapter`}
-                    >
-                      CG {group.cgCount}
-                    </em>
-                  )}
                 </h4>
                 <div className="navigator-scene-grid">
                   {group.scenes.map((item) => {
