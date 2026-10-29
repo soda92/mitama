@@ -909,6 +909,7 @@ export default function App() {
     (snap: Snapshot) => {
       cancelBattle();
       setArchiveOpen(false);
+      updateSide(null);
       setChoices(null);
       setData(null);
       setStarted(false);
@@ -930,7 +931,7 @@ export default function App() {
       setReloadKey((k) => k + 1);
       updateURL(snap.scene, snap.pc);
     },
-    [updateURL, cancelBattle],
+    [updateURL, updateSide, cancelBattle],
   );
 
   const continueGame = useCallback(() => {
@@ -950,7 +951,6 @@ export default function App() {
     (name: string, pc = 0) => {
       cancelBattle();
       const scene = name.replace(/\.txt$/i, "");
-      setNavigatorOpen(false);
       setGalleryOpen(false);
       setGalleryFromTitle(false);
       setHomeOpen(false);
@@ -973,7 +973,6 @@ export default function App() {
       const scene = playerRef.current?.currentScene || currentScene;
       if (!scene) return;
       cancelBattle();
-      setNavigatorOpen(false);
       setData(null);
       setStarted(false);
       setEnded(false);
