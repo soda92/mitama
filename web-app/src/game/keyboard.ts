@@ -33,6 +33,7 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
   const target = ev.target instanceof HTMLElement ? ev.target : null;
   const typing =
     !!target && (target.matches("input, textarea, select") || target.isContentEditable);
+  const inSideWindow = !!target?.closest(".side-window");
 
   // "?" (Shift-/ on most layouts) toggles the shortcut help from any screen.
   if (!typing && (ev.key === "?" || (ev.code === "Slash" && ev.shiftKey))) {
@@ -55,8 +56,16 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
   if (o.helpOpen) return;
   if (o.battleOpen || o.galleryOpen || o.homeOpen) return;
 
+  // Space still hides dialogue/HUD while a side dock is open. Inputs keep
+  // their normal Space behaviour; side-panel buttons can still be used with
+  // Enter or the mouse.
+  if (!typing && ev.code === "Space") {
+    ev.preventDefault();
+    o.setUiHidden(!o.uiHidden);
+    return;
+  }
+
   if (o.archiveOpen || o.navigatorOpen) {
-    const inSideWindow = !!target?.closest(".side-window");
     if (!typing && !inSideWindow) {
       if (ev.key === "Enter" || ev.key === "ArrowRight" || ev.key === "ArrowDown") {
         ev.preventDefault();
@@ -80,9 +89,6 @@ export function handleGameKey(ev: KeyboardEvent, o: GameKeyboardContext): void {
     ev.preventDefault();
     if (o.uiHidden) o.setUiHidden(false);
     else o.advance();
-  } else if (ev.code === "Space") {
-    ev.preventDefault();
-    o.setUiHidden(!o.uiHidden);
   } else if (ev.key === "p" || ev.key === "P") {
     if (o.started) o.togglePause();
   } else if (ev.key === "l" || ev.key === "L") {
