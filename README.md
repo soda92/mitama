@@ -326,7 +326,7 @@ cmd/extract/        ARC/ISO asset extractor
 cmd/xadecode/       KWD1 .xa → WAV converter
 cmd/translate/      batch Google Translate sidecar generator
 cmd/posttranslate/  glossary replacements for an existing translation sidecar
-scripts/            asset tooling (AI upscaling, etc.)
+scripts/            asset tooling, scenario typo fixes, translation repair
 cmd/server/         HTTP server + JSON API + static media
 pkg/arc/            ARC directory and LZSS payload decoding
 pkg/disc/           ISO 9660 / CloneCD / MDF image reader

@@ -133,6 +133,18 @@ the bilingual UI, see [translation.md](translation.md).
 
 Special BMP names: `BLACK`, `WHITE`, `RED`, `BG`, `ZZ`.
 
+## Known scenario typos
+
+`oh4_13` points the line `ま…まさか…素戔鳴…` at `OS4_08_0021`, the 0.26s
+“え？” clip, while the same line in `oa4_12` and `os4_13` uses
+`OS4_08_0228`. Apply the local correction after extraction with:
+
+```sh
+python3 scripts/fix_scenario_typos.py --pack dvd --write
+```
+
+The script is a dry run without `--write` and preserves CP932/CRLF files.
+
 ## Known unknowns
 
 - Exact argument grammar of `MAP`, `SPRATE`, `UIW`, `GSB`, `EQF`, `SHA`.
