@@ -145,6 +145,18 @@ python3 scripts/fix_scenario_typos.py --pack dvd --write
 
 The script is a dry run without `--write` and preserves CP932/CRLF files.
 
+### Missing voice sets
+
+Some scripts reference voice IDs that are not present in any available archive
+or in the ISO. For example, `OE4_24_0031` through `OE4_24_0034` are referenced
+by `oa4_12`, `oh4_13` and `os4_13`, but no `OE4_24_*.XA` files exist in
+`shinobi`, `kunoichi`, `kuno_EX` or the voice disc. Those lines play as
+text-only; there is no clip to remap.
+
+The same audit found a number of one-character ID typos where a valid clip
+does exist (extra or missing zeroes). The fixer above covers the unambiguous
+ones; it should not guess at missing voice sets.
+
 ## Known unknowns
 
 - Exact argument grammar of `MAP`, `SPRATE`, `UIW`, `GSB`, `EQF`, `SHA`.
