@@ -27,9 +27,12 @@ Dialogue uses Japanese quotation marks:
 ```
 
 The part before `「` is the speaker token. `説` marks narration and is
-normalized to an empty speaker, so no name tag is drawn. `￥` is a page break. Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
+normalized to an empty speaker, so no name tag is drawn. `￥` is a page break.
+Inline annotations such as `（ＹＲ１＿０２＿０１７４＿１）` or `（SE034）`
 carry voice/SE cues. They are stripped from the displayed text and replayed
-when the corresponding page is shown.
+when the corresponding page is shown. Variant separators may use `―`, `－`,
+`−`, `‐`, `–`, `—` or `-`; these normalize to `_`. A line containing only an
+annotation, such as `（SE022）`, becomes a `SEV` cue instead of a text command.
 
 ## Command table
 

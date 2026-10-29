@@ -95,6 +95,16 @@ func ParseString(text string) *Script {
 			continue
 		}
 		if !strings.HasPrefix(line, "□") && !strings.HasPrefix(line, "■") {
+			// A standalone annotation line is a sound/voice cue, not dialogue.
+			if name, ok := annotationOnly(line); ok {
+				s.Commands = append(s.Commands, Command{
+					Line: i + 1,
+					Cmd:  "SEV",
+					Args: []string{name},
+					Text: line,
+				})
+				continue
+			}
 			// Dialogue. Gather until the closing quote.
 			if c, next, ok := parseText(lines, i); ok {
 				s.Commands = append(s.Commands, c)
@@ -233,13 +243,13 @@ func extractCues(s string) (string, []Cue) {
 			continue
 		}
 		inner := string(runes[i+1 : j])
-		ascii := normalize(inner)
-		if isAnnotation(ascii) {
+		name := annotationName(normalize(inner))
+		if name != "" {
 			kind := "voice"
-			if strings.HasPrefix(strings.ToUpper(ascii), "SE") {
+			if strings.HasPrefix(name, "SE") {
 				kind = "se"
 			}
-			cues = append(cues, Cue{Page: page, Name: strings.ToUpper(ascii), Kind: kind})
+			cues = append(cues, Cue{Page: page, Name: name, Kind: kind})
 			i = j
 			continue
 		}
@@ -254,18 +264,35 @@ func stripAnnotations(s string) string {
 	return clean
 }
 
-func isAnnotation(s string) bool {
-	if s == "" || len([]rune(s)) > 48 {
-		return false
+// annotationOnly recognizes a line that contains only an engine annotation,
+// such as （SE022）, and returns its normalized cue name.
+func annotationOnly(line string) (string, bool) {
+	line = strings.TrimSpace(normalize(line))
+	if !strings.HasPrefix(line, "(") || !strings.HasSuffix(line, ")") {
+		return "", false
 	}
+	name := annotationName(strings.TrimSuffix(strings.TrimPrefix(line, "("), ")"))
+	return name, name != ""
+}
+
+// annotationName accepts engine annotation text and normalizes the dash
+// variants used as variant separators, e.g. YE4_12_0015―1.
+func annotationName(s string) string {
+	if s == "" || len([]rune(s)) > 48 {
+		return ""
+	}
+	var b strings.Builder
 	for _, r := range s {
 		switch {
 		case r >= '0' && r <= '9', r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r == '_':
+			b.WriteRune(unicode.ToUpper(r))
+		case r == '-', r == '―', r == '－', r == '−', r == '‐', r == '–', r == '—':
+			b.WriteByte('_')
 		default:
-			return false
+			return ""
 		}
 	}
-	return true
+	return b.String()
 }
 
 func splitLines(s string) []string {

@@ -100,3 +100,32 @@ func TestStripAnnotations(t *testing.T) {
 		t.Fatalf("strip = %q", got)
 	}
 }
+
+func TestAnnotationOnlyLine(t *testing.T) {
+	s := ParseString("（SE022）\n□ＳＥＶ　ＹＲ４＿０２＿０３８１\n")
+	if len(s.Commands) != 2 {
+		t.Fatalf("commands = %d: %#v", len(s.Commands), s.Commands)
+	}
+	if s.Commands[0].Cmd != "SEV" || len(s.Commands[0].Args) != 1 || s.Commands[0].Args[0] != "SE022" {
+		t.Fatalf("cue command = %#v", s.Commands[0])
+	}
+}
+
+func TestLongDashAnnotation(t *testing.T) {
+	src := "文「お前が開いた黄泉路だ…￥（ＹＥ４＿１２＿００１５―１）\nこの向こうにはな…」"
+	s := ParseString(src)
+	if len(s.Commands) != 1 {
+		t.Fatalf("commands = %d", len(s.Commands))
+	}
+	want := "お前が開いた黄泉路だ…￥\nこの向こうにはな…"
+	if s.Commands[0].Message != want {
+		t.Fatalf("message = %q, want %q", s.Commands[0].Message, want)
+	}
+	if len(s.Commands[0].Cues) != 1 {
+		t.Fatalf("cues = %#v", s.Commands[0].Cues)
+	}
+	cue := s.Commands[0].Cues[0]
+	if cue.Page != 1 || cue.Name != "YE4_12_0015_1" || cue.Kind != "voice" {
+		t.Fatalf("cue = %#v", cue)
+	}
+}
