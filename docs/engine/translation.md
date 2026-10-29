@@ -166,7 +166,10 @@ applies literal replacement rules to existing `text` fields and choice-option
 values without calling Google again:
 
 ```sh
-go run ./cmd/posttranslate -replace 'chintz=Sarasa' -write -backup
+go run ./cmd/posttranslate \
+  -replace 'chintz=Sarasa' \
+  -replace 'calico=Sarasa' \
+  -write -backup
 ```
 
 It is a dry run by default. Useful flags:
@@ -191,10 +194,9 @@ go run ./cmd/posttranslate \
   -write
 ```
 
-The current sidecar has had `chintz → Sarasa` applied (325 occurrences across
-305 text entries and 5 option values). `calico` is still present because it is
-also used for 更紗 in other lines; add `-replace 'calico=Sarasa'` if that should
-be normalized too.
+The current sidecar has had both `chintz → Sarasa` and `calico → Sarasa`
+applied (569 occurrences total: 325 for `chintz`, 244 for `calico`). All
+remaining references to the source name 更紗 now use `Sarasa`.
 
 ## Using it in the game
 

@@ -110,7 +110,10 @@ and the translation schema.
 Known mistranslations can be fixed without retranslating:
 
 ```sh
-go run ./cmd/posttranslate -replace 'chintz=Sarasa' -write -backup
+go run ./cmd/posttranslate \
+  -replace 'chintz=Sarasa' \
+  -replace 'calico=Sarasa' \
+  -write -backup
 ```
 
 ### Scene links, navigator and archives
