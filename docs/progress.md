@@ -62,6 +62,8 @@ Last updated: 2026-10-25.
 - [x] 18+ in-story scene route/choice guide, Mitama market/cultural context,
       Tony/Ran and Itou Mai voice-actor notes, plus voice-production/
       work-culture/marketing notes in `docs/guides`.
+- [x] Post-translation glossary tool (`cmd/posttranslate`) for repeatable
+      name/term fixes without rerunning machine translation.
 - [x] Archive manager: Recent/Pinned/Chapters, search, notes, pinning,
       thumbnails, overwrite/delete, save current, legacy-slot migration;
       snapshots record the 八尋/朧 route and show it on archive cards.

@@ -107,6 +107,12 @@ It writes `data/dvd/translations.json`. See
 [docs/engine/translation.md](docs/engine/translation.md) for batching, resuming
 and the translation schema.
 
+Known mistranslations can be fixed without retranslating:
+
+```sh
+go run ./cmd/posttranslate -replace 'chintz=Sarasa' -write -backup
+```
+
 ### Scene links, navigator and archives
 
 The current scene and command index are always reflected in the URL:
@@ -316,6 +322,7 @@ replays the immediately preceding `SEV` voice command.
 cmd/extract/        ARC/ISO asset extractor
 cmd/xadecode/       KWD1 .xa → WAV converter
 cmd/translate/      batch Google Translate sidecar generator
+cmd/posttranslate/  glossary replacements for an existing translation sidecar
 scripts/            asset tooling (AI upscaling, etc.)
 cmd/server/         HTTP server + JSON API + static media
 pkg/arc/            ARC directory and LZSS payload decoding

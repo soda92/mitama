@@ -159,6 +159,43 @@ to translate, mainly moans/onomatopoeia. The current full-data run repaired
 833 partially translated entries and leaves 17 entries containing such sounds.
 Those need a manual glossary or transliteration pass.
 
+## Post-translation glossary
+
+Retranslation can reintroduce known mistranslations. `cmd/posttranslate`
+applies literal replacement rules to existing `text` fields and choice-option
+values without calling Google again:
+
+```sh
+go run ./cmd/posttranslate -replace 'chintz=Sarasa' -write -backup
+```
+
+It is a dry run by default. Useful flags:
+
+```text
+-replace old=new     repeatable; matches are case-insensitive by default
+-case-sensitive      literal case-sensitive matching
+-write               write the updated file
+-backup              keep <file>.bak before writing
+-examples 8          dry-run samples to print
+-file PATH           alternate translation file
+```
+
+The tool is literal, so it does not add possessives or rewrite surrounding
+grammar. For example, `chintz kimono` becomes `Sarasa kimono`; add a longer
+phrase rule if a grammatical rewrite is needed:
+
+```sh
+go run ./cmd/posttranslate \
+  -replace "chintz kimono=Sarasa's kimono" \
+  -replace 'chintz=Sarasa' \
+  -write
+```
+
+The current sidecar has had `chintz → Sarasa` applied (325 occurrences across
+305 text entries and 5 option values). `calico` is still present because it is
+also used for 更紗 in other lines; add `-replace 'calico=Sarasa'` if that should
+be normalized too.
+
 ## Using it in the game
 
 Three equivalent controls:
