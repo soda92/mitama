@@ -47,7 +47,9 @@ Clear operators:
   background underneath.
 
 Full-screen images (CGs, backgrounds) are 640×480 and are pushed onto the
-background stack. Background changes clear character slots; scripts then add
+background stack. A new CG replaces the previous CG layer while preserving the
+base background underneath; `BMP CG… 消去` therefore reveals the normal scene,
+not an earlier CG. Background changes clear character slots; scripts then add
 the stands for the new scene.
 
 ## Transparency

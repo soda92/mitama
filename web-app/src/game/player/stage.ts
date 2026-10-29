@@ -168,6 +168,13 @@ export class StageRenderer {
     }
     const img = await this.loadImage(name);
     if (slot === "bg") {
+      // A full-screen CG replaces the previous CG, but keeps the base
+      // background underneath so clearing the CG reveals the normal scene.
+      if (name.startsWith("CG")) {
+        stage.bgs = stage.bgs.filter(
+          (entry) => !entry.name.toUpperCase().startsWith("CG"),
+        );
+      }
       if (stage.bgs[stage.bgs.length - 1]?.name.toUpperCase() === name) {
         stage.bgs[stage.bgs.length - 1] = { name, img };
       } else {
